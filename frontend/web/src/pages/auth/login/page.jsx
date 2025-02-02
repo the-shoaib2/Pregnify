@@ -38,7 +38,7 @@ export default function Login() {
       const response = await login(formData)
       
       // Log success response
-      console.log('Login successful:', response)
+      // console.log('Login successful:', response)
 
       toast.success('Login successful')
       navigate('/')
@@ -139,7 +139,7 @@ export default function Login() {
           <p className="text-center text-sm text-muted-foreground">
           Don't have an account?{' '}
           <Link 
-            to="/signup" 
+            to="/register" 
             className="text-primary underline-offset-4 hover:underline"
           >
             Register

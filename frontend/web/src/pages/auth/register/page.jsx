@@ -7,27 +7,50 @@ import { FaGoogle, FaGithub } from 'react-icons/fa'
 import { useAuth } from '@/contexts/auth-context'
 
 // Form field configuration
+const ROLES = [
+  // { value: 'SUPER_ADMIN', label: 'Super Admin' },
+  // { value: 'ADMIN', label: 'Admin' },
+  { value: 'DOCTOR', label: 'Doctor' },
+  { value: 'PATIENT', label: 'Patient' },
+  { value: 'GUEST', label: 'Guest' }
+]
+
+const GENDER_OPTIONS = [
+  { value: 'MALE', label: 'Male' },
+  { value: 'FEMALE', label: 'Female' },
+  { value: 'OTHER', label: 'Other' }
+]
+
 const FORM_FIELDS = [
-  { name: 'fullName', label: 'Full Name', type: 'text', required: true },
-  { name: 'email', label: 'Email', type: 'email', required: true },
-  { name: 'phoneNumber', label: 'Phone Number', type: 'tel', required: true },
-  { name: 'address', label: 'Address', type: 'text', required: true },
-  { name: 'description', label: 'Description', type: 'textarea', rows: 3 },
-  { name: 'password', label: 'Password', type: 'password', required: true },
-  { name: 'confirmPassword', label: 'Confirm Password', type: 'password', required: true }
+  { name: 'firstName', label: 'First Name', type: 'text', required: true, placeholder: 'John' },
+  { name: 'lastName', label: 'Last Name', type: 'text', required: true, placeholder: 'Doe' },
+  { name: 'email', label: 'Email', type: 'email', required: true, placeholder: 'john.doe@example.com' },
+  { name: 'phone', label: 'Phone', type: 'tel', required: true, placeholder: '+880 1XXX-XXXXXX' },
+  { name: 'password', label: 'Password', type: 'password', required: true, placeholder: '••••••••' },
+  { name: 'confirmPassword', label: 'Confirm Password', type: 'password', required: true, placeholder: '••••••••' },
+  { name: 'description', label: 'Description', type: 'textarea', rows: 3, placeholder: 'Tell us a bit about yourself...' },
+  { name: 'termsAndConditions', label: 'I agree to the terms and conditions', type: 'checkbox', required: true }
 ]
 
 const INITIAL_FORM_STATE = {
-  fullName: '',
+  role: 'PATIENT',
+  firstName: '',
+  lastName: '',
   email: '',
+  phone: '',
+  dateOfBirth: {
+    day: '',
+    month: '',
+    year: ''
+  },
   password: '',
   confirmPassword: '',
-  phoneNumber: '',
-  address: '',
+  gender: '',
+  termsAccepted: false,
   description: ''
 }
 
-export default function Signup() {
+export default function Register() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [loadingMessage, setLoadingMessage] = useState('')
@@ -35,12 +58,27 @@ export default function Signup() {
   const { login } = useAuth()
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    const { name, value, type, checked } = e.target
+    
+    if (name.includes('.')) {
+      const [parent, child] = name.split('.')
+      setFormData(prev => ({
+        ...prev,
+        [parent]: {
+          ...prev[parent],
+          [child]: type === 'number' ? parseInt(value) : value
+        }
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value
+      }))
+    }
   }
 
   const validateForm = () => {
-    if (!formData.fullName || !formData.email || !formData.password || !formData.phoneNumber) {
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password || !formData.phone) {
       toast.error('Please fill in all required fields')
       return false
     }
@@ -55,9 +93,24 @@ export default function Signup() {
       return false
     }
 
+    if (!formData.dateOfBirth.day || !formData.dateOfBirth.month || !formData.dateOfBirth.year) {
+      toast.error('Please enter your complete date of birth')
+      return false
+    }
+
+    if (!formData.gender) {
+      toast.error('Please select your gender')
+      return false
+    }
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(formData.email)) {
       toast.error('Please enter a valid email address')
+      return false
+    }
+
+    if (!formData.termsAccepted) {
+      toast.error('Please accept the terms and conditions')
       return false
     }
 
@@ -74,8 +127,7 @@ export default function Signup() {
       setLoadingMessage('Creating your account...')
 
       const registrationData = {
-        ...formData,
-        confirmPassword: undefined
+        ...formData
       }
       
       const registerResponse = await authAPI.register(registrationData)
@@ -83,22 +135,22 @@ export default function Signup() {
       if (registerResponse.success) {
         toast.success('Account created successfully!')
         
-        // Attempt auto-login
-        try {
-          setLoadingMessage('Logging you in...')
-          await login({
-            email: formData.email,
-            password: formData.password
-          })
+        // // Attempt auto-login
+        // try {
+        //   setLoadingMessage('Logging you in...')
+        //   await login({
+        //     email: formData.email,
+        //     password: formData.password
+        //   })
           
           toast.success('Welcome to your dashboard!')
-          setFormData(INITIAL_FORM_STATE)
-          navigate('/', { replace: true })
-        } catch (loginError) {
-          console.error('Auto-login failed:', loginError)
-          toast.error('Account created but auto-login failed. Please login manually.')
-          navigate('/login')
-        }
+        //   setFormData(INITIAL_FORM_STATE)
+        //   navigate('/', { replace: true })
+        // } catch (loginError) {
+        //   console.error('Auto-login failed:', loginError)
+        //   toast.error('Account created but auto-login failed. Please login manually.')
+        //   navigate('/login')
+        // }
       }
     } catch (error) {
       console.error('Registration error:', error)
@@ -121,7 +173,7 @@ export default function Signup() {
     }
   }
 
-  const renderFormField = ({ name, label, type, rows, required }) => (
+  const renderFormField = ({ name, label, type, rows, required, options, placeholder }) => (
     <div key={name} className="space-y-1">
       <label className="block text-sm font-medium" htmlFor={name}>
         {label} {required && '*'}
@@ -131,16 +183,49 @@ export default function Signup() {
           id={name}
           name={name}
           rows={rows}
+          placeholder={placeholder}
           className="w-full p-2 text-sm rounded-md border focus:ring-2 focus:ring-primary"
           value={formData[name]}
           onChange={handleInputChange}
         />
+      ) : type === 'select' ? (
+        <select
+          id={name}
+          name={name}
+          required={required}
+          className="w-full p-2 text-sm rounded-md border focus:ring-2 focus:ring-primary"
+          value={formData[name]}
+          onChange={handleInputChange}
+        >
+          <option value="">{placeholder}</option>
+          {options?.map(option => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      ) : type === 'checkbox' ? (
+        <div className="flex items-center space-x-2">
+          <input
+            id={name}
+            type={type}
+            name={name}
+            required={required}
+            className="rounded border-gray-300 text-primary focus:ring-primary"
+            checked={formData[name]}
+            onChange={handleInputChange}
+          />
+          <label htmlFor={name} className="text-sm text-muted-foreground">
+            {label}
+          </label>
+        </div>
       ) : (
         <input
           id={name}
           type={type}
           name={name}
           required={required}
+          placeholder={placeholder}
           className="w-full p-2 text-sm rounded-md border focus:ring-2 focus:ring-primary"
           value={formData[name]}
           onChange={handleInputChange}
@@ -162,7 +247,7 @@ export default function Signup() {
 
       <div className="w-[680px] space-y-4 bg-card rounded-lg border p-6">
         <div className="space-y-1.5 text-center">
-          <h1 className="text-2xl font-bold">Admin Create Account</h1>
+          <h1 className="text-2xl font-bold">Create Account</h1>
           <p className="text-sm text-muted-foreground">
             Fill in the details below to create your account
           </p>
@@ -204,22 +289,119 @@ export default function Signup() {
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            {renderFormField(FORM_FIELDS[0])} {/* Full Name */}
-            {renderFormField(FORM_FIELDS[1])} {/* Email */}
+            {renderFormField(FORM_FIELDS[0])} {/* First Name */}
+            {renderFormField(FORM_FIELDS[1])} {/* Last Name */}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            {renderFormField(FORM_FIELDS[2])} {/* Phone */}
-            {renderFormField(FORM_FIELDS[3])} {/* Address */}
+            {renderFormField(FORM_FIELDS[2])} {/* Email */}
+            {renderFormField(FORM_FIELDS[3])} {/* Phone */}
           </div>
-
-          {renderFormField({ ...FORM_FIELDS[4], rows: 2 })} {/* Description with reduced rows */}
 
           <div className="grid grid-cols-2 gap-3">
-            {renderFormField(FORM_FIELDS[5])} {/* Password */}
-            {renderFormField(FORM_FIELDS[6])} {/* Confirm Password */}
+            {renderFormField(FORM_FIELDS[4])} {/* Password */}
+            {renderFormField(FORM_FIELDS[5])} {/* Confirm Password */}
           </div>
-          
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="block text-sm font-medium">Role *</label>
+              <select
+                name="role"
+                value={formData.role}
+                onChange={handleInputChange}
+                required
+                className="w-full p-2 text-sm rounded-md border focus:ring-2 focus:ring-primary"
+              >
+                <option value="">Select Role</option>
+                {ROLES.map(role => (
+                  <option key={role.value} value={role.value}>
+                    {role.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="block text-sm font-medium">Gender *</label>
+              <select
+                name="gender"
+                value={formData.gender}
+                onChange={handleInputChange}
+                required
+                className="w-full p-2 text-sm rounded-md border focus:ring-2 focus:ring-primary"
+              >
+                <option value="">Select Gender</option>
+                {GENDER_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Date of Birth */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">Date of Birth *</label>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <input
+                  type="number"
+                  name="dateOfBirth.day"
+                  placeholder="Day"
+                  min="1"
+                  max="31"
+                  value={formData.dateOfBirth.day}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full p-2 text-sm rounded-md border focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <input
+                  type="number"
+                  name="dateOfBirth.month"
+                  placeholder="Month"
+                  min="1"
+                  max="12"
+                  value={formData.dateOfBirth.month}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full p-2 text-sm rounded-md border focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <input
+                  type="number"
+                  name="dateOfBirth.year"
+                  placeholder="Year"
+                  min="1900"
+                  max={new Date().getFullYear()}
+                  value={formData.dateOfBirth.year}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full p-2 text-sm rounded-md border focus:ring-2 focus:ring-primary"
+                />
+              </div>
+            </div>
+          </div>
+
+          {renderFormField(FORM_FIELDS[6])} {/* Description */}
+
+          <div className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="checkbox"
+              name="termsAccepted"
+              id="termsAccepted"
+              checked={formData.termsAccepted}
+              onChange={handleInputChange}
+              required
+              className="form-checkbox h-4 w-4 border-[--border] rounded focus:ring-[--ring] text-[--primary] bg-[--background]"
+            />
+            <label htmlFor="termsAccepted" className="text-sm font-bold text-foreground">
+              I agree to the terms and conditions *
+            </label>
+          </div>
           <Button 
             type="submit" 
             className="w-full py-2 text-base font-medium mt-2"
@@ -233,12 +415,30 @@ export default function Signup() {
           Already have an account?{' '}
           <Link 
             to="/login" 
-            className="text-primary underline-offset-4 hover:underline"
+            className="text-primary font-bold underline-offset-4 hover:underline"
           >
-            Sign in
+            Login
           </Link>
         </p>
+
+        <p className="text-center text-sm text-muted-foreground">
+          By creating an account, you agree to our{' '}
+          <Link 
+            to="#" 
+            className="text-primary underline-offset-4 hover:underline"
+          >
+            Terms of Service
+          </Link>{' '}
+          and{' '}
+          <Link 
+            to="#" 
+            className="text-primary underline-offset-4 hover:underline"
+          >
+            Privacy Policy
+          </Link>
+        </p>
+
       </div>
     </div>
   )
-} 
+}

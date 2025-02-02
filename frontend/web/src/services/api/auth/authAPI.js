@@ -1,8 +1,8 @@
 import api from '../../config/config';
 
 export const USER_ROLES = {
-  SUPER_ADMIN: 'SUPER_ADMIN',
-  ADMIN: 'ADMIN',
+  // SUPER_ADMIN: 'SUPER_ADMIN',
+  // ADMIN: 'ADMIN',
   DOCTOR: 'DOCTOR',
   PATIENT: 'PATIENT',
   GUEST: 'GUEST'
@@ -15,22 +15,18 @@ let lastMeRequest = 0;
 const ME_REQUEST_COOLDOWN = 2000; // 2 seconds between requests
 let cachedUserData = null;
 
-const formatUserData = (userData) => ({
-  id: userData.id,
-  email: userData.email,
-  fullName: userData.name,
-  role: userData.role,
-  username: userData.username,
-  userID: userData.userID,
-  phoneNumber: userData.phoneNumber,
-  isEmailVerified: userData.isEmailVerified,
-  is2FAEnabled: userData.is2FAEnabled,
-  lastLoginAt: userData.lastLoginAt,
-  status: userData.status || userData.isActive,
-  notifications: userData.notifications,
-  preferences: userData.preferences,
-  personalInfo: userData.personalInfo
-});
+// const formatUserData = (userData) => ({
+//   role: userData.role,
+//   firstName: userData.firstName,
+//   lastName: userData.lastName,
+//   email: userData.email,
+//   phone: userData.phone,
+//   dateOfBirth: userData.dateOfBirth,
+//   gender: userData.gender,
+//   termsAccepted: userData.termsAccepted,
+//   description: userData.description
+// });
+
 
 export const authAPI = {
   login: async (credentials) => {
@@ -85,7 +81,7 @@ export const authAPI = {
   register: async (userData) => {
     try {
       const formattedData = {
-        role: USER_ROLES,
+        role: userData.role,
         firstName: userData.firstName,
         lastName: userData.lastName,
         email: userData.email,
@@ -102,8 +98,23 @@ export const authAPI = {
         description: userData.description || "New user registration"
       };
 
+      console.log("Submitting data:", formattedData);
+
+
       const response = await api.post('/api/v1/auth/register', formattedData);
-      
+
+      if (response.data?.success) {
+        toast.success('Account created successfully!');
+      }
+
+      if (!response.data?.success) {
+        toast.error('Account already exists');
+        return {
+          success: false,
+          message: 'Account already exists'
+        };
+      }
+
       if (response.data?.token) {
         localStorage.setItem('token', response.data.token);
       }
