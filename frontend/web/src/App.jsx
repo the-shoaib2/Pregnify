@@ -1,12 +1,12 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
-import { AuthProvider, useAuth } from '@/contexts/AuthContext'
+import { AuthProvider, useAuth } from '@/contexts/auth-context'
 import Login from '@/pages/auth/login/page'
-import Signup from '@/pages/auth/signup/page'
+import Register from '@/pages/auth/register/page'
 import Home from '@/pages/Home/page'
-import Settings from '@/pages/settings/page'
-import Profile from '@/pages/profile/page'
-import LoadingScreen from '@/components/LoadingScreen'
+// import Settings from '@/pages/settings/page'
+// import Profile from '@/pages/profile/page'
+import LoadingScreen from '@/components/loading-screen'
 import { Layout } from '@/components/layout'
 
 // Configure future flags
@@ -62,10 +62,10 @@ function AppRoutes() {
       />
       
       <Route 
-        path="/signup" 
+        path="/register" 
         element={
           <PublicRoute>
-            <Signup />
+            <Register />
           </PublicRoute>
         } 
       />
@@ -82,7 +82,7 @@ function AppRoutes() {
         } 
       />
 
-      <Route 
+      {/* <Route 
         path="/settings" 
         element={
           <ProtectedRoute>
@@ -91,8 +91,8 @@ function AppRoutes() {
             </Layout>
           </ProtectedRoute>
         } 
-      />
-
+      /> */}
+{/* 
       <Route 
         path="/profile" 
         element={
@@ -102,7 +102,7 @@ function AppRoutes() {
             </Layout>
           </ProtectedRoute>
         } 
-      />
+      /> */}
 
       <Route 
         path="/dashboard" 

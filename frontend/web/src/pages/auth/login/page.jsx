@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { toast } from 'react-hot-toast'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/auth-context'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -64,7 +64,7 @@ export default function Login() {
         <div className="p-6 space-y-6 bg-card text-card-foreground rounded-lg border border-border shadow-sm">
 
         <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Admin Login</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Login</h1>
           <p className="text-sm text-muted-foreground">
             Enter your credentials to access your account
             </p>
@@ -142,7 +142,7 @@ export default function Login() {
             to="/signup" 
             className="text-primary underline-offset-4 hover:underline"
           >
-            Sign up
+            Register
             </Link>
           </p>
         </div>

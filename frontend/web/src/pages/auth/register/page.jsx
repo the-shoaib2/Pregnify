@@ -4,7 +4,7 @@ import { authAPI } from '@/services/api'
 import { Button } from '@/components/ui/button'
 import { toast } from 'react-hot-toast'
 import { FaGoogle, FaGithub } from 'react-icons/fa'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/auth-context'
 
 // Form field configuration
 const FORM_FIELDS = [
