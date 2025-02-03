@@ -54,11 +54,11 @@ export function NavUser() {
 
   // Create display name with better fallbacks
   const displayName = React.useMemo(() => {
-    if (!user) return 'Guest User'
+    if (!user) return user.role
     if (user.name && !user.name.includes('undefined')) {
       return user.name
     }
-    return user.email?.split('@')[0] || 'Guest User'
+    return user.email?.split('@')[0] || user.role
   }, [user])
 
   // Create initials with better fallbacks
