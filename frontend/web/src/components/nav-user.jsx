@@ -52,6 +52,14 @@ export function NavUser() {
   const navigate = useNavigate()
   const [isLoggingOut, setIsLoggingOut] = React.useState(false)
 
+  // Handle feature not implemented clicks
+  const handleNotImplemented = (feature) => {
+    toast.error(`${feature} not implemented!`, {
+      duration: 2000,
+  
+    })
+  }
+
   // Create display name with better fallbacks
   const displayName = React.useMemo(() => {
     if (!user) return user.role
@@ -128,23 +136,23 @@ export function NavUser() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Sparkles />
+              <DropdownMenuItem onSelect={() => handleNotImplemented('Pro upgrade')}>
+                <Sparkles className="mr-2 h-4 w-4" />
                 Upgrade to Pro
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck />
+              <DropdownMenuItem onSelect={() => handleNotImplemented('Account settings')}>
+                <BadgeCheck className="mr-2 h-4 w-4" />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCard />
+              <DropdownMenuItem onSelect={() => handleNotImplemented('Billing')}>
+                <CreditCard className="mr-2 h-4 w-4" />
                 Billing
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell />
+              <DropdownMenuItem onSelect={() => handleNotImplemented('Notifications')}>
+                <Bell className="mr-2 h-4 w-4" />
                 Notifications
               </DropdownMenuItem>
             </DropdownMenuGroup>
