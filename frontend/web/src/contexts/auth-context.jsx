@@ -1,110 +1,130 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { authAPI, setAuthToken } from '@/services/api'
-import { toast } from 'react-hot-toast'
+import axios from 'axios'
+import Cookies from 'js-cookie'
 
-const AuthContext = createContext(null)
+const AuthContext = createContext({})
+
+const API_URL = import.meta.env.VITE_API_URL
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [currentStore, setCurrentStore] = useState(null)
-  const [stores, setStores] = useState([])
-  const navigate = useNavigate()
-  const location = useLocation()
+
+  // Optimize token handling
+  const setAuthToken = (token) => {
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+      localStorage.setItem('accessToken', token)
+      Cookies.set('accessToken', token)
+    }
+  }
+
+  // Initialize auth state
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken') || Cookies.get('accessToken')
+    if (token) {
+      setAuthToken(token)
+    }
+    checkAuth()
+  }, [])
 
   const checkAuth = async () => {
     try {
-      const response = await authAPI.checkAuth()
-      if (response.success) {
-        setUser(response.data)
-      }
-    } catch (error) {
-      if (error.status === 429) {
-        // If rate limited, try again after a delay
-        setTimeout(checkAuth, 2000)
+      const token = localStorage.getItem('accessToken') || Cookies.get('accessToken')
+      if (!token) {
+        setLoading(false)
         return
       }
+
+      const response = await axios.get(`${API_URL}/auth/me`)
+      // Directly set the user data from response
+      setUser(response.data.user)
+
+      if (response.data.tokens?.accessToken) {
+        setAuthToken(response.data.tokens.accessToken)
+      }
+    } catch (error) {
       console.error('Auth check failed:', error)
-      localStorage.removeItem('token')
+      handleLogout()
     } finally {
       setLoading(false)
     }
   }
 
-  // Check auth status on mount
-  useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (token) {
-      setAuthToken(token)
-      checkAuth()
-    } else {
-      setLoading(false)
+  const register = async (credentials) => {
+    try {
+      const response = await axios.post(`${API_URL}/auth/register`, credentials)
+      setUser(response.data.user)
+      
+      if (response.data.tokens?.accessToken) {
+        setAuthToken(response.data.tokens.accessToken)
+      }
+
+      return response.data
+    } catch (error) {
+      throw error.response?.data || error
     }
-  }, [])
+  }
 
   const login = async (credentials) => {
     try {
-      const response = await authAPI.login(credentials)
-      
-      if (response.success) {
-        setUser(response.data)
-        return response.data
+      const response = await axios.post(`${API_URL}/auth/login`, credentials)
+      // Directly set the user data from response
+      setUser(response.data.user)
+      console.log("User data in login:", response.data.user)
+
+      if (response.data.tokens?.accessToken) {
+        setAuthToken(response.data.tokens.accessToken)
       }
-      
-      throw new Error('Login failed')
+
+      return response.data
     } catch (error) {
-      console.error('Login failed:', error)
-      throw error
+      throw error.response?.data || error
     }
   }
 
   const handleLogout = () => {
     setUser(null)
-    setCurrentStore(null)
-    setStores([])
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    localStorage.removeItem('currentStore')
-    if (!isPublicRoute(location.pathname)) {
-      navigate('/login', { replace: true })
-    }
+    localStorage.removeItem('accessToken')
+    localStorage.removeItem('refreshToken')
+    
+    // Clear all auth-related cookies with proper path
+    Cookies.remove('accessToken', { path: '/' })
+    Cookies.remove('refreshToken', { path: '/' })
+    Cookies.remove('user', { path: '/' })
+    Cookies.remove('session', { path: '/' })
+    
+    delete axios.defaults.headers.common['Authorization']
+    
+    // Clear any auth-related items
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('auth_') || key.includes('token')) {
+        localStorage.removeItem(key)
+      }
+    })
+    
+    Object.keys(Cookies.get()).forEach(key => {
+      if (key.startsWith('auth_') || key.includes('token')) {
+        Cookies.remove(key, { path: '/' })
+      }
+    })
   }
 
   const logout = async () => {
     try {
-      await authAPI.logout()
-    } catch (error) {
-      console.error('Logout error:', error)
+      await axios.post(`${API_URL}/auth/logout`).catch((error) => {
+        console.warn('Server logout failed, proceeding with local cleanup:', error)
+      })
     } finally {
       handleLogout()
     }
   }
 
-  // Helper function to check if route is public
-  const isPublicRoute = (path) => {
-    return ['/login', '/signup', '/'].includes(path)
-  }
-
-  const value = {
-    user,
-    loading,
-    login,
-    logout,
-    checkAuth
-  }
-
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ user, loading, login, logout, register }}>
       {children}
     </AuthContext.Provider>
   )
 }
 
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  return context
-} 
+export const useAuth = () => useContext(AuthContext)

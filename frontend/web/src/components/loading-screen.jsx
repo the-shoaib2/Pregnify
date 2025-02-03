@@ -1,15 +1,11 @@
-import React from 'react'
-import { Home } from 'lucide-react'
+import {Loader } from "lucide-react"
 
-export function LoadingScreen() {
+export default function LoadingScreen() {
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background">
-      <div className="flex flex-col items-center justify-center space-y-4">
-        {/* <Home className="size-16 text-primary animate-pulse" /> */}
-        <span className="text-muted-foreground animate-pulse">Loading..</span>
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="flex flex-col items-center gap-2">
+        <Loader className="h-8 w-8 animate-spin text-primary" />
       </div>
     </div>
   )
 }
-
-export default LoadingScreen
