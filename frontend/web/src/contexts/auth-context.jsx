@@ -9,6 +9,7 @@ const API_URL = import.meta.env.VITE_API_URL
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [isLoadingUser, setIsLoadingUser] = useState(false)
 
   // Optimize token handling
   const setAuthToken = (token) => {
@@ -28,6 +29,20 @@ export function AuthProvider({ children }) {
     checkAuth()
   }, [])
 
+  const fetchUserData = async () => {
+    setIsLoadingUser(true)
+    try {
+      const response = await axios.get(`${API_URL}/auth/me`)
+      setUser(response.data.user)
+      return response.data.user
+    } catch (error) {
+      console.error('Failed to fetch user data:', error)
+      throw error
+    } finally {
+      setIsLoadingUser(false)
+    }
+  }
+
   const checkAuth = async () => {
     try {
       const token = localStorage.getItem('accessToken') || Cookies.get('accessToken')
@@ -36,13 +51,12 @@ export function AuthProvider({ children }) {
         return
       }
 
-      const response = await axios.get(`${API_URL}/auth/me`)
-      // Directly set the user data from response
-      setUser(response.data.user)
+      await fetchUserData()
 
-      if (response.data.tokens?.accessToken) {
-        setAuthToken(response.data.tokens.accessToken)
-      }
+      // Note: response is not defined in this scope, so I assume you meant to use the response from fetchUserData
+      // if (response?.data?.tokens?.accessToken) {
+      //   setAuthToken(response.data.tokens.accessToken)
+      // }
     } catch (error) {
       console.error('Auth check failed:', error)
       handleLogout()
@@ -54,10 +68,10 @@ export function AuthProvider({ children }) {
   const register = async (credentials) => {
     try {
       const response = await axios.post(`${API_URL}/auth/register`, credentials)
-      setUser(response.data.user)
-      
       if (response.data.tokens?.accessToken) {
         setAuthToken(response.data.tokens.accessToken)
+        // Lazy load user data after registration
+        await fetchUserData()
       }
 
       return response.data
@@ -69,12 +83,11 @@ export function AuthProvider({ children }) {
   const login = async (credentials) => {
     try {
       const response = await axios.post(`${API_URL}/auth/login`, credentials)
-      // Directly set the user data from response
-      setUser(response.data.user)
-      console.log("User data in login:", response.data.user)
-
+      
       if (response.data.tokens?.accessToken) {
         setAuthToken(response.data.tokens.accessToken)
+        // Lazy load user data after login
+        await fetchUserData()
       }
 
       return response.data
@@ -102,7 +115,6 @@ export function AuthProvider({ children }) {
         localStorage.removeItem(key)
       }
     })
-    
     Object.keys(Cookies.get()).forEach(key => {
       if (key.startsWith('auth_') || key.includes('token')) {
         Cookies.remove(key, { path: '/' })
@@ -121,7 +133,18 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, register }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        isLoadingUser,
+        login,
+        logout,
+        register,
+        checkAuth,
+        fetchUserData
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )

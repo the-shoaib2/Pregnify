@@ -47,8 +47,10 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
 import { NavUserSkeleton } from "@/components/nav-user-skeleton"
 
-export function NavUser({ user, isLoading }) {
-  if (isLoading) {
+export function NavUser() {
+  const { user, isLoadingUser } = useAuth()
+  
+  if (isLoadingUser) {
     return <NavUserSkeleton />
   }
 
@@ -68,9 +70,8 @@ export function NavUser({ user, isLoading }) {
   // Create display name with better fallbacks
   const displayName = React.useMemo(() => {
     if (!user) return user.role
-    if (user.name && !user.name.includes('undefined')) {
-      return user.name
-    }
+    if (user.name ) return user.name
+    if (user.email) return user.email?.split('@')[0] || user.role
     return user.email?.split('@')[0] || user.role
   }, [user])
 
