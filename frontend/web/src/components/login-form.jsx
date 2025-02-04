@@ -43,7 +43,7 @@ export function LoginForm({
       const response = await login(formData)
       if (response?.tokens?.accessToken) {
         // Token is now handled in the auth context
-        console.log('Login successful with token')
+        // console.log('Login successful with token')
         navigate('/')
         toast.success('Login successful')
       } else {

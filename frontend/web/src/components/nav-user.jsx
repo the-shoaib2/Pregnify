@@ -45,10 +45,15 @@ import {
 import { useAuth } from "@/contexts/auth-context"
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
+import { NavUserSkeleton } from "@/components/nav-user-skeleton"
 
-export function NavUser() {
+export function NavUser({ user, isLoading }) {
+  if (isLoading) {
+    return <NavUserSkeleton />
+  }
+
   const { isMobile } = useSidebar()
-  const { logout, user } = useAuth()
+  const { logout } = useAuth()
   const navigate = useNavigate()
   const [isLoggingOut, setIsLoggingOut] = React.useState(false)
 

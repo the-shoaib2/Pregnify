@@ -1,6 +1,7 @@
 "use client"
 
 import { ChevronRight } from "lucide-react";
+import { NavMainSkeleton } from "@/components/nav-main-skeleton"
 
 import {
   Collapsible,
@@ -20,8 +21,13 @@ import {
 } from "@/components/ui/sidebar"
 
 export function NavMain({
-  items
+  items,
+  isLoading
 }) {
+  if (isLoading) {
+    return <NavMainSkeleton />
+  }
+
   return (
     (<SidebarGroup>
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
