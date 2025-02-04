@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { toast } from "react-hot-toast"
 import { Button } from "@/components/ui/button"
 import {
@@ -10,34 +11,31 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2 } from "lucide-react"
+import { Loader2, Eye, EyeOff } from "lucide-react"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
-
-const toastConfig = {
-  position: 'top-center',
-  duration: 3000,
-  style: {
-    minWidth: 'fit-content',
-    textAlign: 'center'
-  }
-}
+import { useAuth } from "@/contexts/auth-context"
 
 export function ForgotPasswordForm() {
+  const navigate = useNavigate()
+  const { sendPasswordResetEmail, verifyResetCode, resetPassword } = useAuth()
   const [email, setEmail] = useState("")
   const [step, setStep] = useState("email") // email, otp, newPassword
   const [loading, setLoading] = useState(false)
   const [otp, setOtp] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleEmailSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     try {
-      // Call your API to send OTP email
-      await sendOTPEmail(email)
-      toast.success("OTP sent to your email", toastConfig)
+      await sendPasswordResetEmail(email)
+      toast.success("Reset code sent to your email")
       setStep("otp")
     } catch (error) {
-      toast.error(error.message || "Failed to send OTP", toastConfig)
+      console.error('Failed to send reset email:', error)
+      toast.error(error?.message || "Failed to send reset code")
     } finally {
       setLoading(false)
     }
@@ -47,12 +45,12 @@ export function ForgotPasswordForm() {
     e.preventDefault()
     setLoading(true)
     try {
-      // Verify OTP
-      await verifyOTP(email, otp)
-      toast.success("OTP verified successfully", toastConfig)
+      await verifyResetCode(email, otp)
+      toast.success("Code verified successfully")
       setStep("newPassword")
     } catch (error) {
-      toast.error(error.message || "Invalid OTP", toastConfig)
+      console.error('Failed to verify code:', error)
+      toast.error(error?.message || "Invalid reset code")
     } finally {
       setLoading(false)
     }
@@ -60,15 +58,25 @@ export function ForgotPasswordForm() {
 
   const handlePasswordReset = async (e) => {
     e.preventDefault()
+    
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords do not match")
+      return
+    }
+
+    if (newPassword.length < 8) {
+      toast.error("Password must be at least 8 characters long")
+      return
+    }
+
     setLoading(true)
     try {
-      // Reset password
       await resetPassword(email, otp, newPassword)
-      toast.success("Password reset successfully", toastConfig)
-      // Redirect to login
+      toast.success("Password reset successfully")
       navigate("/login")
     } catch (error) {
-      toast.error(error.message || "Failed to reset password", toastConfig)
+      console.error('Failed to reset password:', error)
+      toast.error(error?.message || "Failed to reset password")
     } finally {
       setLoading(false)
     }
@@ -108,13 +116,21 @@ export function ForgotPasswordForm() {
                 "Send Reset Code"
               )}
             </Button>
+            <Button
+              variant="link"
+              className="w-full"
+              type="button"
+              onClick={() => navigate("/login")}
+            >
+              Back to Login
+            </Button>
           </form>
         )}
 
         {step === "otp" && (
           <form onSubmit={handleOTPSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label>Enter OTP</Label>
+              <Label>Enter Reset Code</Label>
               <InputOTP
                 value={otp}
                 onChange={setOtp}
@@ -128,15 +144,23 @@ export function ForgotPasswordForm() {
                 )}
               />
             </div>
-            <Button className="w-full" type="submit" disabled={loading}>
+            <Button className="w-full" type="submit" disabled={loading || otp.length !== 6}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Verifying...
                 </>
               ) : (
-                "Verify OTP"
+                "Verify Code"
               )}
+            </Button>
+            <Button
+              variant="link"
+              className="w-full"
+              type="button"
+              onClick={() => setStep("email")}
+            >
+              Back to Email
             </Button>
           </form>
         )}
@@ -145,35 +169,63 @@ export function ForgotPasswordForm() {
           <form onSubmit={handlePasswordReset} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="newPassword">New Password</Label>
-              <Input
-                id="newPassword"
-                type="password"
-                required
-                className="w-full"
-              />
+              <div className="relative">
+                <Input
+                  id="newPassword"
+                  type={showPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  minLength={8}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                required
-                className="w-full"
-              />
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+              </div>
             </div>
             <Button className="w-full" type="submit" disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Resetting...
+                  Resetting Password...
                 </>
               ) : (
                 "Reset Password"
               )}
+            </Button>
+            <Button
+              variant="link"
+              className="w-full"
+              type="button"
+              onClick={() => setStep("otp")}
+            >
+              Back to Code Verification
             </Button>
           </form>
         )}
       </CardContent>
     </Card>
   )
-} 
+}

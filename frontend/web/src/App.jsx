@@ -5,6 +5,7 @@ import LoadingScreen from '@/components/loading-screen'
 import LoginPage from '@/app/login/page'
 import RegisterPage from '@/app/register/page'
 import DashboardPage from '@/app/dashboard/page'
+import ForgotPasswordPage from '@/app/forgot-password/page'
 
 // Configure future flags
 const routerOptions = {
@@ -64,6 +65,15 @@ function App() {
             element={
               <PublicRoute>
                 <RegisterPage />
+              </PublicRoute>
+            } 
+          />
+
+          <Route 
+            path="/forgot-password" 
+            element={
+              <PublicRoute>
+                <ForgotPasswordPage />
               </PublicRoute>
             } 
           />

@@ -132,6 +132,40 @@ export function AuthProvider({ children }) {
     }
   }
 
+  const sendPasswordResetEmail = async (email) => {
+    try {
+      const response = await axios.post(`${API_URL}/auth/forgot-password`, { email })
+      return response.data
+    } catch (error) {
+      throw error.response?.data || error
+    }
+  }
+
+  const verifyResetCode = async (email, code) => {
+    try {
+      const response = await axios.post(`${API_URL}/auth/verify-reset-code`, { 
+        email, 
+        code 
+      })
+      return response.data
+    } catch (error) {
+      throw error.response?.data || error
+    }
+  }
+
+  const resetPassword = async (email, code, newPassword) => {
+    try {
+      const response = await axios.post(`${API_URL}/auth/reset-password`, {
+        email,
+        code,
+        newPassword
+      })
+      return response.data
+    } catch (error) {
+      throw error.response?.data || error
+    }
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -142,7 +176,10 @@ export function AuthProvider({ children }) {
         logout,
         register,
         checkAuth,
-        fetchUserData
+        fetchUserData,
+        sendPasswordResetEmail,
+        verifyResetCode,
+        resetPassword
       }}
     >
       {children}

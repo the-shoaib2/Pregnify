@@ -11,7 +11,7 @@ import { toast } from "react-hot-toast"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/contexts/auth-context"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 import { useState } from "react"
 import { Loader2, Eye, EyeOff, Key } from "lucide-react"
 import { startAuthentication } from "@simplewebauthn/browser"
@@ -80,10 +80,10 @@ export function LoginForm({
   }
 
   return (
-    (<div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-xl font-bold">Login</CardTitle>
+    (<div className={cn("flex flex-col gap-6 w-full max-w-[400px] mx-auto p-4 sm:p-0", className)} {...props}>
+      <Card className="w-full">
+        <CardHeader className="text-center space-y-1">
+          <CardTitle className="text-2xl font-bold">Login</CardTitle>
           <CardDescription>
             Enter your credentials to continue
           </CardDescription>
@@ -91,12 +91,11 @@ export function LoginForm({
         <CardContent>
           {/* Login Form */}
           <form onSubmit={handleSubmit}>
-            
             <div className="grid gap-6">
-              <div className="flex flex-row gap-4">
+              <div className="flex flex-row gap-2">
                 <Button 
                   variant="outline" 
-                  className="w-full"
+                  className="flex-1 h-[42px]"
                   disabled={isAppleLoading}
                   onClick={(e) => {
                     e.preventDefault();
@@ -108,17 +107,17 @@ export function LoginForm({
                   {isAppleLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-4 w-4">
                       <path
                         d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"
                         fill="currentColor" />
                     </svg>
                   )}
-                  <span className="ml-2">Apple</span>
+                  <span className="ml-2 hidden sm:inline">Apple</span>
                 </Button>
                 <Button 
                   variant="outline" 
-                  className="w-full"
+                  className="flex-1 h-[42px]"
                   disabled={isGoogleLoading}
                   onClick={(e) => {
                     e.preventDefault();
@@ -130,18 +129,18 @@ export function LoginForm({
                   {isGoogleLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-4 w-4">
                       <path
                         d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
                         fill="currentColor" />
                     </svg>
                   )}
-                  <span className="ml-2">Google</span>
+                  <span className="ml-2 hidden sm:inline">Google</span>
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full"
+                  className="flex-1 h-[42px]"
                   disabled={isPasskeyLoading}
                   onClick={async () => {
                     try {
@@ -173,7 +172,7 @@ export function LoginForm({
                   ) : (
                     <Key className="h-4 w-4" />
                   )}
-                  <span className="ml-2">Passkey</span>
+                  <span className="ml-2 hidden sm:inline">Passkey</span>
                 </Button>
               </div>
               <div className="relative">
@@ -187,9 +186,7 @@ export function LoginForm({
                 </div>
               </div>
               
-
-              
-              <div className="grid gap-6">
+              <div className="grid gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="email">Email</Label>
                   <Input 
@@ -203,33 +200,38 @@ export function LoginForm({
                     disabled={isLoading}
                     value={formData.email}
                     onChange={handleChange}
+                    className="h-[42px]"
                   />
                 </div>
                 <div className="grid gap-2">
-                  <div className="flex items-center">
-                    <Label htmlFor="password" >Password</Label>
-                    <a href="/forgot-password" className="ml-auto text-sm underline-offset-4 hover:underline">
-                      Forgot your password?
-                    </a>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password">Password</Label>
+                    <Link 
+                      to="/forgot-password"
+                      className="text-sm text-muted-foreground hover:text-primary"
+                    >
+                      Forgot password?
+                    </Link>
                   </div>
                   <div className="relative">
                     <Input 
                       id="password" 
-                      type={showPassword ? "text" : "password"} 
+                      type={showPassword ? "text" : "password"}
+                      placeholder="*********"
                       autoCapitalize="none"
                       autoComplete="current-password"
                       autoCorrect="off"
                       required 
-                      placeholder="********" 
                       disabled={isLoading}
                       value={formData.password}
                       onChange={handleChange}
+                      className="h-[42px] pr-10"
                     />
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 hover:bg-transparent"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                       onClick={() => setShowPassword(!showPassword)}
                     >
                       {showPassword ? (
@@ -240,20 +242,22 @@ export function LoginForm({
                     </Button>
                   </div>
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      Logging in...
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    </>
-                  ) : (
-                    "Login"
-                  )}
-                </Button>
               </div>
+
+              <Button type="submit" className="w-full h-[42px]" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                      Logging in...
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  </>
+                ) : (
+                    "Login"
+                )}
+              </Button>
+
               <div className="text-center text-sm">
                 Don&apos;t have an account?{" "}
-                <a href="/register" className="underline underline-offset-4 font-bold">
+                <a href="/register" className="hover:text-primary hover:underline underline-offset-4 font-bold">
                   Register
                 </a>
               </div>
