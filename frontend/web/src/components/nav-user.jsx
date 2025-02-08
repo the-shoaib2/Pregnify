@@ -70,9 +70,10 @@ export function NavUser() {
   // Create display name with better fallbacks
   const displayName = React.useMemo(() => {
     if (!user) return user.role
-    if (user.name ) return user.name
+    if (user.firstName && user.lastName && user.firstName !== 'undefined' && user.lastName !== 'undefined') return `${user.firstName} ${user.lastName}`
     if (user.email) return user.email?.split('@')[0] || user.role
     return user.email?.split('@')[0] || user.role
+
   }, [user])
 
   // Create initials with better fallbacks
@@ -131,7 +132,7 @@ export function NavUser() {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar || '/avatars/default.jpg'} alt={displayName} />
+                  <AvatarImage src={user.avatar} alt={displayName} />
                   <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">

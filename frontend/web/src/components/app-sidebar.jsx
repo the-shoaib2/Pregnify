@@ -8,7 +8,7 @@ import {
   Map,
   PieChart,
   Send,
-  Settings2,
+  Settings,
   SquareTerminal,
   Users,
   Calendar,
@@ -341,11 +341,12 @@ const getNavItems = (role) => {
     {
       title: "Settings",
       url: "/settings",
-      icon: Settings2,
+      icon: Settings,
       items: [
         { title: "Profile", url: "/settings/profile" },
         { title: "Preferences", url: "/settings/preferences" },
         { title: "Security", url: "/settings/security" },
+        { title: "Payment", url: "/settings/payment" },
         { title: "Notifications", url: "/settings/notifications" }
       ]
     }
