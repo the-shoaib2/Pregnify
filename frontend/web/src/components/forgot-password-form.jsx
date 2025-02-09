@@ -1,281 +1,290 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { toast } from "react-hot-toast"
+import { AuthService } from "@/services"
 import { Button } from "@/components/ui/button"
-
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { UserCard } from "@/components/user-card"
+import { toast } from "react-hot-toast"
+import { Loader2, ArrowLeft, Mail, Lock, KeyRound, User } from "lucide-react"
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Loader2, Eye, EyeOff, Clock } from "lucide-react"
-import { InputOTP } from "@/components/ui/input-otp"
-import { useAuth } from "@/contexts/auth-context"
-import { cn } from "@/lib/utils"
 
 export function ForgotPasswordForm() {
   const navigate = useNavigate()
-  const { sendPasswordResetEmail, verifyResetCode, resetPassword } = useAuth()
-  const [email, setEmail] = useState("")
-  const [step, setStep] = useState("email") // email, otp, newPassword
+  const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
-  const [otp, setOtp] = useState("")
-  const [newPassword, setNewPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [countdown, setCountdown] = useState(0)
+  const [userData, setUserData] = useState(null)
+  const [formData, setFormData] = useState({
+    email: '',
+    code: '',
+    password: '',
+    confirmPassword: '',
+  })
 
-  useEffect(() => {
-    if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000)
-      return () => clearTimeout(timer)
-    }
-  }, [countdown])
-
-  const handleEmailSubmit = async (e) => {
+  const handleFindUser = async (e) => {
     e.preventDefault()
     setLoading(true)
+    console.log('Submitting email:', formData.email)
+
     try {
-      await sendPasswordResetEmail(email)
-      toast.success("Reset code sent to your email")
-      setStep("otp")
-      setCountdown(60) // Start 60-second countdown
+      const response = await AuthService.findUserForReset({
+        email: formData.email
+      })
+      
+      console.log('API Response:', response)
+      
+      if (response.data.success && response.data.data.found) {
+        console.log('User found:', response.data.data)
+        setUserData(response.data.data)
+        setStep(2)
+      } else {
+        console.log('No user found with email:', formData.email)
+        toast.error("No account found with this email")
+      }
     } catch (error) {
-      console.error('Failed to send reset email:', error)
-      toast.error(error?.message || "Failed to send reset code")
+      console.error('Error finding user:', error)
+      toast.error(error?.response?.data?.message || "Failed to find user")
     } finally {
       setLoading(false)
     }
   }
 
-  const handleResendCode = async () => {
-    if (countdown > 0) return
+  const handleConfirmUser = async () => {
     setLoading(true)
+
     try {
-      await sendPasswordResetEmail(email)
-      toast.success("New reset code sent to your email")
-      setCountdown(60) // Restart countdown
+      await AuthService.sendResetCode({ 
+        userId: userData.userId,
+        resetToken: userData.resetToken,
+        method: 'email',
+        type: 'code'
+      })
+      
+      toast.success("Verification code sent to your email")
+      setStep(3)
     } catch (error) {
-      console.error('Failed to resend code:', error)
-      toast.error(error?.message || "Failed to send reset code")
+      toast.error(error?.response?.data?.message || "Failed to send code")
     } finally {
       setLoading(false)
     }
   }
 
-  const handleOTPSubmit = async (e) => {
+  const handleVerifyCode = async (e) => {
     e.preventDefault()
     setLoading(true)
+
     try {
-      await verifyResetCode(email, otp)
-      toast.success("Code verified successfully")
-      setStep("newPassword")
+      await AuthService.verifyResetCode({
+        userId: userData.userId,
+        resetToken: userData.resetToken,
+        code: formData.code
+      })
+      
+      setStep(4)
     } catch (error) {
-      console.error('Failed to verify code:', error)
-      toast.error(error?.message || "Invalid reset code")
+      toast.error(error?.response?.data?.message || "Invalid code")
     } finally {
       setLoading(false)
     }
   }
 
-  const handlePasswordReset = async (e) => {
+  const handleResetPassword = async (e) => {
     e.preventDefault()
     
-    if (newPassword !== confirmPassword) {
-      toast.error("Passwords do not match")
-      return
-    }
-
-    if (newPassword.length < 8) {
-      toast.error("Password must be at least 8 characters long")
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Passwords don't match")
       return
     }
 
     setLoading(true)
+
     try {
-      await resetPassword(email, otp, newPassword)
+      await AuthService.resetPassword({
+        userId: userData.userId,
+        resetToken: userData.resetToken,
+        code: formData.code,
+        password: formData.password
+      })
+      
       toast.success("Password reset successfully")
-      navigate("/login")
+      navigate('/login')
     } catch (error) {
-      console.error('Failed to reset password:', error)
-      toast.error(error?.message || "Failed to reset password")
+      toast.error(error?.response?.data?.message || "Failed to reset password")
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader className="space-y-1 text-center">
-        <CardTitle className="text-2xl">Reset Password</CardTitle>
+    <Card className="w-full max-w-md text-center">
+      <CardHeader>
+        <CardTitle>Reset Password</CardTitle>
         <CardDescription>
-          {step === "email" && "Enter your email to receive a reset code"}
-          {step === "otp" && "Enter the 8-digit code sent to your email"}
-          {step === "newPassword" && "Enter your new password"}
+          {step === 1 && "Enter your email address to reset your password"}
+          {step === 2 && "Confirm your account details"}
+          {step === 3 && "Enter the verification code sent to your email"}
+          {step === 4 && "Enter your new password"}
         </CardDescription>
       </CardHeader>
+
       <CardContent>
-        {step === "email" && (
-          <form onSubmit={handleEmailSubmit} className="space-y-4">
+        {step === 1 && (
+          <form onSubmit={handleFindUser} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="h-11"
-              />
+              <Label htmlFor="email">Email Address</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  className="pl-9"
+                  value={formData.email}
+                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  required
+                />
+              </div>
             </div>
-            <Button className="w-full h-11" type="submit" disabled={loading}>
+            <Button type="submit" className="w-full" disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sending Code...
+                  Searching...
                 </>
               ) : (
-                "Send Reset Code"
+                'Continue'
               )}
-            </Button>
-            <Button
-              variant="link"
-              className="w-full"
-              type="button"
-              onClick={() => navigate("/login")}
-            >
-              Back to Login
             </Button>
           </form>
         )}
 
-        {step === "otp" && (
-          <form onSubmit={handleOTPSubmit} className="space-y-4">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-center block">Enter Reset Code</Label>
-                <InputOTP
-                  value={otp}
-                  onChange={setOtp}
+        {step === 2 && userData && (
+          <div className="space-y-6">
+            <UserCard user={userData} />
+
+            <div className="space-y-2">
+              <Button 
+                onClick={handleConfirmUser} 
+                className="w-full" 
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending Code...
+                  </>
+                ) : (
+                  'Send Verification Code'
+                )}
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => {
+                  setStep(1)
+                  setUserData(null)
+                  setFormData(prev => ({ ...prev, email: '' }))
+                }}
+              >
+                Try Different Email
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <form onSubmit={handleVerifyCode} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="code">Verification Code</Label>
+              <div className="relative">
+                <KeyRound className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="code"
+                  type="text"
+                  placeholder="Enter verification code"
+                  className="pl-9"
+                  value={formData.code}
+                  onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
+                  required
                 />
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <p className="text-muted-foreground">
-                  Code sent to {email}
-                </p>
-                {countdown > 0 ? (
-                  <div className="flex items-center text-muted-foreground">
-                    <Clock className="mr-1 h-3 w-3" />
-                    <span>{countdown}s</span>
-                  </div>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    type="button"
-                    onClick={handleResendCode}
-                    disabled={loading}
-                    className="h-auto p-0 text-primary hover:text-primary/80"
-                  >
-                    Resend Code
-                  </Button>
-                )}
-              </div>
             </div>
-            <Button className="w-full h-11" type="submit" disabled={loading || otp.length !== 8}>
+            <Button type="submit" className="w-full" disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Verifying...
                 </>
               ) : (
-                "Verify Code"
+                'Verify Code'
               )}
-            </Button>
-            <Button
-              variant="link"
-              className="w-full"
-              type="button"
-              onClick={() => setStep("email")}
-            >
-              Back to Email
             </Button>
           </form>
         )}
 
-        {step === "newPassword" && (
-          <form onSubmit={handlePasswordReset} className="space-y-4">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="newPassword">New Password</Label>
-                <div className="relative">
-                  <Input
-                    id="newPassword"
-                    type={showPassword ? "text" : "password"}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    required
-                    minLength={8}
-                    placeholder="********"
-                    className="h-11 pr-10"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <div className="relative">
-                  <Input
-                    id="confirmPassword"
-                    type={showPassword ? "text" : "password"}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    minLength={8}
-                    placeholder="********"
-                    className="h-11"
-                  />
-                </div>
+        {step === 4 && (
+          <form onSubmit={handleResetPassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="password">New Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Enter new password"
+                  className="pl-9"
+                  value={formData.password}
+                  onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                  required
+                />
               </div>
             </div>
-            <Button className="w-full h-11" type="submit" disabled={loading}>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Confirm new password"
+                  className="pl-9"
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  required
+                />
+              </div>
+            </div>
+            <Button type="submit" className="w-full" disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Resetting Password...
+                  Resetting...
                 </>
               ) : (
-                "Reset Password"
+                'Reset Password'
               )}
-            </Button>
-            <Button
-              variant="link"
-              className="w-full"
-              type="button"
-              onClick={() => setStep("otp")}
-            >
-              Back to Code Verification
             </Button>
           </form>
         )}
       </CardContent>
+
+      <CardFooter>
+        <Button
+          variant="ghost"
+          className="w-full"
+          onClick={() => navigate('/login')}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Login
+        </Button>
+      </CardFooter>
     </Card>
   )
 }
