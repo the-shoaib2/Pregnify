@@ -34,8 +34,11 @@ import {
   Loader2,
   Building,
   GraduationCap,
-  Languages
+  Languages,
+  Save
 } from "lucide-react"
+import { useSettings } from '@/contexts/settings-context'
+import { SettingsService } from "@/services/settings-service"
 
 // Loading skeleton component
 function ProfileSkeleton() {
@@ -131,9 +134,10 @@ function useDebounce(value, delay) {
 
 export default function ProfilePage() {
   const { user, updateProfile } = useAuth()
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const { settings, updateSettings, loading, saving } = useSettings()
   const [formData, setFormData] = useState(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [manualSave, setManualSave] = useState(false)
 
   // Initialize form data when user data is available
   useEffect(() => {
@@ -165,7 +169,6 @@ export default function ProfilePage() {
           language: user?.preferences?.[0]?.language || user.languagePreference || "",
         }
       })
-      setLoading(false)
     }
   }, [user])
 
@@ -190,23 +193,64 @@ export default function ProfilePage() {
   }
 
   const handleSave = async (data) => {
-    setSaving(true)
     try {
-      await updateProfile(data)
-      toast.success("Changes saved successfully")
+      await updateSettings('personal', {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        // ... other fields
+      })
     } catch (error) {
-      toast.error("Failed to save changes")
+      // Error is handled by the context
       console.error(error)
-    } finally {
-      setSaving(false)
     }
   }
 
-  const handleAvatarChange = async (event) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      // Handle avatar upload
-      toast.success("Avatar updated successfully")
+  const handleAvatarUpload = async (file) => {
+    setUploadingImage(true)
+    try {
+      const response = await SettingsService.uploadProfileImage(file)
+      const { avatarUrl } = response.data.data
+      
+      // Update the user's avatar URL
+      await updateSettings('personal', {
+        ...formData.personal,
+        avatarUrl
+      })
+
+      toast.success("Profile picture updated successfully")
+    } catch (error) {
+      console.error('Failed to upload profile image:', error)
+      toast.error(error?.response?.data?.message || "Failed to upload profile picture")
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
+  const handleManualSave = async () => {
+    setManualSave(true)
+    try {
+      await updateSettings('personal', {
+        firstName: formData.personal.firstName,
+        middleName: formData.personal.middleName,
+        lastName: formData.personal.lastName,
+        nickName: formData.personal.nickName,
+        dateOfBirth: formData.personal.dateOfBirth,
+        genderIdentity: formData.personal.genderIdentity,
+        contactNumber: formData.contact.phoneNumber,
+        presentAddress: formData.contact.presentAddress,
+        permanentAddress: formData.contact.permanentAddress,
+        nationality: formData.contact.nationality,
+        occupation: formData.additional.occupation,
+        religion: formData.additional.religion,
+        hobbies: formData.additional.hobbies,
+        language: formData.additional.language
+      })
+      toast.success("Profile updated successfully")
+    } catch (error) {
+      console.error('Failed to save profile:', error)
+      toast.error("Failed to save profile changes")
+    } finally {
+      setManualSave(false)
     }
   }
 
@@ -228,17 +272,36 @@ export default function ProfilePage() {
             Manage your profile information and account settings
           </p>
         </div>
-        {saving ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Saving changes...
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 text-sm text-green-600">
-            <CheckCircle2 className="h-4 w-4" />
-            All changes saved
-          </div>
-        )}
+        <div className="flex items-center gap-4">
+          {(saving || manualSave) ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Saving changes...
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-sm text-green-600">
+              <CheckCircle2 className="h-4 w-4" />
+              All changes saved
+            </div>
+          )}
+          <Button 
+            onClick={handleManualSave}
+            disabled={saving || manualSave || loading}
+            className="h-9"
+          >
+            {manualSave ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Save Changes
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -252,7 +315,11 @@ export default function ProfilePage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <AvatarUpload user={user} onUpload={handleAvatarChange} />
+              <AvatarUpload 
+                user={user} 
+                onUpload={handleAvatarUpload}
+                loading={uploadingImage}
+              />
               
               <div className="space-y-4">
                 <InputWithIcon
