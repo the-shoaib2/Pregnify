@@ -157,8 +157,8 @@ export function VerifyCodeForm({ userId, method, type, onSuccess }) {
                       disabled={isLoading || isVerified}
                     />
                     {isVerified && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm rounded-lg">
-                        <CheckCircle2 className="h-6 w-6 text-green-500 animate-in zoom-in" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-md rounded-lg">
+                        <CheckCircle2 className="h-8 w-8 text-green-500 animate-in zoom-in" />
                       </div>
                     )}
                   </div>

@@ -107,10 +107,10 @@ export function ForgotPasswordForm() {
             <div className="flex justify-center">
               <div className={cn(
                 "h-12 w-12 rounded-full",
-                "bg-primary/10 flex items-center justify-center",
+                "flex items-center justify-center",
                 "animate-in zoom-in duration-300"
               )}>
-                <CheckCircle2 className="h-6 w-6 text-primary" />
+                        <CheckCircle2 className="h-8 w-8 text-green-500 animate-in zoom-in" />
               </div>
             </div>
             <div className="space-y-2">
