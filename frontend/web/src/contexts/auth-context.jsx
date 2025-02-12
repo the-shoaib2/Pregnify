@@ -134,99 +134,6 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const sendPasswordResetEmail = async (email) => {
-    try {
-      const response = await fetch(`${API_URL}/auth/forgot-password/find-user`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to send reset code')
-      }
-
-      return data
-    } catch (error) {
-      console.error('Error sending reset code:', error)
-      throw error
-    }
-  }
-
-  const sendvarificationCode = async (email) => {
-    try {
-      const response = await fetch(`${API_URL}/auth/forgot-password/send-otp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        
-        throw new Error(data.message || 'Failed to send reset code')
-      }
-
-      return data
-
-    } catch (error) {
-      console.error('Error sending reset code:', error)
-      throw error
-    }
-  }
-
-  const verifyResetCode = async (email, code) => {
-    try {
-      const response = await fetch(`${API_URL}/auth/forgot-password/verify-otp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, code }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Invalid reset code')
-      }
-
-      return data
-    } catch (error) {
-      console.error('Error verifying reset code:', error)
-      throw error
-    }
-  }
-
-  const resetPassword = async (email, code, newPassword) => {
-    try {
-      const response = await fetch(`${API_URL}/auth/forgot-password/reset-password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, code, newPassword }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to reset password')
-      }
-
-      return data
-    } catch (error) {
-      console.error('Error resetting password:', error)
-      throw error
-    }
-  }
 
   const value = {
     user,
@@ -237,9 +144,6 @@ export function AuthProvider({ children }) {
     register,
     checkAuth,
     fetchUserData,
-    sendPasswordResetEmail,
-    verifyResetCode,
-    resetPassword,
   }
 
   return (
