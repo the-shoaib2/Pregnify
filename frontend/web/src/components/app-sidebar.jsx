@@ -23,7 +23,17 @@ import {
   CreditCard,
   Ambulance,
   LineChart,
-  Lock
+  Lock,
+  User,
+  Moon,
+  Languages,
+  HelpCircle,
+  Shield,
+  LayoutGrid,
+  Cog,
+  Save,
+  UserCircle,
+  Accessibility
 } from "lucide-react"
 import { Link, NavLink } from "react-router-dom"
 import { cn } from "@/lib/utils"
@@ -345,15 +355,16 @@ const getNavItems = (role) => {
       url: "/settings",
       icon: Settings,
       items: [
-        { title: "Profile", url: "/settings/profile", component: Link },
         { title: "Account", url: "/settings/account", component: Link },
-        { title: "Appearance", url: "/settings/appearance", component: Link },
-        { title: "Security", url: "/settings/security", component: Link },
-        { title: "Payment", url: "/settings/payment", component: Link },
-        { title: "Notifications", url: "/settings/notifications", component: Link }
+        { title: "Preferences", url: "/settings/preferences", component: Link },
+        { title: "Billing", url: "/settings/billing", component: Link },
+        { title: "System", url: "/settings/system", component: Link },
+        { title: "Help & Legal", url: "/settings/help&Legal", component: Link }
       ]
     }
   ]
+
+ 
 
   const items = role === 'GUEST' 
     ? [...baseItems, ...(roleBasedItems[role] || [])]
