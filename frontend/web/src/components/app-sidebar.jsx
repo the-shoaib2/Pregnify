@@ -25,6 +25,8 @@ import {
   LineChart,
   Lock
 } from "lucide-react"
+import { Link, NavLink } from "react-router-dom"
+import { cn } from "@/lib/utils"
 
 import { NavMain } from "@/components/nav-main"
 import { NavProjects } from "@/components/nav-projects"
@@ -343,11 +345,12 @@ const getNavItems = (role) => {
       url: "/settings",
       icon: Settings,
       items: [
-        { title: "Profile", url: "/settings/profile" },
-        { title: "Preferences", url: "/settings/preferences" },
-        { title: "Security", url: "/settings/security" },
-        { title: "Payment", url: "/settings/payment" },
-        { title: "Notifications", url: "/settings/notifications" }
+        { title: "Profile", url: "/settings/profile", component: Link },
+        { title: "Account", url: "/settings/account", component: Link },
+        { title: "Appearance", url: "/settings/appearance", component: Link },
+        { title: "Security", url: "/settings/security", component: Link },
+        { title: "Payment", url: "/settings/payment", component: Link },
+        { title: "Notifications", url: "/settings/notifications", component: Link }
       ]
     }
   ]
@@ -395,12 +398,12 @@ export function AppSidebar({ ...props }) {
   }
 
   return (
-    (<Sidebar variant="inset" {...props}>
+    <Sidebar variant="inset" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="#">
+              <Link to="/">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                   <Command className="size-4" />
                 </div>
@@ -408,7 +411,7 @@ export function AppSidebar({ ...props }) {
                   <span className="truncate font-semibold">Pregnify</span>
                   <span className="truncate text-xs">{user?.role}</span>
                 </div>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -421,6 +424,6 @@ export function AppSidebar({ ...props }) {
       <SidebarFooter>
         <NavUser user={sidebarData.user} />
       </SidebarFooter>
-    </Sidebar>)
+    </Sidebar>
   )
 }
