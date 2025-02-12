@@ -38,7 +38,7 @@ import {
   Save
 } from "lucide-react"
 import { useSettings } from '@/contexts/settings-context'
-import { SettingsService } from "@/services/settings-service"
+import { SettingsService } from "@/services/settings/index.js"
 
 // Loading skeleton component
 function ProfileSkeleton() {
