@@ -34,8 +34,13 @@ import {
   Save,
   Info,
   HelpCircle,
-  LifeBuoy
+  LifeBuoy,
+  Menu,
+  X
 } from "lucide-react"
+import { useState } from "react"
+import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet"
+import { Button } from "@/components/ui/button"
 
 const settingsNavGroups = [
   {
@@ -93,6 +98,7 @@ const settingsNavGroups = [
 
 export default function SettingsLayout() {
   const location = useLocation()
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   // Get current page title for breadcrumb
   const currentGroup = settingsNavGroups.find(group => 
@@ -107,15 +113,15 @@ export default function SettingsLayout() {
       <AppSidebar />
       <SidebarInset>
         {/* Header */}
-        <header className="sticky top-0 z-10 flex h-14 items-center border-b bg-background px-4">
+        <header className="sticky top-0 z-20 flex h-14 items-center border-b bg-background px-4">
           <SidebarTrigger className="-ml-2" />
           <Separator orientation="vertical" className="mx-2 h-4" />
           <Breadcrumb>
             <BreadcrumbList>
-              <BreadcrumbItem>
+              <BreadcrumbItem className="hidden md:inline-flex">
                 <BreadcrumbLink to="/" as={Link}>Dashboard</BreadcrumbLink>
               </BreadcrumbItem>
-              <BreadcrumbSeparator />
+              <BreadcrumbSeparator className="hidden md:inline-flex" />
               <BreadcrumbItem>
                 <BreadcrumbLink to="/settings" as={Link}>Settings</BreadcrumbLink>
               </BreadcrumbItem>
@@ -137,43 +143,39 @@ export default function SettingsLayout() {
               )}
             </BreadcrumbList>
           </Breadcrumb>
+          
+          {/* Mobile Menu Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="ml-auto lg:hidden"
+            onClick={() => setIsSidebarOpen(true)}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
         </header>
 
         {/* Main Content */}
         <div className="flex flex-1 overflow-hidden">
-          {/* Navigation Sidebar */}
+          {/* Navigation Sidebar - Desktop */}
           <aside className="hidden w-56 shrink-0 overflow-y-auto border-r bg-muted/40 lg:block">
-            <nav className="space-y-2 p-4">
-              {settingsNavGroups.map((group) => (
-                <div key={group.title} className="space-y-2">
-                  <div className="flex items-center gap-2 px-2 pt-2">
-                    <group.icon className="h-4 w-4 text-muted-foreground" />
-                    <h4 className="text-sm font-medium text-muted-foreground">
-                      {group.title}
-                    </h4>
-                  </div>
-                  <div className="flex flex-col space-y-1">
-                    {group.items.map((item) => (
-                      <Link
-                        key={item.href}
-                        to={item.href}
-                        className={cn(
-                          buttonVariants({ variant: "ghost", size: "sm" }),
-                          location.pathname === item.href
-                            ? "bg-muted hover:bg-muted"
-                            : "hover:bg-transparent hover:underline",
-                          "justify-start"
-                        )}
-                      >
-                        <item.icon className="mr-2 h-4 w-4" />
-                        {item.title}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </nav>
+            <SettingsNav groups={settingsNavGroups} />
           </aside>
+
+          {/* Navigation Sidebar - Mobile */}
+          <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
+            <SheetContent side="left" className="w-[80%] p-0 sm:w-[350px]">
+              <div className="flex h-14 items-center border-b px-4">
+                <h2 className="text-lg font-semibold">Settings</h2>
+                <SheetClose className="ml-auto">
+                  <X className="h-5 w-5" />
+                </SheetClose>
+              </div>
+              <div className="overflow-y-auto">
+                <SettingsNav groups={settingsNavGroups} onItemClick={() => setIsSidebarOpen(false)} />
+              </div>
+            </SheetContent>
+          </Sheet>
 
           {/* Content Area */}
           <main className="flex-1 overflow-y-auto">
@@ -184,5 +186,44 @@ export default function SettingsLayout() {
         </div>
       </SidebarInset>
     </SidebarProvider>
+  )
+}
+
+// Separate component for the settings navigation
+function SettingsNav({ groups, onItemClick }) {
+  const location = useLocation()
+  
+  return (
+    <nav className="space-y-2 p-4">
+      {groups.map((group) => (
+        <div key={group.title} className="space-y-2">
+          <div className="flex items-center gap-2 px-2 pt-2">
+            <group.icon className="h-4 w-4 text-muted-foreground" />
+            <h4 className="text-sm font-medium text-muted-foreground">
+              {group.title}
+            </h4>
+          </div>
+          <div className="flex flex-col space-y-1">
+            {group.items.map((item) => (
+              <Link
+                key={item.href}
+                to={item.href}
+                onClick={onItemClick}
+                className={cn(
+                  buttonVariants({ variant: "ghost", size: "sm" }),
+                  location.pathname === item.href
+                    ? "bg-muted hover:bg-muted"
+                    : "hover:bg-transparent hover:underline",
+                  "justify-start"
+                )}
+              >
+                <item.icon className="mr-2 h-4 w-4" />
+                {item.title}
+              </Link>
+            ))}
+          </div>
+        </div>
+      ))}
+    </nav>
   )
 } 
