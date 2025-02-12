@@ -35,8 +35,18 @@ export function AuthProvider({ children }) {
     setIsLoadingUser(true)
     try {
       const response = await axios.get(`${API_URL}/auth/me`)
-      setUser(response.data.user)
-      return response.data.user
+      // Standardize the user object
+      const userData = {
+        ...response.data.user,
+        // Ensure consistent avatar URL property
+        avatarUrl: response.data.user?.avatarUrl || response.data.user?.avatar,
+        // Ensure name is available
+        name: response.data.user?.name || 
+              `${response.data.user?.firstName || ''} ${response.data.user?.lastName || ''}`.trim() ||
+              response.data.user?.email?.split('@')[0],
+      }
+      setUser(userData)
+      return userData
     } catch (error) {
       console.error('Failed to fetch user data:', error)
       throw error

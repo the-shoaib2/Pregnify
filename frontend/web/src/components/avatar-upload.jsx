@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { MediaService } from '@/services'
+import { toast } from 'react-hot-toast'
 
 export function AvatarUpload({ user, onUpload, loading }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -87,10 +88,11 @@ export function AvatarUpload({ user, onUpload, loading }) {
     try {
       const croppedImage = await getCroppedImg(imgSrc, crop)
       const response = await MediaService.uploadProfileImage(croppedImage)
-      await onUpload(response)
+      await onUpload(response.data?.avatarUrl || response.data?.url || response.data)
       handleClose()
     } catch (error) {
       console.error('Error saving cropped image:', error)
+      toast.error('Failed to upload image')
     }
   }
 
