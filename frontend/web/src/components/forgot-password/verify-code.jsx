@@ -181,8 +181,8 @@ export function VerifyCodeForm({ userId, method, type, onSuccess }) {
                 </>
               ) : isVerified ? (
                 <>
-                  <CheckCircle2 className="mr-2 h-4 w-4" />
                   Verified
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
                 </>
               ) : (
                 "Verify Code"

@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Mail, Link, MessageSquare, Check } from "lucide-react";
+import { Mail, Link, MessageSquare, Check, Loader2 } from "lucide-react";
 import { AuthService } from "@/services/auth";
 import { toast } from "react-hot-toast";
 import { cn } from "@/lib/utils";
@@ -157,7 +157,14 @@ export function SelectRecoveryMethod({ userData, onSuccess }) {
         onClick={handleContinue}
         disabled={isLoading || !selectedMethod}
       >
-        {isLoading ? "Sending..." : "Continue"}
+        {isLoading ? (
+          <>
+            Sending...
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          </>
+        ) : (
+          "Continue"
+        )}
       </Button>
     </div>
   );

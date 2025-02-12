@@ -52,6 +52,11 @@ export function ForgotPasswordForm() {
     setCurrentStep(STEPS.COMPLETED)
   }
 
+  const handleTokenExpired = () => {
+    setResetToken(null)
+    setCurrentStep(STEPS.SELECT_RECOVERY)
+  }
+
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
@@ -98,7 +103,8 @@ export function ForgotPasswordForm() {
         {currentStep === STEPS.RESET_PASSWORD && (
           <ResetPasswordForm 
             token={resetToken} 
-            onSuccess={handleResetSuccess} 
+            onSuccess={handleResetSuccess}
+            onTokenExpired={handleTokenExpired}
           />
         )}
 
