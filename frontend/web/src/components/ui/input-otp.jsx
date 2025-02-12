@@ -97,7 +97,7 @@ const InputOTP = React.forwardRef(({ value = "", maxLength = 8, onChange = () =>
               onFocus={() => handleFocus(i)}
               onPaste={handlePaste}
               className={cn(
-                "h-10 w-10 text-center text-lg font-semibold rounded-lg border-2",
+                "h-12 w-12 text-center text-xl font-semibold rounded-lg border-2",
                 "bg-background transition-all duration-200",
                 "focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary",
                 "disabled:cursor-not-allowed disabled:opacity-50",

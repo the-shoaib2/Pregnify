@@ -2,11 +2,8 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { AuthService } from "@/services"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { UserCard } from "@/components/user-card"
 import { toast } from "react-hot-toast"
-import { Loader2, ArrowLeft, Mail, Lock, KeyRound, User } from "lucide-react"
+import { ArrowLeft, CheckCircle2 } from "lucide-react"
 import {
   Card,
   CardContent,
@@ -15,263 +12,116 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { FindUserForm } from "./forgot-password/find-user"
+import { VerifyCodeForm } from "./forgot-password/verify-code"
+import { ResetPasswordForm } from "./forgot-password/reset-password"
+import { SelectRecoveryMethod } from "./forgot-password/select-recovery"
+import { cn } from "@/lib/utils"
+
+const STEPS = {
+  FIND_USER: 'FIND_USER',
+  SELECT_RECOVERY: 'SELECT_RECOVERY',
+  VERIFY_CODE: 'VERIFY_CODE',
+  RESET_PASSWORD: 'RESET_PASSWORD',
+  COMPLETED: 'COMPLETED',
+}
 
 export function ForgotPasswordForm() {
   const navigate = useNavigate()
-  const [step, setStep] = useState(1)
-  const [loading, setLoading] = useState(false)
+  const [currentStep, setCurrentStep] = useState(STEPS.FIND_USER)
   const [userData, setUserData] = useState(null)
-  const [formData, setFormData] = useState({
-    email: '',
-    code: '',
-    password: '',
-    confirmPassword: '',
-  })
+  const [resetToken, setResetToken] = useState(null)
+  const [recoveryMethod, setRecoveryMethod] = useState(null)
 
-  const handleFindUser = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    console.log('Submitting email:', formData.email)
-
-    try {
-      const response = await AuthService.findUserForReset({
-        email: formData.email
-      })
-      
-      console.log('API Response:', response)
-      
-      if (response.data.success && response.data.data.found) {
-        console.log('User found:', response.data.data)
-        setUserData(response.data.data)
-        setStep(2)
-      } else {
-        console.log('No user found with email:', formData.email)
-        toast.error("No account found with this email")
-      }
-    } catch (error) {
-      console.error('Error finding user:', error)
-      toast.error(error?.response?.data?.message || "Failed to find user")
-    } finally {
-      setLoading(false)
-    }
+  const handleFindUserSuccess = (data) => {
+    setUserData(data)
+    setCurrentStep(STEPS.SELECT_RECOVERY)
   }
 
-  const handleConfirmUser = async () => {
-    setLoading(true)
-
-    try {
-      await AuthService.sendResetCode({ 
-        userId: userData.userId,
-        resetToken: userData.resetToken,
-        method: 'email',
-        type: 'code'
-      })
-      
-      toast.success("Verification code sent to your email")
-      setStep(3)
-    } catch (error) {
-      toast.error(error?.response?.data?.message || "Failed to send code")
-    } finally {
-      setLoading(false)
-    }
+  const handleRecoveryMethodSelected = (method) => {
+    setRecoveryMethod(method)
+    setCurrentStep(STEPS.VERIFY_CODE)
   }
 
-  const handleVerifyCode = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-
-    try {
-      await AuthService.verifyResetCode({
-        userId: userData.userId,
-        resetToken: userData.resetToken,
-        code: formData.code
-      })
-      
-      setStep(4)
-    } catch (error) {
-      toast.error(error?.response?.data?.message || "Invalid code")
-    } finally {
-      setLoading(false)
-    }
+  const handleVerifyCodeSuccess = (data) => {
+    setResetToken(data.token)
+    setCurrentStep(STEPS.RESET_PASSWORD)
   }
 
-  const handleResetPassword = async (e) => {
-    e.preventDefault()
-    
-    if (formData.password !== formData.confirmPassword) {
-      toast.error("Passwords don't match")
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      await AuthService.resetPassword({
-        userId: userData.userId,
-        resetToken: userData.resetToken,
-        code: formData.code,
-        password: formData.password
-      })
-      
-      toast.success("Password reset successfully")
-      navigate('/login')
-    } catch (error) {
-      toast.error(error?.response?.data?.message || "Failed to reset password")
-    } finally {
-      setLoading(false)
-    }
+  const handleResetSuccess = () => {
+    setCurrentStep(STEPS.COMPLETED)
   }
 
   return (
-    <Card className="w-full max-w-md text-center">
+    <Card className="w-full max-w-md">
       <CardHeader>
-        <CardTitle>Reset Password</CardTitle>
+        <CardTitle>
+          {currentStep === STEPS.FIND_USER && "Find Your Account"}
+          {currentStep === STEPS.SELECT_RECOVERY && "Select Recovery Method"}
+          {currentStep === STEPS.VERIFY_CODE && "Enter Verification Code"}
+          {currentStep === STEPS.RESET_PASSWORD && "Reset Your Password"}
+          {currentStep === STEPS.COMPLETED && "Password Reset Complete"}
+        </CardTitle>
         <CardDescription>
-          {step === 1 && "Enter your email address to reset your password"}
-          {step === 2 && "Confirm your account details"}
-          {step === 3 && "Enter the verification code sent to your email"}
-          {step === 4 && "Enter your new password"}
+          {currentStep === STEPS.FIND_USER && "Enter your email address to reset your password"}
+          {currentStep === STEPS.SELECT_RECOVERY && "Choose how you want to reset your password"}
+          {currentStep === STEPS.VERIFY_CODE && 
+            `Enter the ${recoveryMethod?.type === 'code' ? 'verification code' : 'reset link'} sent to ${
+              recoveryMethod?.method === 'email' ? userData?.maskedEmail : userData?.maskedPhone
+            }`
+          }
+          {currentStep === STEPS.RESET_PASSWORD && "Create your new password"}
         </CardDescription>
       </CardHeader>
 
       <CardContent>
-        {step === 1 && (
-          <form onSubmit={handleFindUser} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  className="pl-9"
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  required
-                />
-              </div>
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Searching...
-                </>
-              ) : (
-                'Continue'
-              )}
-            </Button>
-          </form>
+        {currentStep === STEPS.FIND_USER && (
+          <FindUserForm onSuccess={handleFindUserSuccess} />
         )}
 
-        {step === 2 && userData && (
-          <div className="space-y-6">
-            <UserCard user={userData} />
+        {currentStep === STEPS.SELECT_RECOVERY && (
+          <SelectRecoveryMethod
+            userData={userData}
+            onSuccess={handleRecoveryMethodSelected}
+          />
+        )}
 
+        {currentStep === STEPS.VERIFY_CODE && (
+          <VerifyCodeForm 
+            userId={userData?.userId}
+            method={recoveryMethod?.method}
+            type={recoveryMethod?.type}
+            onSuccess={handleVerifyCodeSuccess} 
+          />
+        )}
+
+        {currentStep === STEPS.RESET_PASSWORD && (
+          <ResetPasswordForm 
+            token={resetToken} 
+            onSuccess={handleResetSuccess} 
+          />
+        )}
+
+        {currentStep === STEPS.COMPLETED && (
+          <div className="text-center space-y-4">
+            <div className="flex justify-center">
+              <div className={cn(
+                "h-12 w-12 rounded-full",
+                "bg-primary/10 flex items-center justify-center",
+                "animate-in zoom-in duration-300"
+              )}>
+                <CheckCircle2 className="h-6 w-6 text-primary" />
+              </div>
+            </div>
             <div className="space-y-2">
-              <Button 
-                onClick={handleConfirmUser} 
-                className="w-full" 
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending Code...
-                  </>
-                ) : (
-                  'Send Verification Code'
-                )}
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={() => {
-                  setStep(1)
-                  setUserData(null)
-                  setFormData(prev => ({ ...prev, email: '' }))
-                }}
-              >
-                Try Different Email
-              </Button>
+              <h3 className="text-lg font-semibold text-primary">
+                Password Reset Successful
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Your password has been successfully reset. You can now log in with your new password.
+              </p>
             </div>
           </div>
-        )}
-
-        {step === 3 && (
-          <form onSubmit={handleVerifyCode} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="code">Verification Code</Label>
-              <div className="relative">
-                <KeyRound className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="code"
-                  type="text"
-                  placeholder="Enter verification code"
-                  className="pl-9"
-                  value={formData.code}
-                  onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
-                  required
-                />
-              </div>
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Verifying...
-                </>
-              ) : (
-                'Verify Code'
-              )}
-            </Button>
-          </form>
-        )}
-
-        {step === 4 && (
-          <form onSubmit={handleResetPassword} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="password">New Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter new password"
-                  className="pl-9"
-                  value={formData.password}
-                  onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                  required
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="Confirm new password"
-                  className="pl-9"
-                  value={formData.confirmPassword}
-                  onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                  required
-                />
-              </div>
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Resetting...
-                </>
-              ) : (
-                'Reset Password'
-              )}
-            </Button>
-          </form>
         )}
       </CardContent>
 

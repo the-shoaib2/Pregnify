@@ -8,68 +8,75 @@ export const AuthService = {
   refreshToken: (data) => api.post('/auth/refresh-token', data),
   getCurrentUser: () => api.get('/auth/me'),
   
-  // Password Management
-  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
-  resetPassword: (data) => api.post('/auth/reset-password', data),
-  changePassword: (data) => api.post('/auth/change-password', data),
-  
-  // Email Verification
-  sendVerificationEmail: () => api.post('/auth/send-verification-email'),
-  verifyEmail: (token) => api.post('/auth/verify-email', { token }),
-
   // Password Recovery
   findUserForReset: async (data) => {
     try {
-      const response = await api.post('/auth/forgot-password/find-user', data)
+      const response = await api.post('/verification/forgot-password/find-user', {
+        identify: data.searchTerm // can be email, phone, username, or name
+      })
       
-      // Validate response structure
       if (!response.data?.success || !response.data?.data) {
         throw new Error('Invalid response format')
       }
-
+      console.log(response);
       return response
+    
     } catch (error) {
-      console.error('AuthService: Find user error:', error)
-      
-      // Enhance error message based on error type
       if (error.response?.status === 404) {
-        error.message = 'User not found'
+        throw new Error('No account found with this information')
       } else if (error.response?.status === 429) {
-        error.message = 'Too many attempts. Please try again later'
+        throw new Error('Too many attempts. Please try again later')
       } else if (!error.response) {
-        error.message = 'Network error. Please check your connection'
+        throw new Error('Network error. Please check your connection')
       }
-      
       throw error
     }
   },
 
-  sendResetCode: async (data) => {
+  sendResetCode: async ({ userId, method = 'email', type = 'code' }) => {
     try {
-      const response = await api.post('/auth/forgot-password/send-code', data)
+      const response = await api.post('/verification/forgot-password/send-verification', {
+        userId,
+        method,
+        type
+      })
       return response
     } catch (error) {
-      console.error('AuthService: Send code error:', error)
+      if (error.response?.status === 429) {
+        throw new Error('Too many code requests. Please wait before trying again')
+      }
       throw error
     }
   },
 
-  verifyResetCode: async (data) => {
+  verifyResetCode: async ({ userId, code, method = 'email' }) => {
     try {
-      const response = await api.post('/auth/forgot-password/verify-code', data)
+      const response = await api.post('/verification/forgot-password/verify-code', {
+        userId,
+        code,
+        method
+      })
       return response
     } catch (error) {
-      console.error('AuthService: Verify code error:', error)
+      if (error.response?.status === 400) {
+        throw new Error('Invalid or expired code')
+      }
       throw error
     }
   },
 
-  resetPassword: async (data) => {
+  resetPassword: async ({ token, newPassword, confirmPassword }) => {
     try {
-      const response = await api.post('/auth/forgot-password/reset', data)
+      const response = await api.post('/verification/forgot-password/reset-password', {
+        token,
+        newPassword,
+        confirmPassword
+      })
       return response
     } catch (error) {
-      console.error('AuthService: Reset password error:', error)
+      if (error.response?.status === 400) {
+        throw new Error('Password reset failed. Please try again')
+      }
       throw error
     }
   }
