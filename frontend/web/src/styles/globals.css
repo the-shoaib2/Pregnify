@@ -1,0 +1,26 @@
+/* Fullscreen transitions */
+.fullscreen-transition {
+  transition: all 300ms ease-in-out !important;
+  transform-origin: center center;
+}
+
+.fullscreen-exit {
+  transition: all 300ms ease-in-out !important;
+  transform-origin: center center;
+}
+
+/* Optional: Add scale effect during transition */
+.fullscreen-transition::backdrop {
+  transition: all 300ms ease-in-out;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.fullscreen-exit::backdrop {
+  transition: all 300ms ease-in-out;
+  background: rgba(0, 0, 0, 0);
+}
+
+/* Optional: Add smooth transition for content */
+:fullscreen {
+  transition: all 300ms ease-in-out;
+} 

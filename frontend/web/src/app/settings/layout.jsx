@@ -1,21 +1,23 @@
 import { Outlet, Link, useLocation } from "react-router-dom"
+import { useState } from "react"
+import { Menu, X } from "lucide-react"
 import { AppSidebar } from "@/components/app-sidebar"
+import { PageHeader } from "@/components/page-header"
 import {
-  Breadcrumb,
   BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-import { Separator } from "@/components/ui/separator"
 import {
   SidebarInset,
   SidebarProvider,
-  SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet"
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
+
+// Import icons
 import {
   User,
   UserCircle,
@@ -35,12 +37,7 @@ import {
   Info,
   HelpCircle,
   LifeBuoy,
-  Menu,
-  X
 } from "lucide-react"
-import { useState } from "react"
-import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet"
-import { Button } from "@/components/ui/button"
 
 const settingsNavGroups = [
   {
@@ -100,7 +97,6 @@ export default function SettingsLayout() {
   const location = useLocation()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
-  // Get current page title for breadcrumb
   const currentGroup = settingsNavGroups.find(group => 
     group.items.some(item => item.href === location.pathname)
   )
@@ -112,48 +108,35 @@ export default function SettingsLayout() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        {/* Header */}
-        <header className="sticky top-0 z-20 flex h-14 items-center border-b bg-background px-4">
-          <SidebarTrigger className="-ml-2" />
-          <Separator orientation="vertical" className="mx-2 h-4" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem className="hidden md:inline-flex">
-                <BreadcrumbLink to="/" as={Link}>Dashboard</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:inline-flex" />
+        <PageHeader 
+          title="Settings"
+          className="sticky top-0 z-20 bg-background"
+        >
+          {currentGroup && (
+            <>
+              <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbLink to="/settings" as={Link}>Settings</BreadcrumbLink>
+                <BreadcrumbPage>{currentGroup.title}</BreadcrumbPage>
               </BreadcrumbItem>
-              {currentGroup && (
-                <>
-                  <BreadcrumbSeparator />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>{currentGroup.title}</BreadcrumbPage>
-                  </BreadcrumbItem>
-                </>
-              )}
-              {currentPage !== "Settings" && (
-                <>
-                  <BreadcrumbSeparator />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>{currentPage}</BreadcrumbPage>
-                  </BreadcrumbItem>
-                </>
-              )}
-            </BreadcrumbList>
-          </Breadcrumb>
-          
-          {/* Mobile Menu Button */}
+            </>
+          )}
+          {currentPage !== "Settings" && (
+            <>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{currentPage}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </>
+          )}
           <Button
             variant="ghost"
             size="icon"
-            className="ml-auto lg:hidden"
+            className="ml-4 lg:hidden"
             onClick={() => setIsSidebarOpen(true)}
           >
             <Menu className="h-5 w-5" />
           </Button>
-        </header>
+        </PageHeader>
 
         {/* Main Content */}
         <div className="flex flex-1 overflow-hidden">
