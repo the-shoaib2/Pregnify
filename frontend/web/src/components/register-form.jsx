@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 import { toast } from "react-hot-toast"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
@@ -634,8 +634,13 @@ export function RegisterForm({ className, ...props }) {
       </Card>
       <div className="text-center text-xs text-muted-foreground">
         By clicking continue, you agree to our{" "}
-        <a href="/terms-of-service" className="hover:text-primary">Terms of Service</a> and{" "}
-        <a href="/privacy-policy" className="hover:text-primary">Privacy Policy</a>.
+        <Link to="/legal/terms" className="hover:text-primary">
+          Terms of Service
+        </Link>{" "}
+        and{" "}
+        <Link to="/legal/privacy" className="hover:text-primary">
+          Privacy Policy
+        </Link>
       </div>
     </div>
   )

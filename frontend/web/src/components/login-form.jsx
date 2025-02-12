@@ -265,10 +265,11 @@ export function LoginForm({
           </form>
         </CardContent>
       </Card>
-      <div
-        className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary  ">
-        By clicking continue, you agree to our <a href="/terms-of-service">Terms of Service</a>{" "}
-        and <a href="/privacy-policy">Privacy Policy</a>.
+      <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
+        By clicking continue, you agree to our{" "}
+        <Link to="/legal/terms">Terms of Service</Link>{" "}
+        and{" "}
+        <Link to="/legal/privacy">Privacy Policy</Link>.
       </div>
     </div>)
   );

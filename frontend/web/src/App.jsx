@@ -16,6 +16,8 @@ import AppearancePage from "@/app/settings/appearance/page"
 import PrivacyPage from "@/app/settings/privacy/page"
 import { ThemeProvider } from "@/contexts/theme-context"
 import { SettingsProvider } from '@/contexts/settings-context'
+import { TermsOfService } from "@/components/legal/terms-of-service"
+import { PrivacyPolicy } from "@/components/legal/privacy-policy"
 
 // Configure future flags
 const routerOptions = {
@@ -118,6 +120,10 @@ function App() {
                 <Route path="privacy" element={<PrivacyPage />} />
                 <Route path="security" element={<SecurityPage />} />
               </Route>
+
+              {/* Legal Routes */}
+              <Route path="/legal/terms" element={<TermsOfService />} />
+              <Route path="/legal/privacy" element={<PrivacyPolicy />} />
 
               {/* Catch-all route */}
               <Route path="*" element={<Navigate to="/" replace />} />
