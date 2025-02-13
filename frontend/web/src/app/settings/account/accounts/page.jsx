@@ -4,8 +4,8 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
 import { toast } from "react-hot-toast"
-import { ButtonProfileCard } from "@/components/user/button-profile-card"
-import { ProfileCard } from "@/components/user/profile-card"
+import { ButtonProfileCard } from "@/components/user-card/button-profile-card"
+import { ProfileCard } from "@/components/user-card/profile-card"
 import {
   Card,
   CardContent,

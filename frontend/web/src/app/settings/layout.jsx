@@ -151,9 +151,9 @@ export default function SettingsLayout() {
             <SheetContent side="left" className="w-[80%] p-0 sm:w-[350px]">
               <div className="flex h-14 items-center border-b px-4">
                 <h2 className="text-lg font-semibold">Settings</h2>
-                <SheetClose className="ml-auto">
-                  <X className="h-5 w-5" />
-                </SheetClose>
+                {/* <SheetClose className="ml-auto"> */}
+                  {/* <X className="h-5 w-5" /> */}
+                {/* </SheetClose> */}
               </div>
               <div className="overflow-y-auto">
                 <SettingsNav groups={settingsNavGroups} onItemClick={() => setIsSidebarOpen(false)} />
