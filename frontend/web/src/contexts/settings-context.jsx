@@ -7,30 +7,51 @@ const SettingsContext = createContext({})
 
 export function SettingsProvider({ children }) {
   const { user } = useAuth()
-  const [settings, setSettings] = useState(null)
+  const [settings, setSettings] = useState({
+    personal: null,
+    appearance: null,
+    notifications: null,
+    privacy: null,
+    security: null,
+    language: null,
+    accessibility: null,
+    storage: null,
+    backup: null,
+    apps: null
+  })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
-  // Load settings only when user is authenticated
+  // Load settings when user is authenticated
   useEffect(() => {
     if (user) {
       loadSettings()
     } else {
       // Clear settings when user logs out
-      setSettings(null)
+      setSettings({
+        personal: null,
+        appearance: null,
+        notifications: null,
+        privacy: null,
+        security: null,
+        language: null,
+        accessibility: null,
+        storage: null,
+        backup: null,
+        apps: null
+      })
       setLoading(false)
     }
   }, [user])
 
   const loadSettings = async () => {
-    if (!user) return // Don't load if not authenticated
+    if (!user) return
     
     try {
       setLoading(true)
       const response = await SettingsService.getSettings()
       setSettings(response.data)
     } catch (error) {
-      // Only show error if still authenticated
       if (user) {
         console.error('Failed to load settings:', error)
         toast.error('Failed to load settings')
@@ -41,7 +62,7 @@ export function SettingsProvider({ children }) {
   }
 
   const updateSettings = async (section, data) => {
-    if (!user) return // Don't update if not authenticated
+    if (!user) return
     
     setSaving(true)
     try {
@@ -49,18 +70,6 @@ export function SettingsProvider({ children }) {
       switch (section) {
         case 'personal':
           response = await SettingsService.updatePersonalInfo(data)
-          break
-        case 'education':
-          response = await SettingsService.updateEducation(data)
-          break
-        case 'medical':
-          response = await SettingsService.updateMedicalInfo(data)
-          break
-        case 'emergency':
-          response = await SettingsService.updateEmergencyContacts(data)
-          break
-        case 'preferences':
-          response = await SettingsService.updatePreferences(data)
           break
         case 'appearance':
           response = await SettingsService.updateAppearance(data)
@@ -74,13 +83,29 @@ export function SettingsProvider({ children }) {
         case 'security':
           response = await SettingsService.updateSecurity(data)
           break
+        case 'language':
+          response = await SettingsService.updateLanguage(data)
+          break
+        case 'accessibility':
+          response = await SettingsService.updateAccessibility(data)
+          break
+        case 'storage':
+          response = await SettingsService.updateStorage(data)
+          break
+        case 'backup':
+          response = await SettingsService.updateBackup(data)
+          break
+        case 'apps':
+          response = await SettingsService.updateConnectedApps(data)
+          break
         default:
-          response = await SettingsService.updateSettings(data)
+          throw new Error(`Unknown settings section: ${section}`)
       }
       
+      // Update only the changed section
       setSettings(prev => ({
         ...prev,
-        ...response.data
+        [section]: response.data
       }))
       
       toast.success('Settings updated successfully')
@@ -94,6 +119,16 @@ export function SettingsProvider({ children }) {
     }
   }
 
+  // Get settings for a specific section
+  const getSectionSettings = (section) => {
+    return settings[section] || null
+  }
+
+  // Check if a specific section is loading
+  const isSectionLoading = (section) => {
+    return loading && !settings[section]
+  }
+
   return (
     <SettingsContext.Provider 
       value={{
@@ -101,7 +136,9 @@ export function SettingsProvider({ children }) {
         loading,
         saving,
         updateSettings,
-        reloadSettings: loadSettings
+        reloadSettings: loadSettings,
+        getSectionSettings,
+        isSectionLoading
       }}
     >
       {children}

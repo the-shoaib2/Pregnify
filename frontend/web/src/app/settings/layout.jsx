@@ -79,6 +79,7 @@ const settingsNavGroups = [
       { title: "Storage", href: "/settings/system/storage", icon: Database },
       { title: "Connected Apps", href: "/settings/system/apps", icon: LayoutGrid },
       { title: "Backup", href: "/settings/system/backup", icon: Save },
+      { title: "Data Management", href: "/settings/system/data", icon: FileText },
       { title: "Audit Logs", href: "/settings/system/logs", icon: FileText }
     ]
   },

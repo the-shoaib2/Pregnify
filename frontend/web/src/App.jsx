@@ -26,6 +26,7 @@ import SubscriptionPage from "@/app/settings/billing/subscription/page"
 import StoragePage from "@/app/settings/system/storage/page"
 import ConnectedAppsPage from "@/app/settings/system/apps/page"
 import BackupPage from "@/app/settings/system/backup/page"
+import DataManagementPage from "@/app/settings/system/data/page"
 import AuditLogsPage from "@/app/settings/system/logs/page"
 import AccessibilityPage from "@/app/settings/preferences/accessibility/page"
 import BillingPage from "@/app/settings/billing/page"
@@ -158,6 +159,7 @@ function App() {
                   <Route path="storage" element={<StoragePage />} />
                   <Route path="apps" element={<ConnectedAppsPage />} />
                   <Route path="backup" element={<BackupPage />} />
+                  <Route path="data" element={<DataManagementPage />} />
                   <Route path="logs" element={<AuditLogsPage />} />
                 </Route>
 
