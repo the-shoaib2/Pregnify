@@ -2,7 +2,7 @@ import { useState } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import { toast } from "react-hot-toast"
 import { cn } from "@/lib/utils"
-import { useAuth } from "@/contexts/auth-context"
+import { useAuth } from "@/contexts/auth-context/auth-context"
 import { Button } from "@/components/ui/button"
 import {
   Card,

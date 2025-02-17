@@ -42,7 +42,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { useAuth } from "@/contexts/auth-context"
+import { useAuth } from "@/contexts/auth-context/auth-context"
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
 import { NavUserSkeleton } from "@/components/nav-user-skeleton"

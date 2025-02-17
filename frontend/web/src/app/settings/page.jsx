@@ -1,4 +1,4 @@
-import { useAuth } from "@/contexts/auth-context"
+import { useAuth } from "@/contexts/auth-context/auth-context"
 import { Separator } from "@/components/ui/separator"
 import {
   Card,

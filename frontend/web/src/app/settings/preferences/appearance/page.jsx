@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { useSettings } from "@/contexts/settings-context"
+import { useSettings } from "@/contexts/settings-context/settings-context"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"

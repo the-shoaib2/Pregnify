@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react"
-import { useAuth } from "@/contexts/auth-context"
+import { useAuth } from "@/contexts/auth-context/auth-context"
 
 const ThemeContext = createContext({})
 

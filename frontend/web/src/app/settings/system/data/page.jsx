@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react"
-import { useSettings } from "@/contexts/settings-context"
-import { useAuth } from "@/contexts/auth-context"
+import { useSettings } from "@/contexts/settings-context/settings-context"
+import { useAuth } from "@/contexts/auth-context/auth-context"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"

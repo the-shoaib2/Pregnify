@@ -34,7 +34,7 @@ export function AuthProvider({ children }) {
   const fetchUserData = async () => {
     setIsLoadingUser(true)
     try {
-      const response = await axios.get(`${API_URL}/auth/me`)
+      const response = await axios.get(`${API_URL}/auth/user`)
       // Standardize the user object
       const userData = {
         ...response.data.user,
@@ -144,6 +144,13 @@ export function AuthProvider({ children }) {
     }
   }
 
+  useEffect(() => {
+    console.log('Auth context state:', {
+      isAuthenticated: !!user,
+      userData: user,
+      loading
+    })
+  }, [user, loading])
 
   const value = {
     user,

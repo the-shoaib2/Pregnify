@@ -10,7 +10,7 @@ import {
 import { toast } from "react-hot-toast"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useAuth } from "@/contexts/auth-context"
+import { useAuth } from "@/contexts/auth-context/auth-context"
 import { useNavigate, Link } from "react-router-dom"
 import { useState } from "react"
 import { Loader2, Eye, EyeOff, Key } from "lucide-react"

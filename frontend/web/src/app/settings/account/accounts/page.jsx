@@ -26,7 +26,7 @@ import {
   UserPlus,
   UserMinus,
 } from "lucide-react"
-import { useAuth } from "@/contexts/auth-context"
+import { useAuth } from "@/contexts/auth-context/auth-context"
 
 export default function AccountsPage() {
   const { user } = useAuth()

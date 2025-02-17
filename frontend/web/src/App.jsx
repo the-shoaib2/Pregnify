@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
-import { AuthProvider, useAuth } from '@/contexts/auth-context'
+import { AuthProvider, useAuth } from '@/contexts/auth-context/auth-context'
 import LoadingScreen from '@/components/loading-screen'
 import LoginPage from '@/app/login/page'
 import RegisterPage from '@/app/register/page'
@@ -16,7 +16,7 @@ import AccountPage from "@/app/settings/account/page"
 import AppearancePage from "@/app/settings/preferences/appearance/appearance/page"
 import PrivacyPage from "@/app/settings/account/privacy/page"
 import { ThemeProvider } from "@/contexts/theme-context"
-import { SettingsProvider } from '@/contexts/settings-context'
+import { SettingsProvider } from '@/contexts/settings-context/settings-context'
 import { TermsOfService } from "@/components/legal/terms-of-service"
 import { PrivacyPolicy } from "@/components/legal/privacy-policy"
 import SettingsPage from "@/app/settings/page"
