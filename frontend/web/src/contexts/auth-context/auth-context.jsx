@@ -1,6 +1,4 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { AuthService } from '@/services'
-import { toast } from 'react-hot-toast'
 import axios from 'axios'
 import Cookies from 'js-cookie'
 
@@ -35,18 +33,10 @@ export function AuthProvider({ children }) {
     setIsLoadingUser(true)
     try {
       const response = await axios.get(`${API_URL}/auth/user`)
-      // Standardize the user object
-      const userData = {
-        ...response.data.user,
-        // Ensure consistent avatar URL property
-        avatarUrl: response.data.user?.avatarUrl || response.data.user?.avatar,
-        // Ensure name is available
-        name: response.data.user?.name || 
-              `${response.data.user?.firstName || ''} ${response.data.user?.lastName || ''}`.trim() ||
-              response.data.user?.email?.split('@')[0],
-      }
-      setUser(userData)
-      return userData
+      // Ensure consistent avatar URL property
+      setUser(response.data.user)
+      console.log('User data:', response.data.user)
+      return response.data.user
     } catch (error) {
       console.error('Failed to fetch user data:', error)
       throw error
@@ -151,6 +141,10 @@ export function AuthProvider({ children }) {
       loading
     })
   }, [user, loading])
+
+  useEffect(() => {
+    console.log('Auth context user data:', user)
+  }, [user])
 
   const value = {
     user,

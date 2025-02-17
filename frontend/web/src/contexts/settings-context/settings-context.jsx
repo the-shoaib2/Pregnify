@@ -24,16 +24,19 @@ export function SettingsProvider({ children }) {
   const loadSettings = useCallback(async () => {
     try {
       setLoading(true)
-      console.log('Loading settings...')
+      // console.log('Loading settings...')
       const response = await SettingsService.getProfile()
+      // Update both settings and user data
       setSettings(response.data.data)
+      setUser(response.data.data)
+      // console.log('Settings loaded:', response.data.data)
     } catch (error) {
       console.error('Failed to load settings:', error)
       toast.error('Failed to load settings')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [setUser])
 
   const updateSettings = useCallback(async (type, data) => {
     try {

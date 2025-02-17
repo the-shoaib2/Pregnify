@@ -23,11 +23,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar"
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
@@ -46,6 +41,7 @@ import { useAuth } from "@/contexts/auth-context/auth-context"
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
 import { NavUserSkeleton } from "@/components/nav-user-skeleton"
+import { UserAvatar, UserAvatarWithInfo } from "@/components/user/user-avatar"
 
 export function NavUser() {
   const { user, isLoadingUser } = useAuth()
@@ -63,30 +59,8 @@ export function NavUser() {
   const handleNotImplemented = (feature) => {
     toast.error(`${feature} not implemented!`, {
       duration: 2000,
-  
     })
   }
-
-  // Create display name with better fallbacks
-  const displayName = React.useMemo(() => {
-    if (!user) return user.role
-    if (user.firstName && user.lastName && user.firstName !== 'undefined' && user.lastName !== 'undefined') return `${user.firstName} ${user.lastName}`
-    if (user.email) return user.email?.split('@')[0] || user.role
-    return user.email?.split('@')[0] || user.role
-
-  }, [user])
-
-  // Create initials with better fallbacks
-  const initials = React.useMemo(() => {
-    if (!user) return 'GU'
-    if (user?.name && !user.name.includes('undefined')) {
-      return user.name.split(' ').map(name => name[0]).join('').toUpperCase()
-    }
-    if (user?.email) {
-      return user.email.slice(0, 2).toUpperCase()
-    }
-    return 'GU'
-  }, [user])
 
   const handleLogout = async () => {
     try {
@@ -113,21 +87,7 @@ export function NavUser() {
             <SidebarMenuButton
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
-              <Avatar className="h-8 w-8 rounded-full">
-                <AvatarImage 
-                  src={user?.avatarUrl || user?.avatar } 
-                  alt={displayName}
-                  onError={(e) => {
-                    e.target.onerror = null // Prevent infinite loop
-                    e.target.src = '/avatars/default.jpg'
-                  }}
-                />
-                <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
-              </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">{user.name}</span>
-                <span className="truncate text-xs">{user.email}</span>
-              </div>
+              <UserAvatarWithInfo user={user} />
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
@@ -137,23 +97,7 @@ export function NavUser() {
             align="end"
             sideOffset={4}>
             <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-full">
-                  <AvatarImage 
-                    src={user?.avatarUrl || user?.avatar } 
-                    alt={displayName}
-                    onError={(e) => {
-                      e.target.onerror = null // Prevent infinite loop
-                      e.target.src = '/avatars/default.jpg'
-                    }}
-                  />
-                  <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
-                </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{user.name}</span>
-                  <span className="truncate text-xs">{user.email}</span>
-                </div>
-              </div>
+              <UserAvatarWithInfo user={user} />
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
@@ -164,15 +108,15 @@ export function NavUser() {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onSelect={() => handleNotImplemented('Account settings')}>
+              <DropdownMenuItem onSelect={() => navigate('/settings/account/profile')}>
                 <BadgeCheck className="mr-2 h-4 w-4" />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => handleNotImplemented('Billing')}>
+              <DropdownMenuItem onSelect={() => navigate('/settings/billing/payment')}>
                 <CreditCard className="mr-2 h-4 w-4" />
                 Billing
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => handleNotImplemented('Notifications')}>
+              <DropdownMenuItem onSelect={() => navigate('/settings/preferences/notifications')}>
                 <Bell className="mr-2 h-4 w-4" />
                 Notifications
               </DropdownMenuItem>

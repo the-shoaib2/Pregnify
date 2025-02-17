@@ -27,8 +27,8 @@ export const SettingsService = {
    // Profile Image
    uploadProfileImage: (file) => {
      const formData = new FormData()
-     formData.append('image', file)
-     return api.post('/media/profile-image', formData, {
+     formData.append('avatar', file)
+     return api.post('/account/profile/avatar', formData, {
        headers: {
          'Content-Type': 'multipart/form-data'
        }
@@ -37,8 +37,8 @@ export const SettingsService = {
    
    uploadCoverImage: (file) => {
      const formData = new FormData()
-     formData.append('image', file)
-     return api.post('/media/cover-image', formData, {
+     formData.append('cover', file)
+     return api.post('/account/profile/cover', formData, {
        headers: {
          'Content-Type': 'multipart/form-data'
        }

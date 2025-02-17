@@ -80,9 +80,9 @@ export default function AccountsPage() {
       
       <ButtonProfileCard 
         user={{
-          name: user?.name || user?.username,
+          name: user?.firstName + " " + user?.lastName,
           username: user?.username,
-          avatarUrl: user?.avatarUrl,
+          avatarUrl: user?.avatarUrl || user?.avatar,
           email: user?.email,
           bio: user?.bio,
           verified: user?.isVerified,
