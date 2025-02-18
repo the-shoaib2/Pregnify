@@ -1,29 +1,51 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { InputWithIcon } from "@/components/input-with-icon"
+import { Calendar } from "@/components/ui/calendar"
+import { format } from "date-fns"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from "@/components/ui/card"
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from "@/components/ui/popover"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { 
   User,
-  Calendar,
+  CalendarIcon,
   Briefcase,
   GraduationCap,
   Languages,
   Save,
   Loader2,
 } from "lucide-react"
+import { cn } from "@/lib/utils"
 
+const GENDER_OPTIONS = [
+  { value: 'MALE', label: 'Male' },
+  { value: 'FEMALE', label: 'Female' },
+  { value: 'OTHER', label: 'Other' },
+  { value: 'PREFER_NOT_TO_SAY', label: 'Prefer not to say' }
+]
 
 export default function PersonalTab({ user, formData, handleChange, handleSave, settingsLoading }) {
+  const [date, setDate] = useState(formData.personal.dateOfBirth ? new Date(formData.personal.dateOfBirth) : null)
+
+
+  const handleDateSelect = (newDate) => {
+    setDate(newDate)
+    handleChange('personal', 'dateOfBirth', format(newDate, 'yyyy-MM-dd'))
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -55,23 +77,61 @@ export default function PersonalTab({ user, formData, handleChange, handleSave, 
             />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
+            {/* Date of Birth with Calendar */}
             <div className="grid gap-2">
               <Label className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                 Date of Birth
               </Label>
-              <Input 
-                type="date" 
-                value={formData.personal.dateOfBirth}
-                onChange={(e) => handleChange('personal', 'dateOfBirth', e.target.value)}
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !date && "text-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date ? format(date, "PPP") : formData.personal.dateOfBirth ? format(new Date(formData.personal.dateOfBirth), "PPP") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={handleDateSelect}
+                    disabled={(date) =>
+                      date > new Date() || date < new Date("1900-01-01")
+                    }
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
-            <InputWithIcon
-              icon={User}
-              label="Gender"
-              value={formData.personal.genderIdentity}
-              onChange={(e) => handleChange('personal', 'genderIdentity', e.target.value)}
-            />
+
+            {/* Gender Select */}
+            <div className="grid gap-2">
+              <Label className="flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                Gender
+              </Label>
+              <Select
+                value={formData.personal.genderIdentity}
+                onValueChange={(value) => handleChange('personal', 'genderIdentity', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  {GENDER_OPTIONS.map(({ value, label }) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 

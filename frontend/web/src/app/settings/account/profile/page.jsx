@@ -11,7 +11,7 @@ import {
   Shield,
 } from "lucide-react"
 import { useSettings } from '@/contexts/settings-context/settings-context'
-import { SettingsService } from "@/services/settings/index.js"
+import { SettingsService } from "@/services/settings"
 import {
   Tabs,
   TabsContent,
@@ -84,7 +84,7 @@ export default function ProfilePage() {
   const [pageLoading, setPageLoading] = useState(true)
 
   // Use settings data instead of user data where appropriate
-  const userData = settings || user // Prefer settings data if available
+  const userData = settings?.data || user // Prefer settings data if available
 
   // Define handleChange using useCallback
   const handleChange = useCallback((section, field, value) => {
@@ -101,31 +101,29 @@ export default function ProfilePage() {
   // Initialize form data from user object
   useEffect(() => {
     if (userData) {
-      // console.log('Initializing form with user data:', userData)
-      const personal = userData.personal?.[0] || {}
-      
+      console.log('Initializing form with user data:', userData)
       
       setFormData({
         basic: {
-          username: userData.username?.replace('@', '') || "",
+          username: userData.username || "",
           email: userData.email || "",
-          bio: userData.bio || userData.discription || "",
+          bio: userData.bio || userData.description || "",
         },
         personal: {
           firstName: userData.firstName || "", 
           lastName: userData.lastName || "",    
-          dateOfBirth: personal.dateOfBirth?.split('T')[0] || "",
-          genderIdentity: personal.genderIdentity || "",
-          contactNumber: userData.phoneNumber || personal.contactNumber || "",
-          presentAddress: personal.presentAddress || userData.location || "",
-          permanentAddress: personal.permanentAddress || "",
-          nationality: personal.citizenship || "",
-          religion: personal.religion || "",
-          maritalStatus: personal.maritalStatus || "",
-          bloodGroup: personal.bloodGroup || "",
-          hobbies: personal.hobbies || "",
-          occupation: personal.occupation || "",
-          education: userData.educationQualification?.[0]?.degree || "",
+          dateOfBirth: userData.dateOfBirth?.split('T')[0] || "",
+          genderIdentity: userData.genderIdentity || "",
+          contactNumber: userData.phoneNumber || "",
+          presentAddress: userData.location || "",
+          permanentAddress: userData.permanentAddress || "",
+          nationality: userData.citizenship || "",
+          religion: userData.religion || "",
+          maritalStatus: userData.maritalStatus || "",
+          bloodGroup: userData.bloodGroup || "",
+          hobbies: userData.hobbies || "",
+          occupation: userData.occupation || "",
+          education: userData.education || "",
           language: userData.languagePreference || ""
         }
       })
@@ -182,13 +180,21 @@ export default function ProfilePage() {
     setUploadingImage(true)
     try {
       const response = await SettingsService.uploadProfileImage(file)
-      const { avatarUrl } = response.data.data
+      const { avatarUrl } = response.data
       
-      // Update the user's avatar URL
-      await updateSettings('personal', {
-        ...formData.personal,
+      // Update the user's avatar URL in settings
+      await updateSettings('avatar', {
         avatarUrl
       })
+
+      // Update local state
+      setFormData(prev => ({
+        ...prev,
+        basic: {
+          ...prev.basic,
+          avatarUrl
+        }
+      }))
 
       toast.success("Profile picture updated successfully")
     } catch (error) {
@@ -202,17 +208,22 @@ export default function ProfilePage() {
   const handleCoverUpload = async (file) => {
     setUploadingCover(true)
     try {
-      const formData = new FormData()
-      formData.append('image', file)
-      
       const response = await SettingsService.uploadCoverImage(file)
-      const { coverImage } = response.data.data
+      const { coverImage } = response.data
       
-      // Update the user's cover image URL
-      await updateSettings('profile', {
-        ...formData.personal,
+      // Update the user's cover image URL in settings
+      await updateSettings('cover', {
         coverImage
       })
+
+      // Update local state
+      setFormData(prev => ({
+        ...prev,
+        basic: {
+          ...prev.basic,
+          coverImage
+        }
+      }))
 
       toast.success("Cover photo updated successfully")
     } catch (error) {
