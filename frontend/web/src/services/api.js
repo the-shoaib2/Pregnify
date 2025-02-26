@@ -16,6 +16,17 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+
+    // Special handling for FormData
+    if (config.data instanceof FormData) {
+      // Set specific boundary
+      const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2)
+      config.headers['Content-Type'] = `multipart/form-data; boundary=${boundary}`
+      
+      // Don't transform the data
+      config.transformRequest = [(data) => data]
+    }
+
     return config
   },
   (error) => {

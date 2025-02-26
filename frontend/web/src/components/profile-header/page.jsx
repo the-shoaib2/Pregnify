@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { ImageUpload } from "@/components/image-upload"
+import { FileUpload } from "@/components/file-upload"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -36,6 +36,7 @@ import {
 import { cn } from "@/lib/utils"
 import { UserAvatar } from "@/components/user/user-avatar"
 import { ImageDialog } from "@/components/image-view"
+import { FileCategory, Visibility } from '@/services/media'
 
 function CoverPhotoUpload({ user, onUpload, loading }) {
   const [showUpload, setShowUpload] = useState(false)
@@ -89,7 +90,7 @@ function CoverPhotoUpload({ user, onUpload, loading }) {
         }}
       />
 
-      <ImageUpload
+      <FileUpload
         user={user}
         title="Update Cover Photo"
         description="Choose a photo for your profile cover"
@@ -99,6 +100,11 @@ function CoverPhotoUpload({ user, onUpload, loading }) {
         circular={false}
         isOpen={showUpload}
         onClose={() => setShowUpload(false)}
+        fileCategory={FileCategory.COVER}
+        initialState={{
+          visibility: Visibility.PUBLIC,
+          description: "Profile cover photo"
+        }}
       />
     </>
   )
@@ -173,7 +179,7 @@ function ProfilePicture({ user, onUpload, loading }) {
         }}
       />
 
-      <ImageUpload
+      <FileUpload
         user={user}
         title="Update Profile Picture"
         description="Choose a clear photo to help people recognize you"
@@ -183,6 +189,11 @@ function ProfilePicture({ user, onUpload, loading }) {
         circular={true}
         isOpen={showUpload}
         onClose={() => setShowUpload(false)}
+        fileCategory={FileCategory.PROFILE}
+        initialState={{
+          visibility: Visibility.PUBLIC,
+          description: "Profile picture"
+        }}
       />
     </div>
   )

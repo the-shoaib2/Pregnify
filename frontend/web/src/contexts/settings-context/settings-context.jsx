@@ -1,87 +1,68 @@
-import { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
+import { SettingsService } from '@/services'
 import { useAuth } from '@/contexts/auth-context/auth-context'
-import { SettingsService } from '@/services/settings'
 import { toast } from 'react-hot-toast'
 
 const SettingsContext = createContext({})
 
 export function SettingsProvider({ children }) {
-  const { user, setUser } = useAuth()
-  const [loading, setLoading] = useState(true)
+  const { user: authUser, updateUser } = useAuth()
   const [settings, setSettings] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  // Load initial settings
-  useEffect(() => {
-    if (user) {
-      loadSettings()
-    } else {
-      console.log('No user, clearing settings')
-      setSettings(null)
-      setLoading(false)
-    }
-  }, [user])
-
-  const loadSettings = useCallback(async () => {
+  const loadSettings = async () => {
     try {
       setLoading(true)
-      // console.log('Loading settings...')
-      const response = await SettingsService.getProfile()
-      // Update both settings and user data
-      setSettings(response.data.data)
-      setUser(response.data.data)
-      // console.log('Settings loaded:', response.data.data)
+      const response = await SettingsService.getSettings()
+      setSettings(response.data)
+      
+      // Update auth context if needed
+      if (response.data?.profile && updateUser) {
+        updateUser({
+          ...authUser,
+          ...response.data.profile
+        })
+      }
     } catch (error) {
       console.error('Failed to load settings:', error)
       toast.error('Failed to load settings')
     } finally {
       setLoading(false)
     }
-  }, [setUser])
+  }
 
-  const updateSettings = useCallback(async (type, data) => {
+  const updateSettings = async (section, data) => {
     try {
       setLoading(true)
-      let response
-
-      switch (type) {
-        case 'profile':
-          response = await SettingsService.updatePersonalInfo(data)
-          break
-        case 'preferences':
-          response = await SettingsService.updatePreferences(data)
-          break
-        default:
-          throw new Error('Invalid settings type')
-      }
-
-      // Update local state
+      const response = await SettingsService.updateSettings({ [section]: data })
       setSettings(prev => ({
         ...prev,
-        ...response.data.data
+        [section]: response.data[section]
       }))
-
-      // Update user context if needed
-      setUser(prev => ({
-        ...prev,
-        ...response.data.data
-      }))
-
-      return response.data
+      
+      // Update auth context if profile was updated
+      if (section === 'profile' && updateUser) {
+        updateUser({
+          ...authUser,
+          ...data
+        })
+      }
+      
+      return response
     } catch (error) {
       console.error('Failed to update settings:', error)
       throw error
     } finally {
       setLoading(false)
     }
-  }, [setUser])
+  }
+
+  useEffect(() => {
+    loadSettings()
+  }, [])
 
   return (
-    <SettingsContext.Provider value={{
-      settings,
-      loading,
-      updateSettings,
-      reloadSettings: loadSettings
-    }}>
+    <SettingsContext.Provider value={{ settings, loading, updateSettings }}>
       {children}
     </SettingsContext.Provider>
   )

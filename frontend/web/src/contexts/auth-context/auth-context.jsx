@@ -35,7 +35,7 @@ export function AuthProvider({ children }) {
       const response = await axios.get(`${API_URL}/auth/user`)
       // Ensure consistent avatar URL property
       setUser(response.data.user)
-      console.log('User data:', response.data.user)
+      // console.log('User data:', response.data.user)
       return response.data.user
     } catch (error) {
       console.error('Failed to fetch user data:', error)
@@ -134,17 +134,17 @@ export function AuthProvider({ children }) {
     }
   }
 
-  useEffect(() => {
-    console.log('Auth context state:', {
-      isAuthenticated: !!user,
-      userData: user,
-      loading
-    })
-  }, [user, loading])
+  // useEffect(() => {
+  //   // console.log('Auth context state:', {
+  //   //   isAuthenticated: !!user,
+  //   //   userData: user,
+  //   //   loading
+  //   // })
+  // }, [user, loading])
 
-  useEffect(() => {
-    console.log('Auth context user data:', user)
-  }, [user])
+  // useEffect(() => {
+  //   // console.log('Auth context user data:', user)
+  // }, [user])
 
   const value = {
     user,

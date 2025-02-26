@@ -26,6 +26,7 @@ import ContactTab from "./tabs/contact/page"
 import ActivityTab from "./tabs/activity/page"
 import ProfileCompletionCard from "./tabs/profile-completion/page"
 import StatsOverviewCard from "./tabs/statistics-overview/page"
+import { MediaService, Visibility } from '@/services/media'
 
 // Loading skeleton component
 function ProfileSkeleton() {
@@ -101,7 +102,7 @@ export default function ProfilePage() {
   // Initialize form data from user object
   useEffect(() => {
     if (userData) {
-      console.log('Initializing form with user data:', userData)
+      // console.log('Initializing form with user data:', userData)
       
       setFormData({
         basic: {
@@ -178,59 +179,79 @@ export default function ProfilePage() {
 
   const handleAvatarUpload = async (file) => {
     setUploadingImage(true)
+    const toastId = toast.loading('Uploading profile picture...')
+
     try {
-      const response = await SettingsService.uploadProfileImage(file)
-      const { avatarUrl } = response.data
-      
-      // Update the user's avatar URL in settings
-      await updateSettings('avatar', {
-        avatarUrl
+      const handleProgress = (progressEvent) => {
+        if (progressEvent.lengthComputable) {
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+          toast.loading(`Uploading... ${progress}%`, { id: toastId })
+        }
+      }
+
+      const response = await MediaService.fileUpload(file, {
+        fileCategory: 'PROFILE',
+        title: " ",
+        description: "Profile picture",
+        onProgress: handleProgress
       })
 
-      // Update local state
-      setFormData(prev => ({
-        ...prev,
-        basic: {
-          ...prev.basic,
-          avatarUrl
-        }
-      }))
-
-      toast.success("Profile picture updated successfully")
+      if (response?.data?.data?.file?.url) {
+        await updateSettings('avatar', { 
+          avatarUrl: response.data.data.file.url 
+        })
+        toast.success('Profile picture updated')
+      } else {
+        throw new Error('Failed to upload image')
+      }
     } catch (error) {
-      console.error('Failed to upload profile image:', error)
-      toast.error(error?.response?.data?.message || "Failed to upload profile picture")
+      console.error('Profile upload error:', error)
+      toast.error('Failed to update profile picture', { id: toastId })
     } finally {
       setUploadingImage(false)
+      toast.dismiss(toastId)
     }
   }
 
   const handleCoverUpload = async (file) => {
     setUploadingCover(true)
+    const toastId = toast.loading('Uploading cover photo...')
+
     try {
-      const response = await SettingsService.uploadCoverImage(file)
-      const { coverImage } = response.data
-      
-      // Update the user's cover image URL in settings
-      await updateSettings('cover', {
-        coverImage
-      })
-
-      // Update local state
-      setFormData(prev => ({
-        ...prev,
-        basic: {
-          ...prev.basic,
-          coverImage
+      const handleProgress = (progressEvent) => {
+        if (progressEvent.lengthComputable) {
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+          toast.loading(`Uploading... ${progress}%`, { id: toastId })
         }
-      }))
+      }
 
-      toast.success("Cover photo updated successfully")
+      const response = await MediaService.fileUpload(file, {
+        fileType: 'IMAGE',
+        fileCategory: 'COVER',
+        visibility: 'PUBLIC',
+        title: " ",
+        description: "Cover photo upload",
+        allowComments: "true",
+        allowSharing: "true",
+        allowDownload: "true",
+        customAudience: '""',
+        onProgress: handleProgress
+      })
+      
+      if (response?.data?.data?.file?.url) {
+        await updateSettings('cover', {
+          coverImage: response.data.data.file.url
+        })
+        toast.success('Cover photo updated')
+      } else {
+        throw new Error('Failed to upload image')
+      }
     } catch (error) {
-      console.error('Failed to upload cover photo:', error)
-      toast.error(error?.response?.data?.message || "Failed to upload cover photo")
+      console.error('Cover upload error:', error)
+      toast.error('Failed to update cover photo', { id: toastId })
     } finally {
       setUploadingCover(false)
+      toast.dismiss(toastId)
     }
   }
 
