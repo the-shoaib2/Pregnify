@@ -34,9 +34,14 @@ import {
   Eye
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { UserAvatar } from "@/components/user/user-avatar"
+import { lazyLoad } from '@/utils/lazy-load.jsx'
 import { ImageDialog } from "@/components/image-view"
 import { FileCategory, Visibility } from '@/services/media'
+
+// Import the component with default export
+const UserAvatar = lazyLoad(() => import('@/components/user/user-avatar').then(mod => ({ 
+  default: mod.UserAvatar 
+})))
 
 function CoverPhotoUpload({ user, onUpload, loading }) {
   const [showUpload, setShowUpload] = useState(false)

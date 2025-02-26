@@ -27,6 +27,12 @@ import ProfileCompletionCard from "./tabs/profile-completion/page"
 import StatsOverviewCard from "./tabs/statistics-overview/page"
 import { MediaService, Visibility } from '@/services/media'
 import { FileUpload } from "@/components/file-upload"
+import { lazyLoad } from '@/utils/lazy-load.jsx'
+
+// Import the ImageView component
+const ImageView = lazyLoad(() => import('@/components/image-view').then(mod => ({
+  default: mod.ImageView
+})))
 
 // Loading skeleton component
 function ProfileSkeleton() {

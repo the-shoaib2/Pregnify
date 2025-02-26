@@ -1,51 +1,71 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import { SettingsService } from '@/services'
 import { useAuth } from '@/contexts/auth-context/auth-context'
 import { toast } from 'react-hot-toast'
+import axios from 'axios'
 
 const SettingsContext = createContext({})
 
-export function SettingsProvider({ children }) {
-  const { user: authUser, updateUser } = useAuth()
-  const [settings, setSettings] = useState(null)
-  const [loading, setLoading] = useState(true)
+const API_URL = import.meta.env.VITE_API_URL
 
-  const loadSettings = async () => {
+export function SettingsProvider({ children }) {
+  const { user: authUser } = useAuth()
+  const [state, setState] = useState({
+    settings: null,
+    profile: null,
+    loading: false,
+    isInitialized: false
+  })
+
+  // Memoize fetchProfile to prevent unnecessary re-renders
+  const fetchProfile = useCallback(async () => {
+    if (!authUser) return null
+    
     try {
-      setLoading(true)
+      const response = await axios.get(`${API_URL}/account/profile`)
+      setState(prev => ({ ...prev, profile: response.data }))
+      return response.data
+    } catch (error) {
+      console.error('Failed to fetch profile:', error)
+      toast.error('Failed to load profile data')
+      return null
+    }
+  }, [authUser])
+
+  // Instead, only load settings when explicitly requested
+  const loadSettings = useCallback(async () => {
+    try {
+      setState(prev => ({ ...prev, loading: true }))
       const response = await SettingsService.getSettings()
-      setSettings(response.data)
-      
-      // Update auth context if needed
-      if (response.data?.profile && updateUser) {
-        updateUser({
-          ...authUser,
-          ...response.data.profile
-        })
-      }
+      setState(prev => ({ 
+        ...prev, 
+        settings: response.data,
+        loading: false,
+        isInitialized: true
+      }))
+      return response.data
     } catch (error) {
       console.error('Failed to load settings:', error)
-      toast.error('Failed to load settings')
-    } finally {
-      setLoading(false)
+      setState(prev => ({ ...prev, loading: false }))
+      return null
     }
-  }
+  }, [])
 
-  const updateSettings = async (section, data) => {
+  const updateSettings = useCallback(async (section, data) => {
+    setState(prev => ({ ...prev, loading: true }))
     try {
-      setLoading(true)
       const response = await SettingsService.updateSettings({ [section]: data })
-      setSettings(prev => ({
+      
+      setState(prev => ({
         ...prev,
-        [section]: response.data[section]
+        settings: {
+          ...prev.settings,
+          [section]: response.data[section]
+        }
       }))
       
-      // Update auth context if profile was updated
-      if (section === 'profile' && updateUser) {
-        updateUser({
-          ...authUser,
-          ...data
-        })
+      if (section === 'profile') {
+        await fetchProfile()
       }
       
       return response
@@ -53,16 +73,19 @@ export function SettingsProvider({ children }) {
       console.error('Failed to update settings:', error)
       throw error
     } finally {
-      setLoading(false)
+      setState(prev => ({ ...prev, loading: false }))
     }
-  }
+  }, [fetchProfile])
 
-  useEffect(() => {
-    loadSettings()
-  }, [])
+  const value = useMemo(() => ({
+    ...state,
+    loadSettings, // Expose loadSettings so it can be called when needed
+    updateSettings,
+    fetchProfile
+  }), [state, loadSettings, updateSettings, fetchProfile])
 
   return (
-    <SettingsContext.Provider value={{ settings, loading, updateSettings }}>
+    <SettingsContext.Provider value={value}>
       {children}
     </SettingsContext.Provider>
   )

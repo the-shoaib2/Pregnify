@@ -43,14 +43,14 @@ import { toast } from 'react-hot-toast'
 import { NavUserSkeleton } from "@/components/nav-user-skeleton"
 import { UserAvatar, UserAvatarWithInfo } from "@/components/user/user-avatar"
 
-export function NavUser() {
-  const { user, isLoadingUser } = useAuth()
+const NavUser = () => {
+  const { user } = useAuth()
+  const sidebar = useSidebar()
   
-  if (isLoadingUser) {
+  if (sidebar.isLoadingUser) {
     return <NavUserSkeleton />
   }
 
-  const { isMobile } = useSidebar()
   const { logout } = useAuth()
   const navigate = useNavigate()
   const [isLoggingOut, setIsLoggingOut] = React.useState(false)
@@ -93,7 +93,7 @@ export function NavUser() {
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-            side={isMobile ? "bottom" : "right"}
+            side={sidebar.isMobile ? "bottom" : "right"}
             align="end"
             sideOffset={4}>
             <DropdownMenuLabel className="p-0 font-normal">
@@ -169,3 +169,6 @@ export function NavUser() {
     </SidebarMenu>
   )
 }
+
+export { NavUser }
+export default NavUser
