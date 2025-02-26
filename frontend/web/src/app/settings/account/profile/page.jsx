@@ -27,6 +27,7 @@ import ActivityTab from "./tabs/activity/page"
 import ProfileCompletionCard from "./tabs/profile-completion/page"
 import StatsOverviewCard from "./tabs/statistics-overview/page"
 import { MediaService, Visibility } from '@/services/media'
+import { FileUpload } from "@/components/file-upload"
 
 // Loading skeleton component
 function ProfileSkeleton() {
@@ -176,94 +177,74 @@ export default function ProfilePage() {
     return <ProfileSkeleton />
   }
 
-
-  const handleAvatarUpload = async (file) => {
-    setUploadingImage(true)
-    const toastId = toast.loading('Uploading profile picture...')
-
+  const handleAvatarSuccess = async (data) => {
     try {
-      const handleProgress = (progressEvent) => {
-        if (progressEvent.lengthComputable) {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
-          toast.loading(`Uploading... ${progress}%`, { id: toastId })
-        }
-      }
-
-      const response = await MediaService.fileUpload(file, {
-        fileCategory: 'PROFILE',
-        title: " ",
-        description: "Profile picture",
-        onProgress: handleProgress
+      await updateSettings('avatar', { 
+        avatarUrl: data.file.url 
       })
-
-      if (response?.data?.data?.file?.url) {
-        await updateSettings('avatar', { 
-          avatarUrl: response.data.data.file.url 
-        })
-        toast.success('Profile picture updated')
-      } else {
-        throw new Error('Failed to upload image')
-      }
     } catch (error) {
-      console.error('Profile upload error:', error)
-      toast.error('Failed to update profile picture', { id: toastId })
+      console.error('Failed to update avatar:', error)
     } finally {
       setUploadingImage(false)
-      toast.dismiss(toastId)
     }
   }
 
-  const handleCoverUpload = async (file) => {
-    setUploadingCover(true)
-    const toastId = toast.loading('Uploading cover photo...')
-
+  const handleCoverSuccess = async (data) => {
     try {
-      const handleProgress = (progressEvent) => {
-        if (progressEvent.lengthComputable) {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
-          toast.loading(`Uploading... ${progress}%`, { id: toastId })
-        }
-      }
-
-      const response = await MediaService.fileUpload(file, {
-        fileType: 'IMAGE',
-        fileCategory: 'COVER',
-        visibility: 'PUBLIC',
-        title: " ",
-        description: "Cover photo upload",
-        allowComments: "true",
-        allowSharing: "true",
-        allowDownload: "true",
-        customAudience: '""',
-        onProgress: handleProgress
+      await updateSettings('cover', {
+        coverImage: data.file.url
       })
-      
-      if (response?.data?.data?.file?.url) {
-        await updateSettings('cover', {
-          coverImage: response.data.data.file.url
-        })
-        toast.success('Cover photo updated')
-      } else {
-        throw new Error('Failed to upload image')
-      }
     } catch (error) {
-      console.error('Cover upload error:', error)
-      toast.error('Failed to update cover photo', { id: toastId })
+      console.error('Failed to update cover:', error)
     } finally {
       setUploadingCover(false)
-      toast.dismiss(toastId)
     }
   }
 
-
   return (
-        <div className="space-y-6">
+    <div className="space-y-6">
       <ProfileHeader 
         user={userData}
-        onAvatarUpload={handleAvatarUpload}
-        onCoverUpload={handleCoverUpload}
         uploadingImage={uploadingImage}
         uploadingCover={uploadingCover}
+        onAvatarClick={() => {
+          setUploadingImage(true)
+          // Open FileUpload dialog for avatar
+          // FileUpload component will handle the rest
+        }}
+        onCoverClick={() => {
+          setUploadingCover(true)
+          // Open FileUpload dialog for cover
+          // FileUpload component will handle the rest
+        }}
+      />
+      
+      {/* Avatar Upload Dialog */}
+      <FileUpload
+        fileType="IMAGE"
+        fileCategory="PROFILE"
+        onUpload={handleAvatarSuccess}
+        isOpen={uploadingImage}
+        onClose={() => setUploadingImage(false)}
+        description="Upload your profile picture"
+        aspect={1}
+        circular={true}
+      />
+
+      {/* Cover Upload Dialog */}
+      <FileUpload
+        fileType="IMAGE"
+        fileCategory="COVER"
+        onUpload={handleCoverSuccess}
+        isOpen={uploadingCover}
+        onClose={() => setUploadingCover(false)}
+        description="Upload your cover photo"
+        aspect={16/9}
+        circular={false}
+        cropSizes={{
+          width: 100,
+          height: 40
+        }}
       />
 
       {/* Main Content - More Compact Layout */}

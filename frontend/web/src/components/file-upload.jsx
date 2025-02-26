@@ -33,9 +33,9 @@ import { Progress } from "@/components/ui/progress"
 import { AspectRatio } from "@/components/ui/aspect-ratio"
 
 export function FileUpload({ 
-  user, 
-  onUpload, 
-  loading, 
+  fileType = 'IMAGE',
+  fileCategory = 'POST',
+  onUpload,
   description = "Drag and drop your image here or click to select",
   aspect = 1,
   circular = true,
@@ -45,8 +45,7 @@ export function FileUpload({
   cropSizes = {
     width: 90,
     height: 90,
-  },
-  fileCategory = FileCategory.POST
+  }
 }) {
   const [imgSrc, setImgSrc] = useState('')
   const [uploadState, setUploadState] = useState({
@@ -155,14 +154,12 @@ export function FileUpload({
   }
 
   const handleSave = async () => {
-    let toastId = null;
     try {
       setIsLoading(true)
       setUploadProgress(0)
       setShowProgressDialog(true)
 
       const croppedImage = await getCroppedImg(imgSrc, crop)
-      
 
       const handleProgress = (progressEvent) => {
         if (progressEvent.lengthComputable) {
@@ -173,14 +170,13 @@ export function FileUpload({
         }
       }
 
-      // Pass all required fields explicitly
       const response = await MediaService.fileUpload(croppedImage, {
-        fileCategory: fileCategory,
-        description: uploadState.description || "",
+        fileType,
+        fileCategory,
         onProgress: handleProgress
       })
 
-      if (response?.data?.data?.file?.url) {
+      if (response?.data?.data) {
         setUploadProgress(100)
         toast.success('Upload successful')
         
@@ -196,7 +192,7 @@ export function FileUpload({
     } catch (error) {
       console.error('Upload error:', error)
       const errorMessage = error.message || 'Failed to upload image'
-      toast.error(errorMessage, { id: toastId })
+      toast.error(errorMessage)
     } finally {
       setIsLoading(false)
       setUploadProgress(0)
