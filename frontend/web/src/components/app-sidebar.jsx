@@ -1,47 +1,25 @@
 import * as React from "react"
 import {
-  BookOpen,
   Bot,
   Command,
-  Frame,
   LifeBuoy,
-  Map,
-  PieChart,
   Send,
   Settings,
-  SquareTerminal,
   Users,
   Calendar,
   Activity,
   MessageSquare,
   Database,
-  Bell,
   FileText,
-  AlertTriangle,
-  ScrollText,
   UserCog,
-  CreditCard,
   Ambulance,
   LineChart,
-  Lock,
-  User,
-  Moon,
-  Languages,
-  HelpCircle,
-  Shield,
-  LayoutGrid,
-  Cog,
-  Save,
-  UserCircle,
-  Accessibility
-} from "lucide-react"
-import { Link, NavLink } from "react-router-dom"
-import { cn } from "@/lib/utils"
 
+} from "lucide-react"
+import { Link } from "react-router-dom"
 import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
 import { NavSecondary } from "@/components/nav-secondary"
-import NavUser, { NavUser as NavUserComponent } from "@/components/nav-user"
+import NavUser from "@/components/nav-user"
 import {
   Sidebar,
   SidebarContent,
@@ -377,19 +355,19 @@ export function AppSidebar({ ...props }) {
   const { user } = useAuth()
   
   const navMainItems = React.useMemo(() => 
-    getNavItems(user?.role || 'GUEST'), [user?.role]
+    getNavItems(user?.basicInfo?.role || 'GUEST'), [user?.basicInfo?.role]
   )
 
   const getInitials = (user) => {
-    if (!user || !user.firstName || !user.lastName) return 'GU'
-    return `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
+    if (!user || !user?.basicInfo?.name?.firstName || !user?.basicInfo?.name?.lastName) return 'GU'
+    return `${user.basicInfo?.name?.firstName.charAt(0)}${user.basicInfo?.name?.lastName.charAt(0)}`.toUpperCase()
   }
 
   const sidebarData = {
     user: {
-      name: user ? `${user.firstName} ${user.lastName}` : 'Guest User',
-      email: user?.email || 'guest@example.com',
-      avatar: user?.avatar || '/avatars/default.jpg',
+      name: user ? `${user?.basicInfo?.name?.firstName} ${user?.basicInfo?.name?.lastName}` : 'Guest User',
+      email: user?.basicInfo?.email || 'guest@example.com',
+      avatar: user?.basicInfo?.avatar || '/avatars/default.jpg',
       initials: getInitials(user)
     },
     navMain: navMainItems,
@@ -420,7 +398,7 @@ export function AppSidebar({ ...props }) {
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">Pregnify</span>
-                  <span className="truncate text-xs">{user?.role}</span>
+                  <span className="truncate text-xs">{user?.basicInfo?.role}</span>
                 </div>
               </Link>
             </SidebarMenuButton>

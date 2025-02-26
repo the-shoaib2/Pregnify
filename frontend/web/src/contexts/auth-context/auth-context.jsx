@@ -2,6 +2,8 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef } f
 import axios from 'axios'
 import Cookies from 'js-cookie'
 import { lazyLoad } from '@/utils/lazy-load.jsx'
+import { toast } from 'react-hot-toast'
+import { debounce } from 'lodash'
 
 const AuthContext = createContext({})
 
@@ -36,6 +38,9 @@ export function AuthProvider({ children }) {
   const authCheckInProgress = useRef(false)
   const lastFetchTime = useRef(Date.now())
   const profileFetchTimeout = useRef(null)
+  const refreshInProgress = useRef(false)
+  const lastRefreshTime = useRef(Date.now())
+  const MIN_REFRESH_INTERVAL = 2000 // 2 seconds between refreshes
 
   const fetchProfile = useCallback(async () => {
     if (profileFetchTimeout.current) {
@@ -64,36 +69,43 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  const debouncedFetchUserData = useCallback(async (force = false) => {
-    if (isLoadingUser) return null
-    
-    const now = Date.now()
-    const timeSinceLastFetch = now - lastFetchTime.current
+  const debouncedFetchUserData = useCallback(
+    debounce(async (force = false) => {
+      // Don't fetch if already in progress
+      if (refreshInProgress.current) return null
+      
+      const now = Date.now()
+      const timeSinceLastRefresh = now - lastRefreshTime.current
 
-    // Return cached data if within cache duration and not forced
-    if (!force && user && timeSinceLastFetch < CACHE_DURATION) {
-      return user
-    }
+      // Return cached data if within cache duration and not forced
+      if (!force && user && timeSinceLastRefresh < CACHE_DURATION) {
+        return user
+      }
 
-    setIsLoadingUser(true)
-    try {
-      const response = await axios.get(`${API_URL}/auth/user`)
-      const userData = response.data.user
-      setUser(userData)
-      localStorage.setItem('cached_user', JSON.stringify(userData))
-      lastFetchTime.current = now
+      // Prevent refresh spam
+      if (timeSinceLastRefresh < MIN_REFRESH_INTERVAL) {
+        return user
+      }
 
-      // Lazy load profile after user data is fetched
-      fetchProfile()
-
-      return userData
-    } catch (error) {
-      console.error('Failed to fetch user data:', error)
-      return null
-    } finally {
-      setIsLoadingUser(false)
-    }
-  }, [isLoadingUser, user, fetchProfile])
+      refreshInProgress.current = true
+      
+      try {
+        const response = await axios.get(`${API_URL}/auth/user`)
+        const userData = response.data.user
+        setUser(userData)
+        localStorage.setItem('cached_user', JSON.stringify(userData))
+        // console.log(userData, "userData")
+        lastRefreshTime.current = now
+        return userData
+      } catch (error) {
+        console.error('Failed to fetch user data:', error)
+        return null
+      } finally {
+        refreshInProgress.current = false
+      }
+    }, 500), // 500ms debounce
+    [user]
+  )
 
   const checkAuth = useCallback(async () => {
     if (authCheckInProgress.current) return
@@ -172,11 +184,63 @@ export function AuthProvider({ children }) {
     })
   }, [])
 
+  const refreshData = useCallback(async () => {
+    const now = Date.now()
+    if (now - lastRefreshTime.current < MIN_REFRESH_INTERVAL) {
+      return { userData: user, profileData: profile }
+    }
+
+    try {
+      const [userData, profileData] = await Promise.all([
+        debouncedFetchUserData(true),
+        fetchProfile()
+      ])
+      
+      return { userData, profileData }
+    } catch (error) {
+      console.error('Failed to refresh data:', error)
+      return { userData: user, profileData: profile }
+    }
+  }, [debouncedFetchUserData, fetchProfile, user, profile])
+
+  // Update profile with immediate refresh
+  const updateProfile = useCallback(async (data) => {
+    try {
+      const response = await axios.patch(`${API_URL}/account/profile`, data)
+      setProfile(response.data)
+      localStorage.setItem('cached_profile', JSON.stringify(response.data))
+      toast.success('Profile updated successfully')
+      return response.data
+    } catch (error) {
+      console.error('Failed to update profile:', error)
+      toast.error('Failed to update profile')
+      throw error
+    }
+  }, [])
+
+  // Update user settings with immediate refresh
+  const updateSettings = useCallback(async (data) => {
+    try {
+      const response = await axios.patch(`${API_URL}/account/settings`, data)
+      setUser(prev => ({ ...prev, settings: response.data }))
+      localStorage.setItem('cached_user', JSON.stringify({ ...user, settings: response.data }))
+      toast.success('Settings updated successfully')
+      return response.data
+    } catch (error) {
+      console.error('Failed to update settings:', error)
+      toast.error('Failed to update settings')
+      throw error
+    }
+  }, [user])
+
   const value = {
     user,
     profile,
     loading,
     isLoadingUser,
+    refreshData,
+    updateProfile,
+    updateSettings,
     login: useCallback(async (credentials) => {
       try {
         const response = await axios.post(`${API_URL}/auth/login`, credentials)

@@ -49,14 +49,14 @@ export default function AccountTab({ user, formData, handleChange, handleSave, s
             <Label className="text-muted-foreground text-sm">User ID</Label>
             <div className="flex items-center gap-2 bg-muted/50 rounded-md p-2 border">
               <FileText className="h-4 w-4 text-muted-foreground" />
-              <code className="font-mono text-sm">{user?.userID || 'N/A'}</code>
+              <code className="font-mono text-sm">{user?.basicInfo?.userID || 'N/A'}</code>
             </div>
           </div>
           <div className="space-y-2">
             <Label className="text-muted-foreground text-sm">Username</Label>
             <div className="flex items-center gap-2">
               <Input 
-                value={formData.basic.username}
+                value={formData.basicInfo?.username}
                 onChange={(e) => handleChange('basic', 'username', e.target.value)}
                 placeholder="Enter username"
                 className="font-medium"
@@ -93,10 +93,10 @@ export default function AccountTab({ user, formData, handleChange, handleSave, s
                   Email Address
                 </Label>
                 <p className="text-sm text-muted-foreground break-all">
-                  {user?.email || 'No email set'}
+                  {user?.basicInfo?.email || 'No email set'}
                 </p>
               </div>
-              {user?.isEmailVerified ? (
+              {user?.basicInfo?.isEmailVerified ? (
                 <Badge variant="success" className="flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3" />
                   Verified
@@ -122,10 +122,10 @@ export default function AccountTab({ user, formData, handleChange, handleSave, s
                   Phone Number
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  {user?.phoneNumber || 'No phone set'}
+                  {user?.basicInfo?.phoneNumber || 'No phone set'}
                 </p>
               </div>
-              {user?.isSmsVerified ? (
+              {user?.basicInfo?.isSmsVerified ? (
                 <Badge variant="success" className="flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3" />
                   Verified
@@ -155,10 +155,10 @@ export default function AccountTab({ user, formData, handleChange, handleSave, s
                 </p>
               </div>
               <Badge 
-                variant={user?.accountStatus === 'ACTIVE' ? 'success' : 'secondary'}
+                variant={user?.basicInfo?.accountStatus === 'ACTIVE' ? 'success' : 'secondary'}
                 className="uppercase"
               >
-                {user?.accountStatus || 'INACTIVE'}
+                {user?.basicInfo?.accountStatus || 'INACTIVE'}
               </Badge>
             </div>
           </div>
@@ -168,13 +168,13 @@ export default function AccountTab({ user, formData, handleChange, handleSave, s
               <div className="flex items-center justify-between">
                 <Label className="text-sm text-muted-foreground">Created</Label>
                 <p className="text-sm font-medium">
-                  {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                  {user?.basicInfo?.createdAt ? new Date(user?.basicInfo?.createdAt).toLocaleDateString() : 'N/A'}
                 </p>
               </div>
               <div className="flex items-center justify-between">
                 <Label className="text-sm text-muted-foreground">Last Login</Label>
                 <p className="text-sm font-medium">
-                  {user?.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'N/A'}
+                  {user?.activity?.lastLoginAt ? new Date(user?.activity?.lastLoginAt).toLocaleDateString() : 'N/A'}
                 </p>
               </div>
             </div>

@@ -112,26 +112,26 @@ export default function ProfilePage() {
       
       setFormData({
         basic: {
-          username: userData.username || "",
-          email: userData.email || "",
-          bio: userData.bio || userData.description || "",
+          username: userData.basicInfo?.username || "",
+          email: userData.basicInfo?.email || "",
+          bio: userData.basicInfo?.bio || userData.basicInfo?.description || "",
         },
         personal: {
-          firstName: userData.firstName || "", 
-          lastName: userData.lastName || "",    
-          dateOfBirth: userData.dateOfBirth?.split('T')[0] || "",
-          genderIdentity: userData.genderIdentity || "",
-          contactNumber: userData.phoneNumber || "",
-          presentAddress: userData.location || "",
-          permanentAddress: userData.permanentAddress || "",
-          nationality: userData.citizenship || "",
-          religion: userData.religion || "",
-          maritalStatus: userData.maritalStatus || "",
-          bloodGroup: userData.bloodGroup || "",
-          hobbies: userData.hobbies || "",
-          occupation: userData.occupation || "",
-          education: userData.education || "",
-          language: userData.languagePreference || ""
+          firstName: userData.personalInfo?.name?.firstName || "", 
+          lastName: userData.personalInfo?.name?.lastName || "",    
+          dateOfBirth: userData.personalInfo?.dateOfBirth?.split('T')[0] || "",
+          contactNumber: userData?.personalInfo?.phoneNumber || "",
+          presentAddress: userData?.personalInfo?.location || "",
+          genderIdentity: userData?.personalInfo?.genderIdentity || "",
+          permanentAddress: userData?.personalInfo?.permanentAddress || "",
+          nationality: userData?.personalInfo?.nationality || "",
+          religion: userData?.personalInfo?.religion || "",
+          maritalStatus: userData?.personalInfo?.maritalStatus || "",
+          bloodGroup: userData?.personalInfo?.bloodGroup || "",
+          hobbies: userData?.personalInfo?.hobbies || "",
+          occupation: userData?.personalInfo?.occupation || "",
+          education: userData?.personalInfo?.education || "",
+          language: userData?.personalInfo?.languagePreference || ""
         }
       })
       setPageLoading(false)

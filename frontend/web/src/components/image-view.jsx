@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -33,7 +34,14 @@ import { handleImageDownload, handleImageShare } from "@/lib/image-utils"
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 
-export function ImageDialog({ image, title, isOpen, onClose, onUploadClick }) {
+export function ImageDialog({ 
+  image, 
+  title, 
+  description, 
+  isOpen, 
+  onClose, 
+  onUploadClick 
+}) {
   const [zoom, setZoom] = useState(1)
   const [rotation, setRotation] = useState(0)
   const [privacy, setPrivacy] = useState('public')
@@ -45,7 +53,6 @@ export function ImageDialog({ image, title, isOpen, onClose, onUploadClick }) {
       setZoom(1)
       setRotation(0)
       setLoading(true)
-      // Reset image size when dialog opens
       setImageSize({ width: 0, height: 0 })
     }
   }, [isOpen])
@@ -53,6 +60,13 @@ export function ImageDialog({ image, title, isOpen, onClose, onUploadClick }) {
   const handleImageLoad = (e) => {
     const { naturalWidth, naturalHeight } = e.target
     setImageSize({ width: naturalWidth, height: naturalHeight })
+    setLoading(false)
+  }
+
+  const handleImageError = (e) => {
+    console.error('Image failed to load:', e)
+    e.target.onerror = null
+    e.target.src = '/avatars/default.jpg'
     setLoading(false)
   }
 
@@ -115,12 +129,10 @@ export function ImageDialog({ image, title, isOpen, onClose, onUploadClick }) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-h-[90vh] overflow-hidden p-5 md:max-w-[400px]">
-        {/* Header */}
-        <div className="px-4 pt-4">
-          <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-          </DialogHeader>
-        </div>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
 
         {/* Image Container */}
         <div 
@@ -129,7 +141,7 @@ export function ImageDialog({ image, title, isOpen, onClose, onUploadClick }) {
         >
           {loading && <Skeleton className="absolute inset-0 z-10" />}
           <img 
-            src={image} 
+            src={image || '/avatars/default.jpg'} 
             alt={title}
             className={cn(
               "h-full w-full transition-all duration-200",
@@ -141,6 +153,7 @@ export function ImageDialog({ image, title, isOpen, onClose, onUploadClick }) {
               transformOrigin: 'center'
             }}
             onLoad={handleImageLoad}
+            onError={handleImageError}
           />
         </div>
 

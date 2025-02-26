@@ -12,24 +12,24 @@ export function ButtonProfileCard({ user, href }) {
     >
       <a href={href} className="flex items-start gap-4">
         <Avatar className="h-16 w-16">
-          <AvatarImage src={user?.avatar} alt={user?.name} />
-          <AvatarFallback>{getInitials(user?.name || user?.username)}</AvatarFallback>
+          <AvatarImage src={user?.basicInfo?.avatar} alt={user?.basicInfo?.name} />
+          <AvatarFallback>{getInitials(user?.basicInfo?.name || user?.basicInfo?.username)}</AvatarFallback>
         </Avatar>
         <div className="flex flex-col items-start gap-1">
           <div className="flex items-center gap-2">
             <span className="text-base font-semibold">
-              {user?.name || user?.username}
+              {user?.basicInfo?.name || user?.basicInfo?.username}
             </span>
             {user?.verified && (
               <BadgeCheck className="h-4 w-4 text-primary" />
             )}
           </div>
           <span className="text-sm text-muted-foreground">
-            {user?.email}
+            {user?.basicInfo?.email}
           </span>
           {user?.bio && (
             <p className="text-sm text-muted-foreground line-clamp-2">
-              {user.bio}
+              {user.basicInfo?.bio}
             </p>
           )}
         </div>

@@ -7,41 +7,42 @@ import {
 import { cn } from "@/lib/utils"
 
 export function UserAvatar({ user, className, showStatus = false }) {
-  // Create display name with better fallbacks
-  const displayName = React.useMemo(() => {
-    if (!user) return user?.role
-    if (user.firstName && user.lastName && user.firstName !== 'undefined' && user.lastName !== 'undefined') {
-      return `${user.firstName} ${user.lastName}`
-    }
-    if (user.email) return user.email?.split('@')[0] || user.role
-    return user.email?.split('@')[0] || user.role
-  }, [user])
+  // Extract the actual user data from the response
+  const userData = user?.data || user
 
-  // Create initials with better fallbacks
+  const displayName = React.useMemo(() => {
+    if (!userData) return ''
+    if (userData?.basicInfo?.name?.full) {
+      return userData.basicInfo.name.full
+    }
+    if (userData?.basicInfo?.email) return userData.basicInfo.email.split('@')[0]
+    return userData?.basicInfo?.username || userData?.basicInfo?.userID || ''
+  }, [userData])
+
   const initials = React.useMemo(() => {
-    if (!user) return 'GU'
+    if (!userData) return 'GU'
     
     // Get first letter of first name and last name
-    const firstNameInitial = user?.firstName?.charAt(0)
-    const lastNameInitial = user?.lastName?.charAt(0)
+    const firstNameInitial = userData?.basicInfo?.name?.first?.charAt(0)
+    const lastNameInitial = userData?.basicInfo?.name?.last?.charAt(0)
     
     if (firstNameInitial && lastNameInitial) {
       return `${firstNameInitial}${lastNameInitial}`.toUpperCase()
     }
     
     // Fallback to email if no name
-    if (user?.email) {
-      return user.email.slice(0, 2).toUpperCase()
+    if (userData?.basicInfo?.email) {
+      return userData.basicInfo.email.slice(0, 2).toUpperCase()
     }
     
     return 'GU'
-  }, [user])
+  }, [userData])
 
   return (
     <div className="relative">
       <Avatar className={cn("", className)}>
         <AvatarImage 
-          src={user?.avatar} 
+          src={userData?.basicInfo?.avatar || '/avatars/default.jpg'} 
           alt={displayName}
           className="object-cover"
           onError={(e) => {
@@ -54,12 +55,11 @@ export function UserAvatar({ user, className, showStatus = false }) {
         </AvatarFallback>
       </Avatar>
 
-      {/* Status Indicator */}
-      {showStatus && user?.status?.activeStatus && (
+      {showStatus && userData?.accountStatus?.activeStatus && (
         <div className="absolute -right-0.5 -top-0.5 rounded-full border-2 border-background">
           <div className={cn(
             "h-3 w-3 rounded-full",
-            user.status.activeStatus === "ONLINE" 
+            userData.accountStatus.activeStatus === "ONLINE" 
               ? "bg-green-500" 
               : "bg-red-500"
           )} />
@@ -70,21 +70,24 @@ export function UserAvatar({ user, className, showStatus = false }) {
 }
 
 export function UserAvatarWithInfo({ user, className }) {
-  // Format name with proper capitalization
+  // Format name with proper capitalization and null checks
   const formattedName = React.useMemo(() => {
-    if (!user?.firstName || !user?.lastName) return ''
+    if (!user?.basicInfo?.name?.firstName || !user?.basicInfo?.name?.lastName) {
+      return user?.basicInfo?.email?.split('@')[0] || user?.basicInfo?.role || ''
+    }
     
     const formatName = (name) => {
+      if (!name) return ''
       return name
         .split(' ')
         .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
         .join(' ')
     }
 
-    const firstName = formatName(user.firstName)
-    const lastName = formatName(user.lastName)
+    const firstName = formatName(user?.basicInfo?.name?.firstName)
+    const lastName = formatName(user?.basicInfo?.name?.lastName)
     
-    return `${firstName} ${lastName}`
+    return `${firstName} ${lastName}`.trim()
   }, [user])
 
   return (
@@ -92,7 +95,7 @@ export function UserAvatarWithInfo({ user, className }) {
       <UserAvatar user={user} className={className || "h-8 w-8"} />
       <div className="grid flex-1 text-left text-sm leading-tight">
         <span className="truncate font-semibold">{formattedName}</span>
-        <span className="truncate text-xs">{user?.email}</span>
+        <span className="truncate text-xs">{user?.basicInfo?.email}</span>
       </div>
     </div>
   )

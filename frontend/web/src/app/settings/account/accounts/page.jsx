@@ -80,12 +80,12 @@ export default function AccountsPage() {
       
       <ButtonProfileCard 
         user={{
-          name: user?.firstName + " " + user?.lastName,
-          username: user?.username,
-          avatar: user?.avatar || user?.avatar,
-          email: user?.email,
-          bio: user?.bio,
-          verified: user?.isVerified,
+          name: user?.basicInfo?.name?.firstName + " " + user?.basicInfo?.name?.lastName,
+          username: user?.basicInfo?.username,
+          avatar: user?.basicInfo?.avatar,
+          email: user?.basicInfo?.email,
+          bio: user?.basicInfo?.bio,
+          verified: user?.basicInfo?.isVerified,
         }}
         href="/settings/account/profile"
       />

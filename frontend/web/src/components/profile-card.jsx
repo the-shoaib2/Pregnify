@@ -21,7 +21,7 @@ import { QRCodeSVG } from 'qrcode.react'
 
 export function UserCardButtons({ user, onShare, onDownload }) {
   const [showQR, setShowQR] = useState(false)
-  const profileUrl = `${window.location.origin}/profile/${user?.username}`
+  const profileUrl = `${window.location.origin}/profile/${user?.basicInfo?.username}`
 
   const handleShare = async () => {
     if (navigator.share) {

@@ -200,7 +200,7 @@ export default function PaymentPage() {
                 <Label>Full Name</Label>
                 <Input 
                   placeholder="John Doe" 
-                  defaultValue={`${user?.firstName} ${user?.lastName}`}
+                  defaultValue={`${user?.basicInfo?.name?.firstName} ${user?.basicInfo?.name?.lastName}`}
                 />
               </div>
               <div className="space-y-2">
