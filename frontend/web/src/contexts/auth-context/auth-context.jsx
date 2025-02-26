@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import axios from 'axios'
 import Cookies from 'js-cookie'
+import { lazyLoad } from '@/utils/lazy-load.jsx'
 
 const AuthContext = createContext({})
 
@@ -9,17 +10,50 @@ const API_URL = import.meta.env.VITE_API_URL
 // Cache duration in milliseconds
 const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 
+// Lazy load profile fetching
+const fetchProfileData = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/account/profile`)
+    return response.data
+  } catch (error) {
+    console.error('Failed to fetch profile:', error)
+    return null
+  }
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     // Initialize from localStorage if available
     const cachedUser = localStorage.getItem('cached_user')
     return cachedUser ? JSON.parse(cachedUser) : null
   })
+  const [profile, setProfile] = useState(() => {
+    const cachedProfile = localStorage.getItem('cached_profile')
+    return cachedProfile ? JSON.parse(cachedProfile) : null
+  })
   const [loading, setLoading] = useState(true)
   const [isLoadingUser, setIsLoadingUser] = useState(false)
   const authCheckInProgress = useRef(false)
   const lastFetchTime = useRef(Date.now())
+  const profileFetchTimeout = useRef(null)
 
+  const fetchProfile = useCallback(async () => {
+    if (profileFetchTimeout.current) {
+      clearTimeout(profileFetchTimeout.current)
+    }
+
+    // Use a timeout to delay profile fetch
+    return new Promise((resolve) => {
+      profileFetchTimeout.current = setTimeout(async () => {
+        const profileData = await fetchProfileData()
+        if (profileData) {
+          setProfile(profileData)
+          localStorage.setItem('cached_profile', JSON.stringify(profileData))
+        }
+        resolve(profileData)
+      }, 500) // Half second delay
+    })
+  }, [])
 
   // Optimize token handling
   const setAuthToken = useCallback((token) => {
@@ -46,11 +80,12 @@ export function AuthProvider({ children }) {
       const response = await axios.get(`${API_URL}/auth/user`)
       const userData = response.data.user
       setUser(userData)
-      // Cache the user data
       localStorage.setItem('cached_user', JSON.stringify(userData))
-      console.log('userData', userData)
-      // Update the user in the auth context
       lastFetchTime.current = now
+
+      // Lazy load profile after user data is fetched
+      fetchProfile()
+
       return userData
     } catch (error) {
       console.error('Failed to fetch user data:', error)
@@ -58,7 +93,7 @@ export function AuthProvider({ children }) {
     } finally {
       setIsLoadingUser(false)
     }
-  }, [isLoadingUser, user])
+  }, [isLoadingUser, user, fetchProfile])
 
   const checkAuth = useCallback(async () => {
     if (authCheckInProgress.current) return
@@ -105,8 +140,14 @@ export function AuthProvider({ children }) {
 
   const handleLogout = useCallback(() => {
     setUser(null)
+    setProfile(null)
     localStorage.removeItem('cached_user')
+    localStorage.removeItem('cached_profile')
     lastFetchTime.current = 0
+    
+    if (profileFetchTimeout.current) {
+      clearTimeout(profileFetchTimeout.current)
+    }
     
     localStorage.removeItem('accessToken')
     localStorage.removeItem('refreshToken')
@@ -133,6 +174,7 @@ export function AuthProvider({ children }) {
 
   const value = {
     user,
+    profile,
     loading,
     isLoadingUser,
     login: useCallback(async (credentials) => {
