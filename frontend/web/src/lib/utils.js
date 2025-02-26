@@ -5,8 +5,8 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs))
 }
 
-export function getAvatarUrl(user) {
-  return user?.avatarUrl || user?.avatar 
+export function getavatar(user) {
+  return user?.avatar || user?.avatar 
 }
 
 export function getUserInitials(user) {

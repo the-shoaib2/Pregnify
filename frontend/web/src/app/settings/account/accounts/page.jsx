@@ -82,7 +82,7 @@ export default function AccountsPage() {
         user={{
           name: user?.firstName + " " + user?.lastName,
           username: user?.username,
-          avatarUrl: user?.avatarUrl || user?.avatar,
+          avatar: user?.avatar || user?.avatar,
           email: user?.email,
           bio: user?.bio,
           verified: user?.isVerified,

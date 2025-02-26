@@ -41,7 +41,7 @@ export function UserAvatar({ user, className, showStatus = false }) {
     <div className="relative">
       <Avatar className={cn("", className)}>
         <AvatarImage 
-          src={user?.avatarUrl} 
+          src={user?.avatar} 
           alt={displayName}
           className="object-cover"
           onError={(e) => {

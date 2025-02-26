@@ -12,7 +12,7 @@ export function ButtonProfileCard({ user, href }) {
     >
       <a href={href} className="flex items-start gap-4">
         <Avatar className="h-16 w-16">
-          <AvatarImage src={user?.avatarUrl} alt={user?.name} />
+          <AvatarImage src={user?.avatar} alt={user?.name} />
           <AvatarFallback>{getInitials(user?.name || user?.username)}</AvatarFallback>
         </Avatar>
         <div className="flex flex-col items-start gap-1">

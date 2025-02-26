@@ -122,7 +122,7 @@ export function UserCardButtons({ user, onShare, onDownload }) {
                 includeMargin
                 className="qr-code-svg rounded-lg"
                 imageSettings={{
-                  src: user?.avatarUrl,
+                  src: user?.avatar,
                   x: undefined,
                   y: undefined,
                   height: 40,

@@ -42,17 +42,19 @@ function CoverPhotoUpload({ user, onUpload, loading }) {
   const [showUpload, setShowUpload] = useState(false)
   const [showView, setShowView] = useState(false)
 
+
+  console.log(user)
   return (
     <>
       <div className="group relative h-40 w-full overflow-hidden rounded-lg bg-gradient-to-r from-blue-100 to-indigo-100 sm:h-48">
-        {user?.coverImage ? (
+        {user?.cover ? (
           <>
             <div 
               className="relative h-full w-full cursor-pointer"
               onClick={() => setShowView(true)}
             >
               <img
-                src={user.coverImage}
+                src={user.cover}
                 alt="Cover"
                 className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
               />
@@ -80,7 +82,7 @@ function CoverPhotoUpload({ user, onUpload, loading }) {
       </div>
 
       <ImageDialog
-        image={user?.coverImage}
+        image={user?.cover}
         title="Cover Photo"
         isOpen={showView}
         onClose={() => setShowView(false)}
@@ -169,8 +171,8 @@ function ProfilePicture({ user, onUpload, loading }) {
       </div>
 
       <ImageDialog
-        image={user?.avatarUrl}
-        title="Profile Picture"
+        image={user?.avatar}
+        title=" "
         isOpen={showView}
         onClose={() => setShowView(false)}
         onUploadClick={() => {
@@ -192,7 +194,7 @@ function ProfilePicture({ user, onUpload, loading }) {
         fileCategory={FileCategory.PROFILE}
         initialState={{
           visibility: Visibility.PUBLIC,
-          description: "Profile picture"
+          description: user?.discription
         }}
       />
     </div>
@@ -271,14 +273,14 @@ export function ProfileHeader({
 
       {/* Image Preview Dialogs */}
       <ImageDialog
-        image={user?.avatarUrl}
+        image={user?.avatar}
         title="Profile Picture"
         isOpen={showAvatarDialog}
         onClose={() => setShowAvatarDialog(false)}
       />
 
       <ImageDialog
-        image={user?.coverImage}
+        image={user?.cover}
         title="Cover Photo"
         isOpen={showCoverDialog}
         onClose={() => setShowCoverDialog(false)}

@@ -11,7 +11,6 @@ import {
   Shield,
 } from "lucide-react"
 import { useSettings } from '@/contexts/settings-context/settings-context'
-import { SettingsService } from "@/services/settings"
 import {
   Tabs,
   TabsContent,
@@ -180,7 +179,7 @@ export default function ProfilePage() {
   const handleAvatarSuccess = async (data) => {
     try {
       await updateSettings('avatar', { 
-        avatarUrl: data.file.url 
+        avatar: data.file.url 
       })
     } catch (error) {
       console.error('Failed to update avatar:', error)
@@ -192,7 +191,7 @@ export default function ProfilePage() {
   const handleCoverSuccess = async (data) => {
     try {
       await updateSettings('cover', {
-        coverImage: data.file.url
+        cover: data.file.url
       })
     } catch (error) {
       console.error('Failed to update cover:', error)
