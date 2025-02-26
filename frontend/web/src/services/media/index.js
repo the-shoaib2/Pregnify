@@ -4,14 +4,21 @@ import api from '../api'
 export const FileType = {
   IMAGE: 'IMAGE',
   VIDEO: 'VIDEO',
-  DOCUMENT: 'DOCUMENT'
+  DOCUMENT: 'DOCUMENT',
+  AUDIO: 'AUDIO'
 }
 
 export const FileCategory = {
   PROFILE: 'PROFILE',
   COVER: 'COVER',
   POST: 'POST',
-  PERSONAL: 'PERSONAL'
+  PERSONAL: 'PERSONAL',
+  GROUP: 'GROUP',
+  EVENT: 'EVENT',
+  STORY: 'STORY',
+  MESSAGE: 'MESSAGE',
+  NOTIFICATION: 'NOTIFICATION',
+  NOTIFICATION: 'NOTIFICATION'
 }
 
 export const Visibility = {
@@ -22,6 +29,8 @@ export const Visibility = {
 }
 
 export const ShareType = {
+  PRIVATE: 'PRIVATE',
+  PUBLIC: 'PUBLIC',
   DIRECT: 'DIRECT',
   GROUP: 'GROUP',
   LINK: 'LINK'
@@ -33,7 +42,9 @@ export const ReactionType = {
   HAHA: 'HAHA',
   WOW: 'WOW',
   SAD: 'SAD',
-  ANGRY: 'ANGRY'
+  ANGRY: 'ANGRY',
+  CARE: 'CARE',
+  SUPPORT: 'SUPPORT'
 }
 
 export const MediaService = {

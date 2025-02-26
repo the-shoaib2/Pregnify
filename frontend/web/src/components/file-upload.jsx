@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Upload, Loader2, X, Share2, Download, MessageSquare, Globe, Lock, Users, Settings } from "lucide-react"
 import ReactCrop from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
@@ -10,13 +9,11 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { MediaService, FileType, FileCategory, Visibility } from '@/services/media'
+import { MediaService, Visibility } from '@/services/media'
 import { toast } from 'react-hot-toast'
-import { UserAvatar } from "@/components/user/user-avatar"
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -45,19 +42,23 @@ export function FileUpload({
   cropSizes = {
     width: 90,
     height: 90,
-  }
+  },
+  allowComments = true,
+  allowSharing = true,
+  allowDownload = true,
+  customAudience = ''
 }) {
   const [imgSrc, setImgSrc] = useState('')
   const [uploadState, setUploadState] = useState({
-    fileType: 'IMAGE',
+    fileType: fileType,
     fileCategory: fileCategory,
-    visibility: 'PUBLIC',
-    title: " ",
-    description: '',
-    allowComments: "true",
-    allowSharing: "true",
-    allowDownload: "true",
-    customAudience: '""'
+    visibility: Visibility.PUBLIC,
+    title: '',
+    description: description,
+    allowComments,
+    allowSharing,
+    allowDownload,
+    customAudience
   })
   const [crop, setCrop] = useState({
     unit: '%',
@@ -73,6 +74,14 @@ export function FileUpload({
   const [uploadCancelled, setUploadCancelled] = useState(false)
   const [showProgressDialog, setShowProgressDialog] = useState(false)
 
+  // Define accepted MIME types
+  const acceptedTypes = {
+    'image/jpeg': ['.jpg', '.jpeg'],
+    'image/png': ['.png'],
+    'image/gif': ['.gif'],
+    'image/webp': ['.webp']
+  }
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (acceptedFiles) => {
       const file = acceptedFiles[0]
@@ -84,9 +93,7 @@ export function FileUpload({
         reader.readAsDataURL(file)
       }
     },
-    accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp', '.heic', '.heif']
-    },
+    accept: acceptedTypes,
     maxSize: 1024 * 1024 * 10, // 10MB
     multiple: false
   })

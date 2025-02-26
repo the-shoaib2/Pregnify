@@ -221,7 +221,7 @@ export default function ProfilePage() {
       
       {/* Avatar Upload Dialog */}
       <FileUpload
-        fileType="IMAGE"
+        fileType="image/jpeg"
         fileCategory="PROFILE"
         onUpload={handleAvatarSuccess}
         isOpen={uploadingImage}
@@ -229,11 +229,14 @@ export default function ProfilePage() {
         description="Upload your profile picture"
         aspect={1}
         circular={true}
+        allowComments={true}
+        allowSharing={true}
+        allowDownload={true}
       />
 
       {/* Cover Upload Dialog */}
       <FileUpload
-        fileType="IMAGE"
+        fileType="image/jpeg"
         fileCategory="COVER"
         onUpload={handleCoverSuccess}
         isOpen={uploadingCover}
@@ -245,6 +248,9 @@ export default function ProfilePage() {
           width: 100,
           height: 40
         }}
+        allowComments={true}
+        allowSharing={true}
+        allowDownload={true}
       />
 
       {/* Main Content - More Compact Layout */}
