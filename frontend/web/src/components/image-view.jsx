@@ -36,8 +36,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export function ImageDialog({ 
   image, 
-  title, 
-  description, 
+  title = "View Image",
+  description = "Image preview",
   isOpen, 
   onClose, 
   onUploadClick 

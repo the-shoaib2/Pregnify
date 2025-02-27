@@ -68,6 +68,7 @@ export default function AccountsPage() {
     }
   }
 
+
   return (
     <div className="space-y-6">
       <div>
@@ -78,17 +79,13 @@ export default function AccountsPage() {
       </div>
       <Separator />
       
+      {/* Profile Card */}
       <ButtonProfileCard 
-        user={{
-          name: user?.basicInfo?.name?.firstName + " " + user?.basicInfo?.name?.lastName,
-          username: user?.basicInfo?.username,
-          avatar: user?.basicInfo?.avatar,
-          email: user?.basicInfo?.email,
-          bio: user?.basicInfo?.bio,
-          verified: user?.basicInfo?.isVerified,
-        }}
+        user={user}
         href="/settings/account/profile"
       />
+      
+      {/* <Separator /> */}
       
       <div className="grid gap-6 md:grid-cols-2">
         <Card>

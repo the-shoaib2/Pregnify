@@ -185,7 +185,7 @@ function ProfilePicture({ user, onUpload, loading }) {
         fileCategory={FileCategory.PROFILE}
         initialState={{
           visibility: Visibility.PUBLIC,
-          description: user?.discription
+          description: "Profile picture"
         }}
       />
     </div>
