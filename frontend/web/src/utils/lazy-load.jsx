@@ -3,19 +3,28 @@ import { Loader2 } from 'lucide-react'
 
 // Default loading component
 const DefaultLoading = () => (
-  <div className="flex h-full w-full items-center justify-center">
+  <div className="flex h-full w-full items-center justify-center p-4">
     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
   </div>
 )
 
-export function lazyLoad(importFunc, LoadingComponent = DefaultLoading) {
+export function lazyLoad(importFunc, options = {}) {
+  const {
+    LoadingComponent = DefaultLoading,
+    minDelay = 100, // Minimum delay to prevent flash
+    timeout = 10000  // Maximum time to wait before showing error
+  } = options
+
   const LazyComponent = lazy(() => {
-    return Promise.all([
-      importFunc(),
-      // Add a small delay to prevent flash of loading state
-      new Promise(resolve => setTimeout(resolve, 100))
+    return Promise.race([
+      Promise.all([
+        importFunc(),
+        new Promise(resolve => setTimeout(resolve, minDelay))
+      ]).then(([moduleExports]) => moduleExports),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Loading timeout')), timeout)
+      )
     ])
-    .then(([moduleExports]) => moduleExports)
   })
   
   return function LazyLoadWrapper(props) {
