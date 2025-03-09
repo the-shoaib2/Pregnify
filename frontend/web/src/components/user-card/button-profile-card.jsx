@@ -5,8 +5,30 @@ import { getInitials } from "@/lib/utils"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Separator } from "@/components/ui/separator"
 import { useState, useRef } from "react"
+import { Skeleton } from "@/components/ui/skeleton"
 
-export function ButtonProfileCard({ user, href }) {
+export function ButtonProfileCardSkeleton() {
+  return (
+    <div className="h-auto w-full space-y-2 rounded-md border p-3">
+      <div className="flex items-center gap-3">
+        <Skeleton className="h-14 w-14 rounded-full" />
+        <div className="flex flex-1 flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-4 w-4" />
+          </div>
+          <Skeleton className="h-4 w-48" />
+          <Skeleton className="h-4 w-full" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function ButtonProfileCard({ user, href, isLoading }) {
+  if (isLoading) {
+    return <ButtonProfileCardSkeleton />
+  }
   // Extract user data from response if needed
   const userData = user?.data || user;
   const buttonRef = useRef(null);

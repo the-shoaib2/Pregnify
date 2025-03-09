@@ -2,8 +2,47 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { BadgeCheck, Mail, MapPin, Link as LinkIcon, Calendar } from "lucide-react"
 import { getInitials } from "@/lib/utils"
 import { Card, CardContent } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 
-export function ProfileCard({ user, className }) {
+export function ProfileCardSkeleton() {
+  return (
+    <Card>
+      <CardContent className="pt-6">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <Skeleton className="h-20 w-20 rounded-full" />
+          
+          <div className="space-y-1">
+            <div className="flex items-center justify-center gap-1">
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-4 w-4" />
+            </div>
+            <Skeleton className="mx-auto h-4 w-48" />
+          </div>
+
+          <div className="flex flex-col items-center gap-2">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-4 w-36" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+
+          <div className="flex gap-4 text-center">
+            {[1, 2, 3].map((i) => (
+              <div key={i}>
+                <Skeleton className="mx-auto h-5 w-8" />
+                <Skeleton className="mt-1 h-4 w-16" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+export function ProfileCard({ user, className, isLoading }) {
+  if (isLoading) {
+    return <ProfileCardSkeleton />
+  }
   return (
     <Card className={className}>
       <CardContent className="pt-6">

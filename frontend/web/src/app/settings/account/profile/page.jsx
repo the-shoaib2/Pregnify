@@ -4,9 +4,9 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "react-hot-toast"
 import { Card, CardContent } from "@/components/ui/card"
 
-import { 
-  Phone, 
-  User, 
+import {
+  Phone,
+  User,
   Activity,
   Shield,
 } from "lucide-react"
@@ -25,7 +25,6 @@ import ContactTab from "./tabs/contact/page"
 import ActivityTab from "./tabs/activity/page"
 import ProfileCompletionCard from "./tabs/profile-completion/page"
 import StatsOverviewCard from "./tabs/statistics-overview/page"
-import { MediaService, Visibility } from '@/services/media'
 import { FileUpload } from "@/components/file-upload"
 import { lazyLoad } from '@/utils/lazy-load.jsx'
 
@@ -37,9 +36,9 @@ const ImageView = lazyLoad(() => import('@/components/image-view').then(mod => (
 // Loading skeleton component
 function ProfileSkeleton() {
   return (
-        <div className="space-y-6">
+    <div className="space-y-6">
       {/* Header Skeleton */}
-              <div className="space-y-4">
+      <div className="space-y-4">
         <Skeleton className="h-48 w-full rounded-lg sm:h-64" /> {/* Cover */}
         <div className="flex items-end gap-4">
           <Skeleton className="h-24 w-24 rounded-full" /> {/* Avatar */}
@@ -48,14 +47,14 @@ function ProfileSkeleton() {
             <Skeleton className="h-4 w-72" /> {/* Bio */}
           </div>
         </div>
-                </div>
+      </div>
 
       {/* Stats Skeleton */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[1, 2, 3, 4].map((i) => (
           <Skeleton key={i} className="h-20 rounded-lg" />
-                  ))}
-                </div>
+        ))}
+      </div>
 
       {/* Tabs Skeleton */}
       <div className="space-y-4">
@@ -71,9 +70,9 @@ function ProfileSkeleton() {
                 <div key={i} className="space-y-2">
                   <Skeleton className="h-4 w-32" />
                   <Skeleton className="h-10 w-full" />
-              </div>
-            ))}
-          </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -109,7 +108,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (userData) {
       // console.log('Initializing form with user data:', userData)
-      
+
       setFormData({
         basic: {
           username: userData.basicInfo?.username || "",
@@ -117,8 +116,8 @@ export default function ProfilePage() {
           bio: userData.basicInfo?.bio || userData.basicInfo?.description || "",
         },
         personal: {
-          firstName: userData.personalInfo?.name?.firstName || "", 
-          lastName: userData.personalInfo?.name?.lastName || "",    
+          firstName: userData.personalInfo?.name?.firstName || "",
+          lastName: userData.personalInfo?.name?.lastName || "",
           dateOfBirth: userData.personalInfo?.dateOfBirth?.split('T')[0] || "",
           contactNumber: userData?.personalInfo?.phoneNumber || "",
           presentAddress: userData?.personalInfo?.location || "",
@@ -184,8 +183,8 @@ export default function ProfilePage() {
 
   const handleAvatarSuccess = async (data) => {
     try {
-      await updateSettings('avatar', { 
-        avatar: data.file.url 
+      await updateSettings('avatar', {
+        avatar: data.file.url
       })
     } catch (error) {
       console.error('Failed to update avatar:', error)
@@ -208,7 +207,7 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6">
-      <ProfileHeader 
+      <ProfileHeader
         user={userData}
         uploadingImage={uploadingImage}
         uploadingCover={uploadingCover}
@@ -223,7 +222,7 @@ export default function ProfilePage() {
           // FileUpload component will handle the rest
         }}
       />
-      
+
       {/* Avatar Upload Dialog */}
       <FileUpload
         fileType="image/jpeg"
@@ -247,7 +246,7 @@ export default function ProfilePage() {
         isOpen={uploadingCover}
         onClose={() => setUploadingCover(false)}
         description="Upload your cover photo"
-        aspect={16/9}
+        aspect={16 / 9}
         circular={false}
         cropSizes={{
           width: 100,
@@ -294,7 +293,7 @@ export default function ProfilePage() {
 
               <div className="mt-4">
                 <TabsContent value="personal">
-                  <PersonalTab 
+                  <PersonalTab
                     user={userData}
                     formData={formData}
                     handleChange={handleChange}
@@ -304,7 +303,7 @@ export default function ProfilePage() {
                 </TabsContent>
 
                 <TabsContent value="contact">
-                  <ContactTab 
+                  <ContactTab
                     user={userData}
                     formData={formData}
                     handleChange={handleChange}
@@ -318,7 +317,7 @@ export default function ProfilePage() {
                 </TabsContent>
 
                 <TabsContent value="account">
-                  <AccountTab 
+                  <AccountTab
                     user={userData}
                     formData={formData}
                     handleChange={handleChange}
@@ -329,21 +328,21 @@ export default function ProfilePage() {
                 </TabsContent>
               </div>
             </Tabs>
-            </CardContent>
-          </Card>
+          </CardContent>
+        </Card>
 
 
-        
+
       </div>
 
 
       {/* Profile Completion Card */}
-        <Card className="border-none shadow-none">
-          <CardContent className="p-0">
-            <ProfileCompletionCard 
-              user={userData} 
-              isLoading={pageLoading || settingsLoading}
-            />
+      <Card className="border-none shadow-none">
+        <CardContent className="p-0">
+          <ProfileCompletionCard
+            user={userData}
+            isLoading={pageLoading || settingsLoading}
+          />
         </CardContent>
       </Card>
 

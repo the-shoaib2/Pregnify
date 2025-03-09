@@ -21,7 +21,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +30,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import{Separator} from "@/components/ui/separator"
 import {
   SidebarMenu,
   SidebarMenuButton,
@@ -81,6 +81,9 @@ const NavUser = () => {
 
   return (
     <SidebarMenu>
+      <div className="mb-4">
+        <Separator className="opacity-40" />
+      </div>
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

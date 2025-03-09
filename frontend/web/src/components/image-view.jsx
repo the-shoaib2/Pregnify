@@ -25,10 +25,9 @@ import {
   Upload,
   ZoomIn,
   ZoomOut,
-  RotateCw,
-  RotateCcw,
   Maximize2,
-  X
+  X,
+  Pencil
 } from "lucide-react"
 import { handleImageDownload, handleImageShare } from "@/lib/image-utils"
 import { cn } from "@/lib/utils"
@@ -43,7 +42,6 @@ export function ImageDialog({
   onUploadClick 
 }) {
   const [zoom, setZoom] = useState(1)
-  const [rotation, setRotation] = useState(0)
   const [privacy, setPrivacy] = useState('public')
   const [loading, setLoading] = useState(true)
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 })
@@ -51,7 +49,6 @@ export function ImageDialog({
   useEffect(() => {
     if (isOpen) {
       setZoom(1)
-      setRotation(0)
       setLoading(true)
       setImageSize({ width: 0, height: 0 })
     }
@@ -89,17 +86,6 @@ export function ImageDialog({
       icon: ZoomIn,
       onClick: () => setZoom(z => Math.min(2, z + 0.1)),
       disabled: zoom >= 2 || loading
-    },
-    { divider: true },
-    {
-      icon: RotateCcw,
-      onClick: () => setRotation(r => r - 90),
-      disabled: loading
-    },
-    {
-      icon: RotateCw,
-      onClick: () => setRotation(r => r + 90),
-      disabled: loading
     }
   ]
 
@@ -112,6 +98,11 @@ export function ImageDialog({
     {
       icon: Share2,
       onClick: () => handleImageShare(image, title),
+      disabled: loading
+    },
+    {
+      icon: Pencil,
+      onClick: () => onUploadClick?.(),
       disabled: loading
     },
     onUploadClick && {
@@ -149,7 +140,7 @@ export function ImageDialog({
               isLandscape ? "object-contain" : "object-cover"
             )}
             style={{ 
-              transform: `scale(${zoom}) rotate(${rotation}deg)`,
+              transform: `scale(${zoom})`,
               transformOrigin: 'center'
             }}
             onLoad={handleImageLoad}
@@ -159,7 +150,7 @@ export function ImageDialog({
 
         {/* Controls */}
         <div className="space-y-3 bg-background p-4">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2">
             {/* Image Controls */}
             <ControlGroup>
               {imageControls.map((control, i) => 

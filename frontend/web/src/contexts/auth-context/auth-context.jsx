@@ -1,9 +1,9 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import axios from 'axios'
 import Cookies from 'js-cookie'
 import { lazyLoad } from '@/utils/lazy-load.jsx'
 import { toast } from 'react-hot-toast'
-import { debounce } from 'lodash'
+import { debounce, memoize } from 'lodash'
 
 const AuthContext = createContext({})
 
@@ -12,8 +12,8 @@ const API_URL = import.meta.env.VITE_API_URL
 // Cache duration in milliseconds
 const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 
-// Lazy load profile fetching
-const fetchProfileData = async () => {
+// Memoized profile fetching
+const fetchProfileData = memoize(async () => {
   try {
     const response = await axios.get(`${API_URL}/account/profile`)
     return response.data
@@ -21,18 +21,14 @@ const fetchProfileData = async () => {
     console.error('Failed to fetch profile:', error)
     return null
   }
-}
+})
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    // Initialize from localStorage if available
-    const cachedUser = localStorage.getItem('cached_user')
-    return cachedUser ? JSON.parse(cachedUser) : null
+  const [authState, setAuthState] = useState(() => {
+    const cachedAuth = localStorage.getItem('auth_cache')
+    return cachedAuth ? JSON.parse(cachedAuth) : { user: null, profile: null }
   })
-  const [profile, setProfile] = useState(() => {
-    const cachedProfile = localStorage.getItem('cached_profile')
-    return cachedProfile ? JSON.parse(cachedProfile) : null
-  })
+  
   const [loading, setLoading] = useState(true)
   const [isLoadingUser, setIsLoadingUser] = useState(false)
   const authCheckInProgress = useRef(false)
@@ -42,30 +38,41 @@ export function AuthProvider({ children }) {
   const lastRefreshTime = useRef(Date.now())
   const MIN_REFRESH_INTERVAL = 2000 // 2 seconds between refreshes
 
+  // Memoized auth state
+  const { user, profile } = useMemo(() => authState, [authState])
+
+  const updateAuthCache = useCallback((newState) => {
+    setAuthState(newState)
+    localStorage.setItem('auth_cache', JSON.stringify(newState))
+  }, [])
+
   const fetchProfile = useCallback(async () => {
     if (profileFetchTimeout.current) {
       clearTimeout(profileFetchTimeout.current)
     }
 
-    // Use a timeout to delay profile fetch
     return new Promise((resolve) => {
       profileFetchTimeout.current = setTimeout(async () => {
         const profileData = await fetchProfileData()
         if (profileData) {
-          setProfile(profileData)
-          localStorage.setItem('cached_profile', JSON.stringify(profileData))
+          updateAuthCache({ ...authState, profile: profileData })
         }
         resolve(profileData)
       }, 500) // Half second delay
     })
-  }, [])
+  }, [authState, updateAuthCache])
 
   // Optimize token handling
   const setAuthToken = useCallback((token) => {
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-      localStorage.setItem('accessToken', token)
-      Cookies.set('accessToken', token)
+      // Batch localStorage and cookie operations
+      const authData = {
+        accessToken: token,
+        timestamp: Date.now()
+      }
+      localStorage.setItem('auth_tokens', JSON.stringify(authData))
+      Cookies.set('auth_tokens', JSON.stringify(authData))
     }
   }, [])
 
@@ -92,9 +99,7 @@ export function AuthProvider({ children }) {
       try {
         const response = await axios.get(`${API_URL}/auth/user`)
         const userData = response.data.user
-        setUser(userData)
-        localStorage.setItem('cached_user', JSON.stringify(userData))
-        // console.log(userData, "userData")
+        updateAuthCache({ ...authState, user: userData })
         lastRefreshTime.current = now
         return userData
       } catch (error) {
@@ -104,7 +109,7 @@ export function AuthProvider({ children }) {
         refreshInProgress.current = false
       }
     }, 500), // 500ms debounce
-    [user]
+    [user, authState, updateAuthCache]
   )
 
   const checkAuth = useCallback(async () => {
@@ -112,17 +117,20 @@ export function AuthProvider({ children }) {
     authCheckInProgress.current = true
 
     try {
-      const token = localStorage.getItem('accessToken') || Cookies.get('accessToken')
+      const authTokens = JSON.parse(localStorage.getItem('auth_tokens') || '{}')
+      const token = authTokens.accessToken
+
       if (!token) {
         setLoading(false)
         return
       }
 
       setAuthToken(token)
-      // Only fetch if cache is expired
+      
       const now = Date.now()
       const timeSinceLastFetch = now - lastFetchTime.current
-      if (timeSinceLastFetch >= CACHE_DURATION) {
+      
+      if (!user || timeSinceLastFetch >= CACHE_DURATION) {
         await debouncedFetchUserData(true)
       }
     } catch (error) {
@@ -132,11 +140,13 @@ export function AuthProvider({ children }) {
       setLoading(false)
       authCheckInProgress.current = false
     }
-  }, [debouncedFetchUserData, setAuthToken])
+  }, [debouncedFetchUserData, setAuthToken, user])
 
   // Initialize auth state
   useEffect(() => {
-    const token = localStorage.getItem('accessToken') || Cookies.get('accessToken')
+    const authTokens = JSON.parse(localStorage.getItem('auth_tokens') || '{}')
+    const token = authTokens.accessToken
+    
     if (token) {
       setAuthToken(token)
       // Only check auth if we don't have cached user data
@@ -151,23 +161,22 @@ export function AuthProvider({ children }) {
   }, [setAuthToken, checkAuth, user])
 
   const handleLogout = useCallback(() => {
-    setUser(null)
-    setProfile(null)
-    localStorage.removeItem('cached_user')
-    localStorage.removeItem('cached_profile')
+    // Clear auth state
+    updateAuthCache({ user: null, profile: null })
     lastFetchTime.current = 0
     
     if (profileFetchTimeout.current) {
       clearTimeout(profileFetchTimeout.current)
     }
     
-    localStorage.removeItem('accessToken')
-    localStorage.removeItem('refreshToken')
+    // Batch clear operations
+    const itemsToClear = {
+      localStorage: ['auth_cache', 'auth_tokens'],
+      cookies: ['auth_tokens']
+    }
     
-    Cookies.remove('accessToken', { path: '/' })
-    Cookies.remove('refreshToken', { path: '/' })
-    Cookies.remove('user', { path: '/' })
-    Cookies.remove('session', { path: '/' })
+    itemsToClear.localStorage.forEach(key => localStorage.removeItem(key))
+    itemsToClear.cookies.forEach(key => Cookies.remove(key, { path: '/' }))
     
     delete axios.defaults.headers.common['Authorization']
     
@@ -182,7 +191,7 @@ export function AuthProvider({ children }) {
         Cookies.remove(key, { path: '/' })
       }
     })
-  }, [])
+  }, [updateAuthCache])
 
   const refreshData = useCallback(async () => {
     const now = Date.now()
@@ -201,14 +210,12 @@ export function AuthProvider({ children }) {
       console.error('Failed to refresh data:', error)
       return { userData: user, profileData: profile }
     }
-  }, [debouncedFetchUserData, fetchProfile, user, profile])
+  }, [user, profile, debouncedFetchUserData, fetchProfile])
 
-  // Update profile with immediate refresh
   const updateProfile = useCallback(async (data) => {
     try {
       const response = await axios.patch(`${API_URL}/account/profile`, data)
-      setProfile(response.data)
-      localStorage.setItem('cached_profile', JSON.stringify(response.data))
+      updateAuthCache({ ...authState, profile: response.data })
       toast.success('Profile updated successfully')
       return response.data
     } catch (error) {
@@ -216,14 +223,12 @@ export function AuthProvider({ children }) {
       toast.error('Failed to update profile')
       throw error
     }
-  }, [])
+  }, [authState, updateAuthCache])
 
-  // Update user settings with immediate refresh
   const updateSettings = useCallback(async (data) => {
     try {
       const response = await axios.patch(`${API_URL}/account/settings`, data)
-      setUser(prev => ({ ...prev, settings: response.data }))
-      localStorage.setItem('cached_user', JSON.stringify({ ...user, settings: response.data }))
+      updateAuthCache({ ...authState, user: { ...user, settings: response.data } })
       toast.success('Settings updated successfully')
       return response.data
     } catch (error) {
@@ -231,7 +236,7 @@ export function AuthProvider({ children }) {
       toast.error('Failed to update settings')
       throw error
     }
-  }, [user])
+  }, [authState, user, updateAuthCache])
 
   const value = {
     user,

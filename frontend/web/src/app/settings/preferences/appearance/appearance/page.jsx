@@ -20,14 +20,10 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import {
-  Moon,
-  Sun,
   Monitor,
   Type,
   Languages,
   Eye,
-  PaintBucket,
-  Settings2,
   Check,
   Loader2
 } from "lucide-react"
@@ -68,11 +64,11 @@ function AppearanceSkeleton() {
 
 function ThemePreview({ theme }) {
   return (
-    <div className={`rounded-lg border p-4 ${theme === 'DARK' ? 'bg-zinc-950' : 'bg-white'}`}>
+    <div className={`rounded-lg border p-2 ${theme === 'DARK' ? 'bg-zinc-950' : 'bg-white'}`}>
       <div className="space-y-2">
-        <div className={`h-2 w-16 rounded ${theme === 'DARK' ? 'bg-zinc-800' : 'bg-zinc-200'}`} />
-        <div className={`h-2 w-12 rounded ${theme === 'DARK' ? 'bg-zinc-800' : 'bg-zinc-200'}`} />
-        <div className={`h-2 w-14 rounded ${theme === 'DARK' ? 'bg-zinc-800' : 'bg-zinc-200'}`} />
+        <div className={`h-2 w-6 rounded ${theme === 'DARK' ? 'bg-zinc-800' : 'bg-zinc-200'}`} />
+        <div className={`h-2 w-8 rounded ${theme === 'DARK' ? 'bg-zinc-800' : 'bg-zinc-200'}`} />
+        <div className={`h-2 w-10 rounded ${theme === 'DARK' ? 'bg-zinc-800' : 'bg-zinc-200'}`} />
       </div>
     </div>
   )
@@ -147,7 +143,7 @@ export default function AppearancePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               <button
                 onClick={() => handleThemeChange("light")}
                 className={`relative rounded-lg border p-2 transition-all hover:border-primary ${

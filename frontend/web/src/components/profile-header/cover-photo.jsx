@@ -1,10 +1,22 @@
-import { useState, useMemo, Suspense, useEffect } from "react"
+import { useState, useMemo, Suspense } from "react"
 import { FileUpload } from "@/components/file-upload"
 import { Button } from "@/components/ui/button"
-import { Upload, Eye, Loader2 } from "lucide-react"
+import { Upload, Eye } from "lucide-react"
 import { ImageDialog } from "@/components/image-view"
 import { FileCategory, Visibility } from '@/services/media'
 import { cn } from "@/lib/utils"
+import { Skeleton } from "@/components/ui/skeleton"
+
+export function CoverPhotoSkeleton() {
+  return (
+    <div className="relative">
+      <Skeleton className="h-40 w-full rounded-lg sm:h-48" />
+      <div className="absolute right-4 top-4">
+        <Skeleton className="h-7 w-7 rounded-full border-2 border-background" />
+      </div>
+    </div>
+  )
+}
 
 export function CoverPhotoUpload({ user, onUpload, loading }) {
   const [showUpload, setShowUpload] = useState(false)
@@ -18,16 +30,11 @@ export function CoverPhotoUpload({ user, onUpload, loading }) {
     [userData?.basicInfo?.cover]
   )
 
-  if (!userData) {
-    return (
-      <div className="flex h-40 w-full items-center justify-center rounded-lg bg-gradient-to-r from-blue-100 to-indigo-100 sm:h-48">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    )
+  if (!userData || loading) {
+    return <CoverPhotoSkeleton />
   }
 
   const handleImageLoad = () => {
-    // Add small delay to ensure smooth transition
     setTimeout(() => setImageLoaded(true), 50)
   }
 
@@ -44,7 +51,7 @@ export function CoverPhotoUpload({ user, onUpload, loading }) {
           <>
             {!imageLoaded && (
               <div className="flex h-full items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <div className="h-6 w-6 animate-pulse rounded-full bg-muted" />
               </div>
             )}
             <div 
@@ -60,7 +67,7 @@ export function CoverPhotoUpload({ user, onUpload, loading }) {
                 className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                 onLoad={handleImageLoad}
                 onError={handleImageError}
-                loading="eager" // Prioritize loading
+                loading="eager"
               />
               <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/20 group-hover:opacity-100">
                 <Eye className="h-6 w-6 text-white" />
@@ -87,36 +94,34 @@ export function CoverPhotoUpload({ user, onUpload, loading }) {
       </div>
 
       {/* Dialogs */}
-      <Suspense fallback={null}>
-        <ImageDialog
-          image={coverPhotoUrl}
-          title="Cover Photo"
-          description="Your profile cover photo"
-          isOpen={showView}
-          onClose={() => setShowView(false)}
-          onUploadClick={() => {
-            setShowView(false)
-            setShowUpload(true)
-          }}
-        />
+      <ImageDialog
+        image={coverPhotoUrl}
+        title="Cover Photo"
+        description="Your profile cover photo"
+        isOpen={showView}
+        onClose={() => setShowView(false)}
+        onUploadClick={() => {
+          setShowView(false)
+          setShowUpload(true)
+        }}
+      />
 
-        <FileUpload
-          user={user}
-          title="Update Cover Photo"
-          description="Choose a photo for your profile cover"
-          onUpload={onUpload}
-          loading={loading}
-          aspect={16/9}
-          circular={false}
-          isOpen={showUpload}
-          onClose={() => setShowUpload(false)}
-          fileCategory={FileCategory.COVER}
-          initialState={{
-            visibility: Visibility.PUBLIC,
-            description: "Profile cover photo"
-          }}
-        />
-      </Suspense>
+      <FileUpload
+        user={user}
+        title="Update Cover Photo"
+        description="Choose a photo for your profile cover"
+        onUpload={onUpload}
+        loading={loading}
+        aspect={16/9}
+        circular={false}
+        isOpen={showUpload}
+        onClose={() => setShowUpload(false)}
+        fileCategory={FileCategory.COVER}
+        initialState={{
+          visibility: Visibility.PUBLIC,
+          description: "Profile cover photo"
+        }}
+      />
     </>
   )
 }

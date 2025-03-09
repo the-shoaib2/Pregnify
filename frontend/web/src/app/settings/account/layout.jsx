@@ -1,4 +1,3 @@
-import { Separator } from "@/components/ui/separator"
 import { SidebarNav } from "./components/sidebar-nav"
 import { ScrollArea } from "@/components/ui/scroll-area"
 

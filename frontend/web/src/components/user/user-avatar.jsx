@@ -4,9 +4,19 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/components/ui/avatar"
+import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
-export function UserAvatar({ user, className, showStatus = false }) {
+// Add UserAvatarSkeleton component
+export function UserAvatarSkeleton({ className }) {
+  return (
+    <div className="relative">
+      <Skeleton className={cn("rounded-full", className || "h-10 w-10")} />
+    </div>
+  )
+}
+
+export function UserAvatar({ user, className, showStatus = false, isLoading, onLoad }) {
   // Extract the actual user data from the response
   const userData = user?.data || user
 
@@ -38,6 +48,10 @@ export function UserAvatar({ user, className, showStatus = false }) {
     return 'GU'
   }, [userData])
 
+  if (isLoading) {
+    return <UserAvatarSkeleton className={className} />
+  }
+
   return (
     <div className="relative">
       <Avatar className={cn("", className)}>
@@ -49,6 +63,7 @@ export function UserAvatar({ user, className, showStatus = false }) {
             e.target.onerror = null
             e.target.src = '/avatars/default.jpg'
           }}
+          onLoad={onLoad}
         />
         <AvatarFallback className="bg-primary/10 text-primary">
           {initials}
@@ -69,7 +84,19 @@ export function UserAvatar({ user, className, showStatus = false }) {
   )
 }
 
-export function UserAvatarWithInfo({ user, className }) {
+export function UserAvatarWithInfo({ user, className, isLoading }) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 px-1 py-1.5">
+        <UserAvatarSkeleton className={className || "h-8 w-8"} />
+        <div className="grid flex-1">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="mt-1 h-3 w-32" />
+        </div>
+      </div>
+    )
+  }
+
   // Format name with proper capitalization and null checks
   const formattedName = React.useMemo(() => {
     if (!user?.basicInfo?.name?.firstName || !user?.basicInfo?.name?.lastName) {
