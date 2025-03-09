@@ -30,13 +30,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import{Separator} from "@/components/ui/separator"
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { Separator } from "@/components/ui/separator"
 import { useAuth } from "@/contexts/auth-context/auth-context"
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
@@ -81,9 +81,7 @@ const NavUser = () => {
 
   return (
     <SidebarMenu>
-      <div className="mb-4">
-        <Separator className="opacity-40" />
-      </div>
+      <Separator/>
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

@@ -6,7 +6,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog"
 import {
   DropdownMenu,
@@ -26,7 +25,6 @@ import {
   ZoomIn,
   ZoomOut,
   Maximize2,
-  X,
   Pencil
 } from "lucide-react"
 import { handleImageDownload, handleImageShare } from "@/lib/image-utils"
