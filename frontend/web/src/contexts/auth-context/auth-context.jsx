@@ -1,9 +1,9 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo, lazy } from 'react'
 import axios from 'axios'
-import Cookies from 'js-cookie'
 import { lazyLoad } from '@/utils/lazy-load.jsx'
 import { toast } from 'react-hot-toast'
-import { debounce, memoize } from 'lodash'
+import { memoize } from 'lodash'
+import CryptoJS from 'crypto-js'
 
 const AuthContext = createContext({})
 
@@ -23,102 +23,133 @@ const fetchProfileData = memoize(async () => {
   }
 })
 
+const ENCRYPTION_KEY = import.meta.env.VITE_ENCRYPTION_KEY || 'default-secure-key'
+
+const encryptData = (data) => {
+  return CryptoJS.AES.encrypt(JSON.stringify(data), ENCRYPTION_KEY).toString()
+}
+
+const decryptData = (ciphertext) => {
+  try {
+    const bytes = CryptoJS.AES.decrypt(ciphertext, ENCRYPTION_KEY)
+    const decrypted = bytes.toString(CryptoJS.enc.Utf8)
+    if (!decrypted) {
+      localStorage.removeItem('auth_cache')
+      return null
+    }
+    return JSON.parse(decrypted)
+  } catch (error) {
+    localStorage.removeItem('auth_cache')
+    return null
+  }
+}
+
+
 export function AuthProvider({ children }) {
   const [authState, setAuthState] = useState(() => {
     const cachedAuth = localStorage.getItem('auth_cache')
-    return cachedAuth ? JSON.parse(cachedAuth) : { user: null, profile: null }
+    return cachedAuth ? decryptData(cachedAuth) : { user: null, profile: null, tokens: null }
   })
   
   const [loading, setLoading] = useState(true)
   const [isLoadingUser, setIsLoadingUser] = useState(false)
   const authCheckInProgress = useRef(false)
   const lastFetchTime = useRef(Date.now())
-  const profileFetchTimeout = useRef(null)
   const refreshInProgress = useRef(false)
   const lastRefreshTime = useRef(Date.now())
   const MIN_REFRESH_INTERVAL = 2000 // 2 seconds between refreshes
 
   // Memoized auth state
-  const { user, profile } = useMemo(() => authState, [authState])
+  const { user, profile, tokens } = useMemo(() => authState, [authState])
 
   const updateAuthCache = useCallback((newState) => {
+    const encryptedState = encryptData({
+      ...newState,
+      tokens: {
+        accessToken: axios.defaults.headers.common['Authorization']?.split(' ')[1],
+        timestamp: Date.now()
+      }
+    })
     setAuthState(newState)
-    localStorage.setItem('auth_cache', JSON.stringify(newState))
+    localStorage.setItem('auth_cache', encryptedState)
   }, [])
 
   const fetchProfile = useCallback(async () => {
-    if (profileFetchTimeout.current) {
-      clearTimeout(profileFetchTimeout.current)
+    const profileData = await fetchProfileData()
+    if (profileData) {
+      updateAuthCache({ ...authState, profile: profileData })
     }
-
-    return new Promise((resolve) => {
-      profileFetchTimeout.current = setTimeout(async () => {
-        const profileData = await fetchProfileData()
-        if (profileData) {
-          updateAuthCache({ ...authState, profile: profileData })
-        }
-        resolve(profileData)
-      }, 500) // Half second delay
-    })
+    return profileData
   }, [authState, updateAuthCache])
 
   // Optimize token handling
   const setAuthToken = useCallback((token) => {
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-      // Batch localStorage and cookie operations
       const authData = {
         accessToken: token,
         timestamp: Date.now()
       }
-      localStorage.setItem('auth_tokens', JSON.stringify(authData))
-      Cookies.set('auth_tokens', JSON.stringify(authData))
+      localStorage.setItem('auth_cache', encryptData({
+        ...authState,
+        tokens: authData
+      }))
     }
-  }, [])
+  }, [authState])
 
-  const debouncedFetchUserData = useCallback(
-    debounce(async (force = false) => {
-      // Don't fetch if already in progress
-      if (refreshInProgress.current) return null
-      
-      const now = Date.now()
-      const timeSinceLastRefresh = now - lastRefreshTime.current
+  const fetchUserData = useCallback(async (force = false) => {
+    const MAX_RETRIES = 3
+    let retryCount = 0
 
-      // Return cached data if within cache duration and not forced
-      if (!force && user && timeSinceLastRefresh < CACHE_DURATION) {
-        return user
-      }
-
-      // Prevent refresh spam
-      if (timeSinceLastRefresh < MIN_REFRESH_INTERVAL) {
-        return user
-      }
-
-      refreshInProgress.current = true
-      
+    while (retryCount < MAX_RETRIES) {
       try {
-        const response = await axios.get(`${API_URL}/auth/user`)
-        const userData = response.data.user
-        updateAuthCache({ ...authState, user: userData })
-        lastRefreshTime.current = now
-        return userData
+        // Don't fetch if already in progress
+        if (refreshInProgress.current) return null
+        
+        const now = Date.now()
+        const timeSinceLastRefresh = now - lastRefreshTime.current
+
+        // Return cached data if within cache duration and not forced
+        if (!force && user && timeSinceLastRefresh < CACHE_DURATION) {
+          return user
+        }
+
+        // Prevent refresh spam
+        if (timeSinceLastRefresh < MIN_REFRESH_INTERVAL) {
+          return user
+        }
+
+        refreshInProgress.current = true
+        
+        try {
+          const response = await axios.get(`${API_URL}/auth/user`)
+          const userData = response.data.user
+          updateAuthCache({ ...authState, user: userData })
+          lastRefreshTime.current = now
+          return userData
+        } catch (error) {
+          console.error('Failed to fetch user data:', error)
+          return null
+        } finally {
+          refreshInProgress.current = false
+        }
       } catch (error) {
-        console.error('Failed to fetch user data:', error)
-        return null
-      } finally {
-        refreshInProgress.current = false
+        retryCount++
+        if (retryCount === MAX_RETRIES) {
+          console.error('Failed to fetch user data after retries:', error)
+          throw error
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount))
       }
-    }, 500), // 500ms debounce
-    [user, authState, updateAuthCache]
-  )
+    }
+  }, [user, authState, updateAuthCache])
 
   const checkAuth = useCallback(async () => {
     if (authCheckInProgress.current) return
     authCheckInProgress.current = true
 
     try {
-      const authTokens = JSON.parse(localStorage.getItem('auth_tokens') || '{}')
-      const token = authTokens.accessToken
+      const token = tokens?.accessToken
 
       if (!token) {
         setLoading(false)
@@ -131,7 +162,7 @@ export function AuthProvider({ children }) {
       const timeSinceLastFetch = now - lastFetchTime.current
       
       if (!user || timeSinceLastFetch >= CACHE_DURATION) {
-        await debouncedFetchUserData(true)
+        await fetchUserData(true)
       }
     } catch (error) {
       console.error('Auth check failed:', error)
@@ -140,12 +171,11 @@ export function AuthProvider({ children }) {
       setLoading(false)
       authCheckInProgress.current = false
     }
-  }, [debouncedFetchUserData, setAuthToken, user])
+  }, [fetchUserData, setAuthToken, user, tokens])
 
   // Initialize auth state
   useEffect(() => {
-    const authTokens = JSON.parse(localStorage.getItem('auth_tokens') || '{}')
-    const token = authTokens.accessToken
+    const token = tokens?.accessToken
     
     if (token) {
       setAuthToken(token)
@@ -158,39 +188,13 @@ export function AuthProvider({ children }) {
     } else {
       setLoading(false)
     }
-  }, [setAuthToken, checkAuth, user])
+  }, [setAuthToken, checkAuth, user, tokens])
 
   const handleLogout = useCallback(() => {
-    // Clear auth state
     updateAuthCache({ user: null, profile: null })
     lastFetchTime.current = 0
-    
-    if (profileFetchTimeout.current) {
-      clearTimeout(profileFetchTimeout.current)
-    }
-    
-    // Batch clear operations
-    const itemsToClear = {
-      localStorage: ['auth_cache', 'auth_tokens'],
-      cookies: ['auth_tokens']
-    }
-    
-    itemsToClear.localStorage.forEach(key => localStorage.removeItem(key))
-    itemsToClear.cookies.forEach(key => Cookies.remove(key, { path: '/' }))
-    
     delete axios.defaults.headers.common['Authorization']
-    
-    // Clear any auth-related items
-    Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('auth_') || key.includes('token')) {
-        localStorage.removeItem(key)
-      }
-    })
-    Object.keys(Cookies.get()).forEach(key => {
-      if (key.startsWith('auth_') || key.includes('token')) {
-        Cookies.remove(key, { path: '/' })
-      }
-    })
+    localStorage.removeItem('auth_cache')
   }, [updateAuthCache])
 
   const refreshData = useCallback(async () => {
@@ -199,92 +203,42 @@ export function AuthProvider({ children }) {
       return { userData: user, profileData: profile }
     }
 
-    try {
-      const [userData, profileData] = await Promise.all([
-        debouncedFetchUserData(true),
-        fetchProfile()
-      ])
-      
-      return { userData, profileData }
-    } catch (error) {
-      console.error('Failed to refresh data:', error)
-      return { userData: user, profileData: profile }
-    }
-  }, [user, profile, debouncedFetchUserData, fetchProfile])
+    lastRefreshTime.current = now
+    const userData = await fetchUserData(true)
+    const profileData = await fetchProfile()
+    
+    return { userData, profileData }
+  }, [fetchUserData, fetchProfile, user, profile])
 
-  const updateProfile = useCallback(async (data) => {
-    try {
-      const response = await axios.patch(`${API_URL}/account/profile`, data)
-      updateAuthCache({ ...authState, profile: response.data })
-      toast.success('Profile updated successfully')
-      return response.data
-    } catch (error) {
-      console.error('Failed to update profile:', error)
-      toast.error('Failed to update profile')
-      throw error
-    }
-  }, [authState, updateAuthCache])
-
-  const updateSettings = useCallback(async (data) => {
-    try {
-      const response = await axios.patch(`${API_URL}/account/settings`, data)
-      updateAuthCache({ ...authState, user: { ...user, settings: response.data } })
-      toast.success('Settings updated successfully')
-      return response.data
-    } catch (error) {
-      console.error('Failed to update settings:', error)
-      toast.error('Failed to update settings')
-      throw error
-    }
-  }, [authState, user, updateAuthCache])
-
-  const value = {
+  const contextValue = useMemo(() => ({
     user,
     profile,
     loading,
     isLoadingUser,
-    refreshData,
-    updateProfile,
-    updateSettings,
-    login: useCallback(async (credentials) => {
+    login: async (credentials) => {
       try {
+        setIsLoadingUser(true)
         const response = await axios.post(`${API_URL}/auth/login`, credentials)
-        if (response.data.tokens?.accessToken) {
-          setAuthToken(response.data.tokens.accessToken)
-          await debouncedFetchUserData(true)
+        const { tokens } = response.data
+        
+        if (tokens?.accessToken) {
+          setAuthToken(tokens.accessToken)
+          await fetchUserData(true)
+          return response.data
         }
-        return response.data
-      } catch (error) {
-        throw error.response?.data || error
-      }
-    }, [setAuthToken, debouncedFetchUserData]),
-    logout: useCallback(async () => {
-      try {
-        await axios.post(`${API_URL}/auth/logout`).catch((error) => {
-          console.warn('Server logout failed, proceeding with local cleanup:', error)
-        })
+        throw new Error('No access token received')
       } finally {
-        handleLogout()
+        setIsLoadingUser(false)
       }
-    }, [handleLogout]),
-    register: useCallback(async (credentials) => {
-      try {
-        const response = await axios.post(`${API_URL}/auth/register`, credentials)
-        if (response.data.tokens?.accessToken) {
-          setAuthToken(response.data.tokens.accessToken)
-          await debouncedFetchUserData(true)
-        }
-        return response.data
-      } catch (error) {
-        throw error.response?.data || error
-      }
-    }, [setAuthToken, debouncedFetchUserData]),
-    checkAuth,
-    fetchUserData: debouncedFetchUserData,
-  }
+    },
+    logout: handleLogout,
+    fetchUserData,
+    refreshData,
+    checkAuth
+  }), [user, profile, loading, isLoadingUser, handleLogout, fetchUserData, refreshData, checkAuth])
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   )

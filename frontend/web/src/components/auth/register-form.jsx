@@ -22,7 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Loader2, Eye, EyeOff } from "lucide-react"
-import React from "react"
+import React, { useCallback } from "react"
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 
 // Add this toast configuration near the top of the file, after imports
 const toastConfig = {
@@ -90,9 +91,28 @@ export function RegisterForm({ className, ...props }) {
   
   // Form state management
   const [formData, setFormData] = useState(() => {
-    // Try to get saved form data from localStorage
-    const savedData = localStorage.getItem('registerFormData')
-    return savedData ? JSON.parse(savedData) : {
+    const savedData = localStorage.getItem('auth_cache')
+    if (savedData) {
+      const cache = decryptData(savedData)
+      return cache.registerFormData || {
+        role: '',
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        dateOfBirth: {
+          day: '',
+          month: '',
+          year: ''
+        },
+        gender: '',
+        password: '',
+        confirmPassword: '',
+        description: '',
+        termsAccepted: false
+      }
+    }
+    return {
       role: '',
       firstName: '',
       lastName: '',
@@ -113,7 +133,9 @@ export function RegisterForm({ className, ...props }) {
 
   // Save form data to localStorage whenever it changes
   React.useEffect(() => {
-    localStorage.setItem('registerFormData', JSON.stringify(formData))
+    const cache = getCache()
+    cache.registerFormData = formData
+    localStorage.setItem('auth_cache', encryptData(cache))
   }, [formData])
 
   // Add state for password visibility
@@ -159,26 +181,11 @@ export function RegisterForm({ className, ...props }) {
   }
 
   // Clear form data
-  const clearFormData = () => {
-    localStorage.removeItem('registerFormData')
-    setFormData({
-      role: '',
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: '',
-      dateOfBirth: {
-        day: '',
-        month: '',
-        year: ''
-      },
-      gender: '',
-      password: '',
-      confirmPassword: '',
-      description: '',
-      termsAccepted: false
-    })
-  }
+  const clearFormData = useCallback(() => {
+    const cache = getCache()
+    delete cache.registerFormData
+    localStorage.setItem('auth_cache', encryptData(cache))
+  }, [])
 
   async function onSubmit(event) {
     event.preventDefault()
@@ -309,7 +316,9 @@ export function RegisterForm({ className, ...props }) {
     <div className={cn("flex flex-col w-full gap-4", className)} {...props}>
       <Card className="w-full">
         <CardHeader className="space-y-1 pb-4 text-center">
-          <CardTitle className="text-xl font-bold ">Create an account</CardTitle>
+          <VisuallyHidden asChild>
+            <CardTitle className="text-xl font-bold ">Create an account</CardTitle>
+          </VisuallyHidden>
           <CardDescription>
           Enter your credentials to create an account
           </CardDescription>

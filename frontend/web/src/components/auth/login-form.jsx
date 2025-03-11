@@ -15,25 +15,9 @@ import { useNavigate, Link } from "react-router-dom"
 import { useState } from "react"
 import { Loader2, Eye, EyeOff, Key } from "lucide-react"
 import { startAuthentication } from "@simplewebauthn/browser"
+import { AuthService } from "@/services/auth"
 
 const API_URL = import.meta.env.VITE_API_URL;
-
-// Passkey authentication API calls
-const getAuthenticationOptions = async () => {
-  const response = await fetch(`${API_URL}/auth/passkey/authenticate/options`);
-  return response.json();
-};
-
-const verifyAuthentication = async (authentication) => {
-  const response = await fetch(`${API_URL}/auth/passkey/authenticate/verify`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(authentication)
-  });
-  return response.json();
-};
 
 export function LoginForm({
   className,
@@ -48,7 +32,7 @@ export function LoginForm({
   const [isAppleLoading, setIsAppleLoading] = useState(false)
   const [isPasskeyLoading, setIsPasskeyLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const { login, fetchUserData } = useAuth()
+  const { login } = useAuth()
   const navigate = useNavigate()
 
   const handleChange = (e) => {
@@ -62,7 +46,6 @@ export function LoginForm({
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
-    
     try {
       const response = await login(formData)
       if (response?.tokens?.accessToken) {
@@ -72,15 +55,37 @@ export function LoginForm({
         throw new Error('No token received')
       }
     } catch (error) {
-      console.error('Login error:', error)
-      toast.error(error?.message || 'Login failed')
+      if (error.response?.status === 429) {
+        toast.error('Too many requests. Please wait before trying again.')
+      } else {
+        toast.error(error.message || 'Login failed. Please try again.')
+      }
     } finally {
       setIsLoading(false)
     }
   }
 
+  const handlePasskeyLogin = async () => {
+    try {
+      setIsPasskeyLoading(true)
+      const options = await AuthService.getPasskeyOptions()
+      const authentication = await startAuthentication(options)
+      const verified = await AuthService.verifyPasskey(authentication)
+      
+      if (verified.success) {
+        toast.success("Successfully logged in with passkey")
+        navigate("/")
+      }
+    } catch (error) {
+      console.error(error)
+      toast.error("Failed to authenticate with passkey")
+    } finally {
+      setIsPasskeyLoading(false)
+    }
+  }
+
   return (
-    (<div className={cn("flex flex-col gap-6 w-full max-w-[400px] mx-auto p-4 sm:p-0", className)} {...props}>
+    <div className={cn("flex flex-col gap-6 w-full max-w-[400px] mx-auto p-4 sm:p-0", className)} {...props}>
       <Card className="w-full">
         <CardHeader className="text-center space-y-1">
           <CardTitle className="text-2xl font-bold">Login</CardTitle>
@@ -89,7 +94,6 @@ export function LoginForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Login Form */}
           <form onSubmit={handleSubmit}>
             <div className="grid gap-6">
               <div className="flex flex-row gap-2">
@@ -98,10 +102,10 @@ export function LoginForm({
                   className="flex-1 h-[42px]"
                   disabled={isAppleLoading}
                   onClick={(e) => {
-                    e.preventDefault();
-                    setIsAppleLoading(true);
-                    // Add your Apple login logic here
-                    setTimeout(() => setIsAppleLoading(false), 2000);
+                    e.preventDefault()
+                    setIsAppleLoading(true)
+                    // Apple login integration will be added here
+                    setIsAppleLoading(false)
                   }}
                 >
                   {isAppleLoading ? (
@@ -120,10 +124,10 @@ export function LoginForm({
                   className="flex-1 h-[42px]"
                   disabled={isGoogleLoading}
                   onClick={(e) => {
-                    e.preventDefault();
-                    setIsGoogleLoading(true);
-                    // Add your Google login logic here
-                    setTimeout(() => setIsGoogleLoading(false), 2000);
+                    e.preventDefault()
+                    setIsGoogleLoading(true)
+                    // Google login integration will be added here
+                    setIsGoogleLoading(false)
                   }}
                 >
                   {isGoogleLoading ? (
@@ -142,30 +146,7 @@ export function LoginForm({
                   variant="outline"
                   className="flex-1 h-[42px]"
                   disabled={isPasskeyLoading}
-                  onClick={async () => {
-                    try {
-                      setIsPasskeyLoading(true);
-                      // Get authentication options from your server
-                      const options = await getAuthenticationOptions();
-                      
-                      // Start the authentication process
-                      const authentication = await startAuthentication(options);
-                      
-                      // Verify with your server
-                      const verified = await verifyAuthentication(authentication);
-                      
-                      if (verified.success) {
-                        toast.success("Successfully logged in with passkey");
-                        // Handle successful login
-                        navigate("/");
-                      }
-                    } catch (error) {
-                      console.error(error);
-                      toast.error("Failed to authenticate with passkey");
-                    } finally {
-                      setIsPasskeyLoading(false);
-                    }
-                  }}
+                  onClick={handlePasskeyLogin}
                 >
                   {isPasskeyLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -205,7 +186,7 @@ export function LoginForm({
                 </div>
                 <div className="grid gap-2">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">Password</Label>
                     <Link 
                       to="/forgot-password"
                       className="text-sm text-muted-foreground hover:text-primary"
@@ -214,14 +195,14 @@ export function LoginForm({
                     </Link>
                   </div>
                   <div className="relative">
-                    <Input 
-                      id="password" 
+                    <Input
+                      id="password"
                       type={showPassword ? "text" : "password"}
                       placeholder="*********"
                       autoCapitalize="none"
                       autoComplete="current-password"
                       autoCorrect="off"
-                      required 
+                      required
                       disabled={isLoading}
                       value={formData.password}
                       onChange={handleChange}
@@ -245,15 +226,15 @@ export function LoginForm({
               </div>
 
               <Button type="submit" className="w-full h-[42px]" disabled={isLoading}>
-                {isLoading ? (
+                  {isLoading ? (
                   <>
                       Logging in...
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   </>
-                ) : (
+                  ) : (
                     "Login"
-                )}
-              </Button>
+                  )}
+                </Button>
 
               <div className="text-center text-sm">
                 Don&apos;t have an account?{" "}
@@ -271,6 +252,6 @@ export function LoginForm({
         and{" "}
         <Link to="/legal/privacy">Privacy Policy</Link>.
       </div>
-    </div>)
-  );
+    </div>
+  )
 }
