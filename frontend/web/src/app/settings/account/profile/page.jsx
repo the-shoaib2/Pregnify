@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/contexts/auth-context/auth-context"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "react-hot-toast"
@@ -10,7 +10,6 @@ import {
   Activity,
   Shield,
 } from "lucide-react"
-import { useSettings } from '@/contexts/settings-context/settings-context'
 import {
   Tabs,
   TabsContent,
@@ -27,12 +26,12 @@ import ProfileCompletionCard from "./tabs/profile-completion/page"
 import StatsOverviewCard from "./tabs/statistics-overview/page"
 import { FileUpload } from "@/components/file-upload"
 import { lazyLoad } from '@/utils/lazy-load.jsx'
+import { ProfileService } from '@/services/settings'
 
 // Import the ImageView component
 const ImageView = lazyLoad(() => import('@/components/image-view').then(mod => ({
   default: mod.ImageView
 })))
-
 
 // Loading skeleton component
 function ProfileSkeleton() {
@@ -53,7 +52,6 @@ function ProfileSkeleton() {
         <Skeleton className="h-6 w-48" />
         <Skeleton className="h-4 w-72" />
       </div>
-
 
       {/* Stats Skeleton */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -86,80 +84,65 @@ function ProfileSkeleton() {
   )
 }
 
-
 export default function ProfilePage() {
-  const { user } = useAuth()
-  const { settings, loading: settingsLoading, updateSettings, fetchProfile } = useSettings()
-  const [formData, setFormData] = useState(null)
+  const { user, profile, refreshData } = useAuth()
   const [uploadingImage, setUploadingImage] = useState(false)
   const [uploadingCover, setUploadingCover] = useState(false)
   const [pageLoading, setPageLoading] = useState(true)
-  
-  // Add a ref to track if profile has been fetched
-  const profileFetchedRef = useRef(false)
+  const [isUpdating, setIsUpdating] = useState(false)
 
-  // Use settings data instead of user data where appropriate
-  const userData = settings?.data || user // Prefer settings data if available
+  // Use profile data or fall back to user data
+  const profileData = profile?.data || user || {}
 
-  // Define handleChange using useCallback
-  const handleChange = useCallback((section, field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        [field]: value
+  console.log("Profile Data : ", profileData)
+
+  // Initialize page when component mounts
+  useEffect(() => {
+    const initPage = async () => {
+      try {
+        if (!profile) {
+          await refreshData()
+        }
+        setPageLoading(false)
+      } catch (error) {
+        console.error("Failed to load profile data:", error)
+        toast.error("Failed to load profile data")
+        setPageLoading(false)
       }
-    }))
-  }, [])
+    }
+    
+    initPage()
+  }, [profile, refreshData])
 
-  // Fetch profile data only once when component mounts
-  useEffect(() => {
-    // Only fetch if we haven't already and we have a user
-    if (!profileFetchedRef.current && user) {
-      const loadProfileData = async () => {
-        try {
-          await fetchProfile(false);
-          profileFetchedRef.current = true;
-        } catch (error) {
-          console.error("Failed to load profile:", error);
-          toast.error("Failed to load profile data");
-        }
-      };
+  // Update profile settings
+  const updateProfile = useCallback(async (type, data) => {
+    setIsUpdating(true)
+    try {
+      let result
+      switch (type) {
+        case 'profile':
+          result = await ProfileService.updateProfile(data)
+          break
+        case 'avatar':
+          result = await ProfileService.updateAvatar(data)
+          break
+        case 'cover':
+          result = await ProfileService.updateCover(data)
+          break
+        default:
+          throw new Error(`Unknown update type: ${type}`)
+      }
       
-      loadProfileData();
+      // Refresh data after update
+      await refreshData()
+      return result
+    } catch (error) {
+      console.error(`Failed to update ${type}:`, error)
+      throw error
+    } finally {
+      setIsUpdating(false)
     }
-  }, [fetchProfile, user]);
-
-  // Initialize form data from user object - only when userData changes
-  useEffect(() => {
-    if (userData) {
-      setFormData({
-        basic: {
-          username: userData.basicInfo?.username || "",
-          email: userData.basicInfo?.email || "",
-          bio: userData.basicInfo?.bio || userData.basicInfo?.description || "",
-        },
-        personal: {
-          firstName: userData.personalInfo?.name?.firstName || "",
-          lastName: userData.personalInfo?.name?.lastName || "",
-          dateOfBirth: userData.personalInfo?.dateOfBirth?.split('T')[0] || "",
-          contactNumber: userData?.personalInfo?.phoneNumber || "",
-          presentAddress: userData?.personalInfo?.location || "",
-          genderIdentity: userData?.personalInfo?.genderIdentity || "",
-          permanentAddress: userData?.personalInfo?.permanentAddress || "",
-          nationality: userData?.personalInfo?.nationality || "",
-          religion: userData?.personalInfo?.religion || "",
-          maritalStatus: userData?.personalInfo?.maritalStatus || "",
-          bloodGroup: userData?.personalInfo?.bloodGroup || "",
-          hobbies: userData?.personalInfo?.hobbies || "",
-          occupation: userData?.personalInfo?.occupation || "",
-          education: userData?.personalInfo?.education || "",
-          language: userData?.personalInfo?.languagePreference || ""
-        }
-      });
-      setPageLoading(false);
-    }
-  }, [userData]);
+  }, [refreshData])
 
   // Optimized save handler
   const handleSave = useCallback(async (data) => {
@@ -193,21 +176,22 @@ export default function ProfilePage() {
         languagePreference: data.personal.language
       }
 
-      await updateSettings('profile', profileData)
+      await updateProfile('profile', profileData)
       toast.success("Profile updated successfully")
     } catch (error) {
       toast.error("Failed to save changes")
     }
-  }, [updateSettings])
+  }, [updateProfile])
 
   // Loading state
-  if (pageLoading || !formData) {
+  if (pageLoading) {
     return <ProfileSkeleton />
   }
 
+
   const handleAvatarSuccess = async (data) => {
     try {
-      await updateSettings('avatar', {
+      await updateProfile('avatar', {
         avatar: data.file.url
       })
     } catch (error) {
@@ -219,7 +203,7 @@ export default function ProfilePage() {
 
   const handleCoverSuccess = async (data) => {
     try {
-      await updateSettings('cover', {
+      await updateProfile('cover', {
         cover: data.file.url
       })
     } catch (error) {
@@ -232,7 +216,7 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6">
       <ProfileHeader
-        user={userData}
+        user={profileData}
         uploadingImage={uploadingImage}
         uploadingCover={uploadingCover}
         onAvatarClick={() => {
@@ -282,7 +266,7 @@ export default function ProfilePage() {
         {/* Stats Card */}
         <Card className="border-none shadow-none">
           <CardContent className="p-0">
-            <StatsOverviewCard user={userData} />
+            <StatsOverviewCard user={profileData} />
           </CardContent>
         </Card>
 
@@ -312,38 +296,41 @@ export default function ProfilePage() {
               <div className="mt-4">
                 <TabsContent value="personal">
                   <PersonalTab
-                    user={userData}
-                    formData={formData}
-                    handleChange={handleChange}
+                    user={profileData}
+                    formData={profileData}
+                    handleChange={() => {}}
                     handleSave={handleSave}
-                    settingsLoading={settingsLoading}
+                    settingsLoading={isUpdating}
+                  />
+                </TabsContent>
+
+
+                <TabsContent value="account">
+                  <AccountTab
+                    user={profileData}
+                    formData={profileData}
+                    handleChange={() => {}}
+                    handleSave={handleSave}
+                    settingsLoading={isUpdating}
+                    updateSettings={updateProfile}
                   />
                 </TabsContent>
 
                 <TabsContent value="contact">
                   <ContactTab
-                    user={userData}
-                    formData={formData}
-                    handleChange={handleChange}
+                    user={profileData}
+                    formData={profileData}
+                    handleChange={() => {}}
                     handleSave={handleSave}
-                    settingsLoading={settingsLoading}
+                    settingsLoading={isUpdating}
                   />
                 </TabsContent>
 
                 <TabsContent value="activity">
-                  <ActivityTab user={userData} />
+                  <ActivityTab user={profileData} />
                 </TabsContent>
 
-                <TabsContent value="account">
-                  <AccountTab
-                    user={userData}
-                    formData={formData}
-                    handleChange={handleChange}
-                    handleSave={handleSave}
-                    settingsLoading={settingsLoading}
-                    updateSettings={updateSettings}
-                  />
-                </TabsContent>
+
               </div>
             </Tabs>
           </CardContent>
@@ -354,8 +341,8 @@ export default function ProfilePage() {
       <Card className="border-none shadow-none">
         <CardContent className="p-0">
           <ProfileCompletionCard
-            user={userData}
-            isLoading={pageLoading || settingsLoading}
+            user={profileData}
+            isLoading={pageLoading || isUpdating}
           />
         </CardContent>
       </Card>

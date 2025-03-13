@@ -46,7 +46,8 @@ export function NavMain({
                 >
                   <item.icon className={cn(
                     "h-4 w-4",
-                    "text-muted-foreground transition-colors duration-200",
+                    // "text-muted-foreground transition-colors duration-200",
+                    "text-foreground transition-colors duration-200",
                     "group-hover:text-accent-foreground"
                   )} />
                 </motion.div>
@@ -64,7 +65,8 @@ export function NavMain({
               >
                 <ChevronRight 
                   className={cn(
-                    "h-4 w-4 shrink-0 text-muted-foreground",
+                    // "h-4 w-4 shrink-0 text-muted-foreground",
+                    "h-4 w-4 shrink-0 text-foreground",
                     "group-hover:text-accent-foreground"
                   )}
                 />
@@ -122,7 +124,8 @@ export function NavMain({
                               "hover:bg-accent hover:text-accent-foreground",
                               isActive 
                                 ? "bg-accent/50 text-accent-foreground font-medium" 
-                                : "text-muted-foreground",
+                                // : "text-muted-foreground",
+                                : "text-foreground",
                               "relative",
                               isActive && "before:absolute before:left-[-12.5px] before:top-1/2 before:-translate-y-1/2 before:h-1.5 before:w-1.5 before:rounded-full before:bg-green-500 before:animate-pulse"   
                             )}

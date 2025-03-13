@@ -226,7 +226,7 @@ export default function ProfileCompletionCard() {
           style={{ opacity: 0.8 }}
         >
           <motion.div
-            className="absolute inset-0 opacity-10"
+            // className="absolute inset-0 opacity-10"
             style={{
               background: getScoreColor(score).bg.replace('bg-', ''),
               opacity: score / 100

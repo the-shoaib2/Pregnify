@@ -18,8 +18,8 @@ const ProfileHeaderSkeleton = memo(() => (
 ))
 ProfileHeaderSkeleton.displayName = 'ProfileHeaderSkeleton'
 
-const ProfileHeader = memo(({ user, loading }) => {
-  const {profile, refreshData } = useAuth()
+const ProfileHeader = memo(({ user, loading, uploadingImage, uploadingCover, onAvatarClick, onCoverClick }) => {
+  const { profile, refreshData } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
   const [isAvatarLoading, setIsAvatarLoading] = useState(false)
   const [isCoverLoading, setIsCoverLoading] = useState(false)
@@ -34,11 +34,9 @@ const ProfileHeader = memo(({ user, loading }) => {
   }, [])
 
   const userData = useMemo(() => {
-    const data = profile?.data
-
-    return {
-      ...data
-    }
+    // Ensure we have a valid data object to work with
+    const data = profile?.data || user || {}
+    return data
   }, [user, profile])
 
   useEffect(() => {
@@ -78,14 +76,16 @@ const ProfileHeader = memo(({ user, loading }) => {
         <CoverPhotoUpload 
           user={userData}
           onUpload={(file) => handleUploadComplete(file, 'cover')}
-          loading={isCoverLoading}
+          loading={isCoverLoading || uploadingCover}
+          onClick={onCoverClick}
         />
         
         <div className="absolute -bottom-2 left-4 z-10">
           <ProfilePicture 
             user={userData}
             onUpload={(file) => handleUploadComplete(file, 'avatar')}
-            loading={isAvatarLoading}
+            loading={isAvatarLoading || uploadingImage}
+            onClick={onAvatarClick}
           />
         </div>
       </div>
@@ -97,7 +97,7 @@ const ProfileHeader = memo(({ user, loading }) => {
               {/* Name and description or bio */}
               <div className="flex flex-col">
                 <h2 className="text-2xl font-bold">
-                  {userData?.basicInfo?.name?.firstName} {userData?.basicInfo?.name?.lastName}
+                  {userData?.basicInfo?.name?.firstName || userData?.personalInfo?.name?.firstName} {userData?.basicInfo?.name?.lastName || userData?.personalInfo?.name?.lastName}
                 </h2>
               </div>
               
@@ -115,6 +115,9 @@ const ProfileHeader = memo(({ user, loading }) => {
 
             <p className="text-sm text-muted-foreground">
               {userData?.basicInfo?.bio || userData?.basicInfo?.description}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {userData?.role}
             </p>
           </div>
         </div>
