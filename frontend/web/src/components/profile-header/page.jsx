@@ -19,7 +19,7 @@ const ProfileHeaderSkeleton = memo(() => (
 ProfileHeaderSkeleton.displayName = 'ProfileHeaderSkeleton'
 
 const ProfileHeader = memo(({ user, loading }) => {
-  const { profile, refreshData } = useAuth()
+  const {profile, refreshData } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
   const [isAvatarLoading, setIsAvatarLoading] = useState(false)
   const [isCoverLoading, setIsCoverLoading] = useState(false)
@@ -34,17 +34,10 @@ const ProfileHeader = memo(({ user, loading }) => {
   }, [])
 
   const userData = useMemo(() => {
-    const data = user?.data || user || profile?.data || profile
-    if (!data) return null
+    const data = profile?.data
 
     return {
-      ...data,
-      basicInfo: {
-        ...data.basicInfo,
-        avatar: data.basicInfo?.avatar || null,
-        avatarThumb: data.basicInfo?.avatarThumb || data.basicInfo?.avatar || null,
-        cover: data.basicInfo?.cover || null,
-      }
+      ...data
     }
   }, [user, profile])
 
@@ -101,18 +94,21 @@ const ProfileHeader = memo(({ user, loading }) => {
         <div className="flex items-start justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-bold">
-                {userData?.basicInfo?.name?.firstName} {userData?.basicInfo?.name?.lastName}
-              </h2>
+              {/* Name and description or bio */}
+              <div className="flex flex-col">
+                <h2 className="text-2xl font-bold">
+                  {userData?.basicInfo?.name?.firstName} {userData?.basicInfo?.name?.lastName}
+                </h2>
+              </div>
               
               {/* Status Badge */}
               <div className="relative">
                 {userData?.accountStatus?.activeStatus === "ONLINE" && (
-                  <Badge className="h-2.5 w-2.5 rounded-full bg-green-500 p-0" />
+                  <Badge className="h-2.5 w-2.5 rounded-full bg-green-500 p-0 border-2 border-primary/80 shadow-sm" />
                 )}
                 {(userData?.accountStatus?.activeStatus === "OFFLINE" || 
                   userData?.accountStatus?.activeStatus === "UNDEFINED") && (
-                  <Badge className="h-2.5 w-2.5 rounded-full bg-red-500 p-0" />
+                  <Badge className="h-2.5 w-2.5 rounded-full bg-gray-500 p-0 border-2 border-primary/80 shadow-sm" />
                 )}
               </div>
             </div>

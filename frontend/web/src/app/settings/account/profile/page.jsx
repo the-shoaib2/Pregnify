@@ -33,21 +33,27 @@ const ImageView = lazyLoad(() => import('@/components/image-view').then(mod => (
   default: mod.ImageView
 })))
 
+
 // Loading skeleton component
 function ProfileSkeleton() {
   return (
     <div className="space-y-6">
-      {/* Header Skeleton */}
-      <div className="space-y-4">
-        <Skeleton className="h-48 w-full rounded-lg sm:h-64" /> {/* Cover */}
-        <div className="flex items-end gap-4">
-          <Skeleton className="h-24 w-24 rounded-full" /> {/* Avatar */}
-          <div className="flex-1 space-y-2 pb-4">
-            <Skeleton className="h-6 w-48" /> {/* Name */}
-            <Skeleton className="h-4 w-72" /> {/* Bio */}
-          </div>
+      {/* Cover */}
+      <div className="relative">
+        <Skeleton className="h-48 sm:h-40 w-full rounded-lg" />
+
+        {/* Avatar positioned at the bottom left, slightly higher */}
+        <div className="absolute bottom-0 left-4 -mb-6 flex items-center">
+          <Skeleton className="h-24 w-24 rounded-full border-4 border-background shadow-lg" />
         </div>
       </div>
+
+      {/* Name & Bio */}
+      <div className="pt-4 pl-4 space-y-2">
+        <Skeleton className="h-6 w-48" />
+        <Skeleton className="h-4 w-72" />
+      </div>
+
 
       {/* Stats Skeleton */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

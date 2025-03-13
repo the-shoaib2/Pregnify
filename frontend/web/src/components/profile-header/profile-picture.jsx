@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { FileUpload } from "@/components/file-upload"
 import { ImageDialog } from "@/components/image-view"
 import { FileCategory, Visibility } from '@/services/media'
-import { Upload } from "lucide-react"
+import { Upload, Eye } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { UserAvatar } from "@/components/user/user-avatar"
 
@@ -37,20 +37,28 @@ const ProfilePicture = memo(({ user, onUpload, loading }) => {
       <div className="group relative h-24 w-24">
         <div 
           className={cn(
-            "relative cursor-pointer rounded-full border-4 border-background bg-background transition-opacity duration-300",
+            "relative cursor-pointer rounded-full border-4 border-background bg-background",
+            "transition-all duration-300",
+            "after:absolute after:inset-0 after:rounded-full after:opacity-0 group-hover:after:opacity/40 group-hover:after:bg-black/40 after:transition-opacity",
             imageLoaded ? "opacity-100" : "opacity-0"
           )}
           onClick={() => setShowView(true)}
         >
-          <UserAvatar 
-            user={userData} 
-            className="h-[88px] w-[88px]"
-            showStatus={false}
-            onLoad={() => setImageLoaded(true)}
-            useThumb={false}
-          />
+          <div className="transition-transform duration-300 group-hover:scale-105">
+            <UserAvatar 
+              user={userData} 
+              className="h-[88px] w-[88px]"
+              showStatus={false}
+              onLoad={() => setImageLoaded(true)}
+              useThumb={false}
+            />
+          </div>
           
-          <div className="absolute -bottom-0.5 -right-0.5">
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
+            <Eye className="h-4 w-4 text-white" />
+          </div>
+
+          <div className="absolute -bottom-0.5 -right-0.5 z-20">
             <Button
               variant="outline"
               size="icon"

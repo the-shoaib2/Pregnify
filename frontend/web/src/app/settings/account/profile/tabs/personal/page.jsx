@@ -40,6 +40,7 @@ const GENDER_OPTIONS = [
 export default function PersonalTab({ user, formData, handleChange, handleSave, settingsLoading }) {
   const [date, setDate] = useState(formData.personal.dateOfBirth ? new Date(formData.personal.dateOfBirth) : null)
 
+  console.log(formData)
 
   const handleDateSelect = (newDate) => {
     setDate(newDate)

@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
+import { Eye } from "lucide-react"
 
 // Add UserAvatarSkeleton component
 export function UserAvatarSkeleton({ className }) {
@@ -87,7 +88,10 @@ export function UserAvatar({
 
   return (
     <div className="relative">
-      <Avatar className={cn("", className)}>
+      <Avatar className={cn(
+        "transition-all duration-300",
+        className
+      )}>
         <AvatarImage 
           src={avatarUrl}
           alt={displayName}

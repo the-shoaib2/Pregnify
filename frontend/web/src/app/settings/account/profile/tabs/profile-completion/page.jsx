@@ -222,7 +222,7 @@ export default function ProfileCompletionCard() {
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", stiffness: 200, damping: 15 }}
-          // className="flex items-center justify-center bg-amber-50/90 rounded-full p-2.5 min-w-[3.5rem] relative overflow-hidden"
+          className="flex items-center justify-center"
           style={{ opacity: 0.8 }}
         >
           <motion.div
