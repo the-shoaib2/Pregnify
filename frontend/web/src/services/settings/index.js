@@ -33,6 +33,7 @@ export const loadProfile = async (forceRefresh = false) => {
     })
     
     const profile = response.data
+    console.log(profile)
 
     // Update cache
     CacheManager.set({
