@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useAuth } from "@/contexts/auth-context/auth-context"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "react-hot-toast"
@@ -83,11 +83,14 @@ function ProfileSkeleton() {
 
 export default function ProfilePage() {
   const { user } = useAuth()
-  const { settings, loading: settingsLoading, updateSettings } = useSettings()
+  const { settings, loading: settingsLoading, updateSettings, fetchProfile } = useSettings()
   const [formData, setFormData] = useState(null)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [uploadingCover, setUploadingCover] = useState(false)
   const [pageLoading, setPageLoading] = useState(true)
+  
+  // Add a ref to track if profile has been fetched
+  const profileFetchedRef = useRef(false)
 
   // Use settings data instead of user data where appropriate
   const userData = settings?.data || user // Prefer settings data if available
@@ -103,12 +106,27 @@ export default function ProfilePage() {
     }))
   }, [])
 
+  // Fetch profile data only once when component mounts
+  useEffect(() => {
+    // Only fetch if we haven't already and we have a user
+    if (!profileFetchedRef.current && user) {
+      const loadProfileData = async () => {
+        try {
+          await fetchProfile(false);
+          profileFetchedRef.current = true;
+        } catch (error) {
+          console.error("Failed to load profile:", error);
+          toast.error("Failed to load profile data");
+        }
+      };
+      
+      loadProfileData();
+    }
+  }, [fetchProfile, user]);
 
-  // Initialize form data from user object
+  // Initialize form data from user object - only when userData changes
   useEffect(() => {
     if (userData) {
-      // console.log('Initializing form with user data:', userData)
-
       setFormData({
         basic: {
           username: userData.basicInfo?.username || "",
@@ -132,10 +150,10 @@ export default function ProfilePage() {
           education: userData?.personalInfo?.education || "",
           language: userData?.personalInfo?.languagePreference || ""
         }
-      })
-      setPageLoading(false)
+      });
+      setPageLoading(false);
     }
-  }, [userData])
+  }, [userData]);
 
   // Optimized save handler
   const handleSave = useCallback(async (data) => {
@@ -213,13 +231,9 @@ export default function ProfilePage() {
         uploadingCover={uploadingCover}
         onAvatarClick={() => {
           setUploadingImage(true)
-          // Open FileUpload dialog for avatar
-          // FileUpload component will handle the rest
         }}
         onCoverClick={() => {
           setUploadingCover(true)
-          // Open FileUpload dialog for cover
-          // FileUpload component will handle the rest
         }}
       />
 
@@ -265,8 +279,6 @@ export default function ProfilePage() {
             <StatsOverviewCard user={userData} />
           </CardContent>
         </Card>
-
-
 
         {/* Tabs Section - More Compact */}
         <Card className="border-none shadow-none">
@@ -330,11 +342,7 @@ export default function ProfilePage() {
             </Tabs>
           </CardContent>
         </Card>
-
-
-
       </div>
-
 
       {/* Profile Completion Card */}
       <Card className="border-none shadow-none">
@@ -345,7 +353,6 @@ export default function ProfilePage() {
           />
         </CardContent>
       </Card>
-
     </div>
   )
 }

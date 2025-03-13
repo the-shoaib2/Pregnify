@@ -1,6 +1,7 @@
 import api from '../api'
 import { CacheManager, CONSTANTS } from '../../utils/security'
 import { AuthService } from '../auth'
+import { handleApiError } from '../../utils/errorHandler'
 
 const { CACHE_DURATION } = CONSTANTS
 
@@ -12,82 +13,81 @@ const PROFILE_ENDPOINTS = {
   UPLOAD_COVER: '/account/profile/cover'
 }
 
-// Profile loader with auth check
-export const loadProfile = async (forceRefresh = false) => {
-  const cache = CacheManager.get()
-  const token = CacheManager.getToken()
+// Track ongoing profile requests
+let profileRequestPromise = null;
+let lastProfileFetchTime = 0;
+const MIN_FETCH_INTERVAL = 1000; // 1 second minimum between fetches
 
-  // Check if we need to refresh token
-  if (!token) {
-    try {
-      await AuthService.refreshToken()
-    } catch (error) {
-      throw new Error('Authentication required')
-    }
+// Profile loader with improved error handling and request deduplication
+export const loadProfile = async (forceRefresh = false) => {
+  const now = Date.now();
+  const cache = CacheManager.get();
+  const token = CacheManager.getToken();
+
+  // If a request is already in progress, return that promise
+  if (profileRequestPromise && !forceRefresh) {
+    return profileRequestPromise;
   }
 
-  // Check cache first
+  // Check cache first if not forcing refresh and not within minimum fetch interval
   if (!forceRefresh && 
       cache.profile && 
-      Date.now() - cache.lastRefresh < CACHE_DURATION) {
-    return cache.profile
+      now - lastProfileFetchTime > MIN_FETCH_INTERVAL &&
+      now - cache.lastRefresh < CACHE_DURATION) {
+    return cache.profile;
+  }
+
+  // Ensure we have a token
+  if (!token) {
+    try {
+      // Try to refresh the token
+      await AuthService.refreshToken();
+    } catch (error) {
+      console.error('Authentication required for profile loading:', error);
+      throw new Error('Authentication required');
+    }
   }
 
   try {
-    const response = await api.get('/account/profile', {
-      headers: {
-        Authorization: `Bearer ${CacheManager.getToken()}`
-      }
-    })
-    
-    const profile = response.data
-    console.log(profile)
+    // Create a new request promise
+    profileRequestPromise = (async () => {
+      // Use the API instance which will automatically include the token
+      const response = await api.get(PROFILE_ENDPOINTS.GET_PROFILE);
+      
+      const profile = response.data;
+      
+      // Update cache
+      CacheManager.set({
+        profile,
+        lastRefresh: now
+      });
 
-    // Update cache
-    CacheManager.set({
-      profile,
-      lastRefresh: Date.now()
-    })
+      lastProfileFetchTime = now;
+      return profile;
+    })();
 
-    return profile
+    return await profileRequestPromise;
   } catch (error) {
     if (error.response?.status === 401) {
-      CacheManager.clear()
-      throw new Error('Authentication required')
+      CacheManager.clear();
+      throw new Error('Authentication required');
     }
-    throw error
+    const errorMessage = handleApiError(error);
+    throw new Error(errorMessage);
+  } finally {
+    // Clear the promise reference after completion
+    profileRequestPromise = null;
   }
 }
 
 // Centralized profile handling
 export const ProfileService = {
   getProfile: async (forceRefresh = false) => {
-    const cache = CacheManager.get()
-    
-    // Check cache first unless force refresh
-    if (!forceRefresh && 
-        cache.profile && 
-        Date.now() - cache.lastRefresh < CACHE_DURATION) {
-      return cache.profile
-    }
-
     try {
-      const response = await api.get(PROFILE_ENDPOINTS.GET_PROFILE)
-      const profile = response.data
-      
-      // Update cache
-      CacheManager.set({
-        profile,
-        lastRefresh: Date.now()
-      })
-
-      return profile
+      return await loadProfile(forceRefresh);
     } catch (error) {
-      if (error.response?.status === 401) {
-        CacheManager.clear()
-        throw new Error('Authentication required')
-      }
-      throw error
+      console.error('Profile fetch error:', error);
+      throw error;
     }
   },
 

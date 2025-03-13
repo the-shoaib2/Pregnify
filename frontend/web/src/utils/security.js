@@ -38,7 +38,7 @@ const decryptData = (ciphertext) => {
   }
 }
 
-// Improved cache manager
+// Improved cache manager with token validation
 export const CacheManager = {
   get: () => {
     try {
@@ -87,8 +87,27 @@ export const CacheManager = {
   },
 
   getToken: () => {
-    const cache = CacheManager.get()
-    return cache.tokens?.accessToken
+    try {
+      const cache = CacheManager.get()
+      return cache.tokens?.accessToken || null
+    } catch (error) {
+      console.error('Token retrieval error:', error)
+      return null
+    }
+  },
+  
+  // Check if token is valid (not expired)
+  isTokenValid: () => {
+    try {
+      const cache = CacheManager.get()
+      if (!cache.tokens?.accessToken) return false
+      
+      // Check if token timestamp is within cache duration
+      return Date.now() - cache.timestamp < CACHE_DURATION
+    } catch (error) {
+      console.error('Token validation error:', error)
+      return false
+    }
   }
 }
 

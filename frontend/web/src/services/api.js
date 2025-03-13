@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { CacheManager } from '../utils/security'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -9,10 +10,12 @@ const api = axios.create({
   }
 })
 
-// Request interceptor
+// Request interceptor with improved token handling
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('accessToken')
+    // Always get the latest token from CacheManager
+    const token = CacheManager.getToken()
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -52,7 +55,9 @@ api.interceptors.response.use(
       originalRequest._retry = true
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken')
+        const cache = CacheManager.get()
+        const refreshToken = cache.tokens?.refreshToken
+        
         if (!refreshToken) {
           throw new Error('No refresh token')
         }
@@ -62,13 +67,21 @@ api.interceptors.response.use(
         })
 
         const { accessToken } = response.data
-        localStorage.setItem('accessToken', accessToken)
+        
+        // Update token in cache
+        CacheManager.set({
+          tokens: {
+            ...cache.tokens,
+            accessToken
+          }
+        })
+        
+        // Update the current request's authorization header
         originalRequest.headers.Authorization = `Bearer ${accessToken}`
         return api(originalRequest)
       } catch (refreshError) {
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
-        window.location.href = '/login'
+        // Clear cache on refresh failure
+        CacheManager.clear()
         return Promise.reject(refreshError)
       }
     }

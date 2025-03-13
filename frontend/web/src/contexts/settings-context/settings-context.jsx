@@ -1,9 +1,9 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { SettingsService } from '@/services'
 import { useAuth } from '@/contexts/auth-context/auth-context'
 import { toast } from 'react-hot-toast'
-import axios from 'axios'
 import { ProfileService } from '@/services/settings'
+import { CacheManager } from '@/utils/security'
 
 const SettingsContext = createContext({})
 
@@ -17,25 +17,74 @@ export function SettingsProvider({ children }) {
     loading: false,
     isInitialized: false
   })
+  
+  // Add refs to track ongoing requests
+  const profileFetchInProgress = useRef(false)
+  const settingsFetchInProgress = useRef(false)
+  const lastProfileFetchTime = useRef(0)
+  const FETCH_COOLDOWN = 2000 // 2 seconds cooldown between fetches
 
-  const fetchProfile = useCallback(async () => {
+  // Improved profile fetching with proper error handling and request deduplication
+  const fetchProfile = useCallback(async (forceRefresh = false) => {
     if (!authUser) return null
     
+    // Prevent duplicate requests within cooldown period
+    const now = Date.now()
+    if (!forceRefresh && 
+        profileFetchInProgress.current || 
+        (now - lastProfileFetchTime.current < FETCH_COOLDOWN)) {
+      return state.profile
+    }
+    
+    profileFetchInProgress.current = true
+    
     try {
-      const profile = await ProfileService.getProfile()
-      setState(prev => ({ ...prev, profile }))
+      setState(prev => ({ ...prev, loading: true }))
+      
+      const token = CacheManager.getToken()
+      if (!token) {
+        toast.error('Authentication required to load profile')
+        return null
+      }
+      
+      const profile = await ProfileService.getProfile(forceRefresh)
+      setState(prev => ({ ...prev, profile, loading: false }))
+      lastProfileFetchTime.current = Date.now()
       return profile
     } catch (error) {
       console.error('Failed to fetch profile:', error)
-      toast.error('Failed to load profile data')
+      
+      if (error.message.includes('Authentication required')) {
+        toast.error('Please log in to view your profile')
+      } else {
+        toast.error('Failed to load profile data')
+      }
+      
+      setState(prev => ({ ...prev, loading: false }))
       return null
+    } finally {
+      profileFetchInProgress.current = false
     }
-  }, [authUser])
+  }, [authUser, state.profile])
 
-  // Instead, only load settings when explicitly requested
+  // Load settings with request deduplication
   const loadSettings = useCallback(async () => {
+    if (settingsFetchInProgress.current) {
+      return state.settings
+    }
+    
+    settingsFetchInProgress.current = true
+    
     try {
       setState(prev => ({ ...prev, loading: true }))
+      
+      const token = CacheManager.getToken()
+      if (!token) {
+        toast.error('Authentication required to load settings')
+        setState(prev => ({ ...prev, loading: false }))
+        return null
+      }
+      
       const response = await SettingsService.getSettings()
       setState(prev => ({ 
         ...prev, 
@@ -46,10 +95,13 @@ export function SettingsProvider({ children }) {
       return response.data
     } catch (error) {
       console.error('Failed to load settings:', error)
+      toast.error('Failed to load settings')
       setState(prev => ({ ...prev, loading: false }))
       return null
+    } finally {
+      settingsFetchInProgress.current = false
     }
-  }, [])
+  }, [state.settings])
 
   const updateSettings = useCallback(async (section, data) => {
     setState(prev => ({ ...prev, loading: true }))
@@ -65,7 +117,7 @@ export function SettingsProvider({ children }) {
       }))
       
       if (section === 'profile') {
-        await fetchProfile()
+        await fetchProfile(true) // Force refresh after profile update
       }
       
       return response
@@ -79,7 +131,7 @@ export function SettingsProvider({ children }) {
 
   const value = useMemo(() => ({
     ...state,
-    loadSettings, // Expose loadSettings so it can be called when needed
+    loadSettings,
     updateSettings,
     fetchProfile
   }), [state, loadSettings, updateSettings, fetchProfile])

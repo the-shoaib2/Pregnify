@@ -1,11 +1,14 @@
 import api from '../api'
 import { memoize, debounce } from 'lodash'
 import { CacheManager, CONSTANTS } from '../../utils/security'
-import { logError } from '../../utils/errorHandler'
+import { logError, retryRequest } from '../../utils/errorHandler'
 import { loadProfile } from '../settings/index'
 
 const { CACHE_DURATION } = CONSTANTS
 const MIN_REFRESH_INTERVAL = 2000 // 2 seconds
+
+// Track refresh token operations
+let refreshTokenPromise = null
 
 // Optimized auth service
 export const AuthService = {
@@ -58,24 +61,42 @@ export const AuthService = {
     return loadProfile(forceRefresh)
   },
 
-  refreshToken: memoize(async () => {
+  // Improved refresh token with singleton promise
+  refreshToken: async () => {
+    // If a refresh is already in progress, return that promise
+    if (refreshTokenPromise) {
+      return refreshTokenPromise
+    }
+    
     try {
-      const cache = CacheManager.get()
-      const response = await api.post('/auth/refresh', {
-        refreshToken: cache.tokens?.refreshToken
-      })
+      refreshTokenPromise = (async () => {
+        const cache = CacheManager.get()
+        
+        if (!cache.tokens?.refreshToken) {
+          throw new Error('No refresh token available')
+        }
+        
+        const response = await api.post('/auth/refresh', {
+          refreshToken: cache.tokens.refreshToken
+        })
+        
+        // Update tokens in cache
+        CacheManager.set({
+          tokens: response.data.tokens
+        })
+        
+        return response
+      })()
       
-      // Update tokens in cache
-      CacheManager.set({
-        tokens: response.data.tokens
-      })
-      
-      return response
+      return await refreshTokenPromise
     } catch (error) {
       CacheManager.clear()
       throw error
+    } finally {
+      // Clear the promise reference after completion
+      refreshTokenPromise = null
     }
-  }, () => 'refresh_token', 300000), // 5 minutes cache
+  },
 
   register: async (data) => {
     const response = await api.post('/auth/register', data)
@@ -83,35 +104,44 @@ export const AuthService = {
     return response
   },
 
-  getCurrentUser: memoize(
-    async () => {
-      const MAX_RETRIES = 3
-      let retryCount = 0
-  
-      while (retryCount < MAX_RETRIES) {
+  getCurrentUser: async () => {
+    try {
+      const cache = CacheManager.get()
+      
+      // Check if we have a cached user and it's still valid
+      if (cache.user && Date.now() - cache.timestamp < CACHE_DURATION) {
+        return cache.user
+      }
+      
+      // Use retry mechanism for reliability
+      const response = await retryRequest(
+        () => api.get('/auth/user'),
+        3
+      )
+      
+      const user = response.data
+      
+      // Update cache
+      CacheManager.set({
+        user,
+        lastRefresh: Date.now()
+      })
+      
+      return user
+    } catch (error) {
+      if (error.response?.status === 401) {
+        // Try to refresh token on auth failure
         try {
-          const cacheKey = 'user'
-          const cache = CacheManager.get()
-          if (cache[cacheKey] && Date.now() - cache.timestamp < CACHE_DURATION) {
-            return cache[cacheKey]
-          }
-          const response = await api.get('/auth/user')
-          CacheManager.set({
-            [cacheKey]: response
-          })
-          console.log('User fetched from API:', response) // Debugging
-          return response
-        } catch (error) {
-          retryCount++
-          if (retryCount === MAX_RETRIES) {
-            logError(error)
-            throw error
-          }
-          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount))
+          await AuthService.refreshToken()
+          return AuthService.getCurrentUser()
+        } catch (refreshError) {
+          CacheManager.clear()
+          throw refreshError
         }
       }
+      throw error
     }
-  ),
+  },
   
   findUserForReset: memoize(
     async (data) => {

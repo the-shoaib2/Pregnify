@@ -118,13 +118,13 @@ export function NavMain({
                           <NavLink
                             to={subItem.url}
                             className={({ isActive }) => cn(
-                              "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-all duration-300",
+                              "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-all duration-300 ",
                               "hover:bg-accent hover:text-accent-foreground",
                               isActive 
                                 ? "bg-accent/50 text-accent-foreground font-medium" 
                                 : "text-muted-foreground",
                               "relative",
-                              isActive && "before:absolute before:left-[-13px] before:top-1/2 before:-translate-y-1/2 before:h-1.5 before:w-1.5 before:rounded-full before:bg-primary before:animate-pulse"
+                              isActive && "before:absolute before:left-[-12.5px] before:top-1/2 before:-translate-y-1/2 before:h-1.5 before:w-1.5 before:rounded-full before:bg-green-500 before:animate-pulse"   
                             )}
                           >
                             <span className="truncate">{subItem.title}</span>
