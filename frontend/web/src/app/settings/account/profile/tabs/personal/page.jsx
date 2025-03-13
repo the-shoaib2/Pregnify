@@ -26,7 +26,7 @@ import {
   GraduationCap,
   Languages,
   Save,
-  Loader2,
+  Loader,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -169,7 +169,7 @@ export default function PersonalTab({ user, formData, handleChange, handleSave, 
         >
           {settingsLoading ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader className="mr-2 h-4 w-4 animate-spin" />
               Saving...
             </>
           ) : (

@@ -119,6 +119,10 @@ export function AuthProvider({ children }) {
           return userData
         } catch (error) {
           console.error('Failed to fetch user data:', error)
+          // Don't return null immediately on first login attempt
+          if (force && retryCount < MAX_RETRIES - 1) {
+            throw error; // Propagate error to trigger retry
+          }
           return null
         } finally {
           refreshInProgress.current = false
@@ -129,7 +133,8 @@ export function AuthProvider({ children }) {
           console.error('Failed to fetch user data after retries:', error)
           throw error
         }
-        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount))
+        // Exponential backoff for retries
+        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount - 1)))
       }
     }
   }, [user, authState, updateAuthCache])
@@ -219,10 +224,29 @@ export function AuthProvider({ children }) {
         // Set the token immediately
         setAuthToken(tokens.accessToken)
         
-        // Immediately fetch user data
-        const userData = await fetchUserData(true)
-        if (!userData) {
-          throw new Error('Failed to fetch user data')
+        // Add a small delay before fetching user data to ensure token is properly set
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Retry user data fetch with exponential backoff
+        let userData = null;
+        let retryCount = 0;
+        const MAX_LOGIN_RETRIES = 3;
+        
+        while (!userData && retryCount < MAX_LOGIN_RETRIES) {
+          try {
+            userData = await fetchUserData(true);
+            if (!userData && retryCount === MAX_LOGIN_RETRIES - 1) {
+              toast.error('Failed to fetch user data. Please try again.');
+              throw new Error('Failed to fetch user data after multiple attempts');
+            }
+          } catch (error) {
+            retryCount++;
+            if (retryCount < MAX_LOGIN_RETRIES) {
+              await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+            } else {
+              throw error;
+            }
+          }
         }
 
         // Update cache with both token and user data
@@ -236,6 +260,9 @@ export function AuthProvider({ children }) {
         })
 
         return response.data
+      } catch (error) {
+        toast.error(error.message || 'Login failed. Please try again.');
+        throw error;
       } finally {
         setIsLoadingUser(false)
       }
@@ -244,7 +271,7 @@ export function AuthProvider({ children }) {
     fetchUserData,
     refreshData,
     checkAuth
-  }), [user, profile, loading, isLoadingUser, handleLogout, fetchUserData, refreshData, checkAuth])
+  }), [user, profile, loading, isLoadingUser, handleLogout, fetchUserData, refreshData, checkAuth, setAuthToken, updateAuthCache])
 
   return (
     <AuthContext.Provider value={contextValue}>
