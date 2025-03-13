@@ -4,6 +4,14 @@ import { AuthService } from '../auth'
 
 const { CACHE_DURATION } = CONSTANTS
 
+// Profile constants
+const PROFILE_ENDPOINTS = {
+  GET_PROFILE: '/account/profile',
+  UPDATE_PROFILE: '/account/profile/update',
+  UPLOAD_AVATAR: '/account/profile/avatar',
+  UPLOAD_COVER: '/account/profile/cover'
+}
+
 // Profile loader with auth check
 export const loadProfile = async (forceRefresh = false) => {
   const cache = CacheManager.get()
@@ -49,6 +57,41 @@ export const loadProfile = async (forceRefresh = false) => {
     }
     throw error
   }
+}
+
+// Centralized profile handling
+export const ProfileService = {
+  getProfile: async (forceRefresh = false) => {
+    const cache = CacheManager.get()
+    
+    // Check cache first unless force refresh
+    if (!forceRefresh && 
+        cache.profile && 
+        Date.now() - cache.lastRefresh < CACHE_DURATION) {
+      return cache.profile
+    }
+
+    try {
+      const response = await api.get(PROFILE_ENDPOINTS.GET_PROFILE)
+      const profile = response.data
+      
+      // Update cache
+      CacheManager.set({
+        profile,
+        lastRefresh: Date.now()
+      })
+
+      return profile
+    } catch (error) {
+      if (error.response?.status === 401) {
+        CacheManager.clear()
+        throw new Error('Authentication required')
+      }
+      throw error
+    }
+  },
+
+  updateProfile: (data) => api.patch(PROFILE_ENDPOINTS.UPDATE_PROFILE, data),
 }
 
 export const SettingsService = {

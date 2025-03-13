@@ -4,6 +4,7 @@ import { lazyLoad } from '@/utils/lazy-load.jsx'
 import { toast } from 'react-hot-toast'
 import { memoize } from 'lodash'
 import CryptoJS from 'crypto-js'
+import { ProfileService } from '@/services/settings'
 
 const AuthContext = createContext({})
 
@@ -11,17 +12,6 @@ const API_URL = import.meta.env.VITE_API_URL
 
 // Cache duration in milliseconds
 const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
-
-// Memoized profile fetching
-const fetchProfileData = memoize(async () => {
-  try {
-    const response = await axios.get(`${API_URL}/account/profile`)
-    return response.data
-  } catch (error) {
-    console.error('Failed to fetch profile:', error)
-    return null
-  }
-})
 
 const ENCRYPTION_KEY = import.meta.env.VITE_ENCRYPTION_KEY || 'default-secure-key'
 
@@ -75,7 +65,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   const fetchProfile = useCallback(async () => {
-    const profileData = await fetchProfileData()
+    const profileData = await ProfileService.getProfile()
     if (profileData) {
       updateAuthCache({ ...authState, profile: profileData })
     }

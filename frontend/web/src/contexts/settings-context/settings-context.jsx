@@ -3,6 +3,7 @@ import { SettingsService } from '@/services'
 import { useAuth } from '@/contexts/auth-context/auth-context'
 import { toast } from 'react-hot-toast'
 import axios from 'axios'
+import { ProfileService } from '@/services/settings'
 
 const SettingsContext = createContext({})
 
@@ -17,14 +18,13 @@ export function SettingsProvider({ children }) {
     isInitialized: false
   })
 
-  // Memoize fetchProfile to prevent unnecessary re-renders
   const fetchProfile = useCallback(async () => {
     if (!authUser) return null
     
     try {
-      const response = await axios.get(`${API_URL}/account/profile`)
-      setState(prev => ({ ...prev, profile: response.data }))
-      return response.data
+      const profile = await ProfileService.getProfile()
+      setState(prev => ({ ...prev, profile }))
+      return profile
     } catch (error) {
       console.error('Failed to fetch profile:', error)
       toast.error('Failed to load profile data')
