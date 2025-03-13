@@ -13,11 +13,9 @@ import { Label } from "@/components/ui/label"
 import { useAuth } from "@/contexts/auth-context/auth-context"
 import { useNavigate, Link } from "react-router-dom"
 import { useState } from "react"
-import { Loader2, Eye, EyeOff, Key } from "lucide-react"
+import { Loader, Eye, EyeOff, Key } from "lucide-react"
 import { startAuthentication } from "@simplewebauthn/browser"
 import { AuthService } from "@/services/auth"
-
-const API_URL = import.meta.env.VITE_API_URL;
 
 export function LoginForm({
   className,
@@ -109,7 +107,7 @@ export function LoginForm({
                   }}
                 >
                   {isAppleLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader className="h-4 w-4 animate-spin" />
                   ) : (
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-4 w-4">
                       <path
@@ -131,7 +129,7 @@ export function LoginForm({
                   }}
                 >
                   {isGoogleLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader className="h-4 w-4 animate-spin" />
                   ) : (
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-4 w-4">
                       <path
@@ -149,7 +147,7 @@ export function LoginForm({
                   onClick={handlePasskeyLogin}
                 >
                   {isPasskeyLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader className="h-4 w-4 animate-spin" />
                   ) : (
                     <Key className="h-4 w-4" />
                   )}
@@ -229,7 +227,7 @@ export function LoginForm({
                   {isLoading ? (
                   <>
                       Logging in...
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader className="mr-2 h-4 w-4 animate-spin" />
                   </>
                   ) : (
                     "Login"

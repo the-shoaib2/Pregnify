@@ -2,7 +2,6 @@ import { useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Upload, Loader2, X, Share2, Download, MessageSquare, Globe, Lock, Users, Settings } from "lucide-react"
 import ReactCrop from 'react-image-crop'
-import 'react-image-crop/dist/ReactCrop.css'
 import { useDropzone } from 'react-dropzone'
 import { Switch } from "@/components/ui/switch"
 import {
@@ -28,6 +27,30 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { Progress } from "@/components/ui/progress"
 import { AspectRatio } from "@/components/ui/aspect-ratio"
+
+function UploadProgressDialog({ progress, isOpen, onCancel }) {
+  return (
+    <Dialog open={isOpen}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Uploading File</DialogTitle>
+          <DialogDescription>Please wait while your file is being uploaded...</DialogDescription>
+        </DialogHeader>
+        <div className="py-6">
+          <Progress value={progress} className="w-full" />
+          <p className="mt-2 text-center text-sm text-muted-foreground">
+            {progress}% Complete
+          </p>
+        </div>
+        <div className="flex justify-end">
+          <Button variant="outline" onClick={onCancel}>
+            Cancel Upload
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 export function FileUpload({ 
   fileType = 'IMAGE',
@@ -219,251 +242,259 @@ export function FileUpload({
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-[600px]">
-        {(isLoading || uploadProgress > 0) && (
-          <div className="absolute inset-x-0 top-0">
-            <Progress 
-              value={uploadProgress} 
-              className="h-1 rounded-none"
-            />
-          </div>
-        )}
-
-        <DialogHeader className="px-4 pt-4">
-          <DialogTitle>Upload Image</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
-
-        <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2">
-          <div className="space-y-4">
-          {imgSrc ? (
-            <div className="relative overflow-hidden rounded-lg border bg-muted/50">
-              {imageLoading && (
-                <Skeleton className="absolute inset-0" />
-              )}
-              <AspectRatio ratio={aspect}>
-                <div className="h-full max-h-[350px] overflow-auto">
-                  <ReactCrop
-                    crop={crop}
-                    onChange={c => setCrop(c)}
-                    aspect={aspect}
-                    circularCrop={circular}
-                    className="relative"
-                  >
-                    <img
-                      src={imgSrc}
-                      alt="Crop me"
-                      className="h-full w-full object-contain"
-                      style={{ maxHeight: '350px' }}
-                      onLoad={handleImageLoad}
-                    />
-                  </ReactCrop>
-                </div>
-              </AspectRatio>
-              <div className="absolute left-4 top-4 rounded-md bg-background/80 px-2 py-1 text-xs backdrop-blur-sm">
-                <p className="text-muted-foreground">
-                  Drag to move • Drag corners to resize
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div
-              {...getRootProps()}
-              className={cn(
-                  "flex h-[350px] w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors",
-                isDragActive 
-                  ? "border-primary bg-primary/5" 
-                  : "border-muted hover:border-muted-foreground/50",
-                  "sm:h-[300px]"
-              )}
-            >
-              <input {...getInputProps()} />
-              <div className="flex flex-col items-center gap-2">
-                <div className="rounded-full bg-muted p-4">
-                  <Upload className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-medium">
-                    {isDragActive ? 'Drop the file here' : 'Drag & drop an image here'}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    PNG, JPG or GIF (max. 5MB)
-                  </p>
-                </div>
-              </div>
-              {isDragActive && (
-                <div className="absolute inset-0 bg-primary/5 backdrop-blur-sm" />
-              )}
+    <>
+      <Dialog open={isOpen} onOpenChange={handleClose}>
+        <DialogContent className="max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-[600px]">
+          {(isLoading || uploadProgress > 0) && (
+            <div className="absolute inset-x-0 top-0">
+              <Progress 
+                value={uploadProgress} 
+                className="h-1 rounded-none"
+              />
             </div>
           )}
-        </div>
 
-          <div className="space-y-4">
-            {isLoading ? (
-              <div className="space-y-4">
-                <Skeleton className="h-20 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <div className="space-y-2">
-                  <Skeleton className="h-8 w-full" />
-                  <Skeleton className="h-8 w-full" />
-                  <Skeleton className="h-8 w-full" />
+          <DialogHeader className="px-4 pt-4">
+            <DialogTitle>Upload {fileCategory.toLowerCase()}</DialogTitle>
+            <DialogDescription>{description || `Choose a file to upload as your ${fileCategory.toLowerCase()}`}</DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2">
+            <div className="space-y-4">
+            {imgSrc ? (
+              <div className="relative overflow-hidden rounded-lg border bg-muted/50">
+                {imageLoading && (
+                  <Skeleton className="absolute inset-0" />
+                )}
+                <AspectRatio ratio={aspect}>
+                  <div className="h-full max-h-[350px] overflow-auto">
+                    <ReactCrop
+                      crop={crop}
+                      onChange={c => setCrop(c)}
+                      aspect={aspect}
+                      circularCrop={circular}
+                      className="relative"
+                    >
+                      <img
+                        src={imgSrc}
+                        alt="Crop me"
+                        className="h-full w-full object-contain"
+                        style={{ maxHeight: '350px' }}
+                        onLoad={handleImageLoad}
+                      />
+                    </ReactCrop>
+                  </div>
+                </AspectRatio>
+                <div className="absolute left-4 top-4 rounded-md bg-background/80 px-2 py-1 text-xs backdrop-blur-sm">
+                  <p className="text-muted-foreground">
+                    Drag to move • Drag corners to resize
+                  </p>
                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
-                <Textarea
-                  placeholder="Add a description..."
-                  value={uploadState.description}
-                  onChange={(e) => setUploadState(prev => ({ ...prev, description: e.target.value }))}
-                  className="h-20"
-                />
-                
-                <div className="space-y-2">
-                  <Label>Visibility</Label>
-                  <Select
-                    value={uploadState.visibility}
-                    onValueChange={(value) => setUploadState(prev => ({ 
-                      ...prev, 
-                      visibility: value,
-                      // Reset customAudience when not CUSTOM
-                      customAudience: value !== Visibility.CUSTOM ? '' : prev.customAudience
-                    }))}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select visibility" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={Visibility.PUBLIC}>
-                        <div className="flex items-center gap-2">
-                          <Globe className="h-4 w-4" />
-                          Public
-                        </div>
-                      </SelectItem>
-                      <SelectItem value={Visibility.PRIVATE}>
-                        <div className="flex items-center gap-2">
-                          <Lock className="h-4 w-4" />
-                          Private
-                        </div>
-                      </SelectItem>
-                      <SelectItem value={Visibility.FRIENDS}>
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4" />
-                          Friends Only
-                        </div>
-                      </SelectItem>
-                      <SelectItem value={Visibility.CUSTOM}>
-                        <div className="flex items-center gap-2">
-                          <Settings className="h-4 w-4" />
-                          Custom
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  {/* Show Custom Audience Input when CUSTOM is selected */}
-                  {uploadState.visibility === Visibility.CUSTOM && (
-                    <div className="mt-2">
-                      <Label>Custom Audience</Label>
-                      <Input
-                        placeholder="Enter emails or usernames"
-                        value={uploadState.customAudience}
-                        onChange={(e) => setUploadState(prev => ({ 
-                          ...prev, 
-                          customAudience: e.target.value 
-                        }))}
-                        className="mt-1"
-                      />
-                    </div>
-                  )}
+              <div
+                {...getRootProps()}
+                className={cn(
+                    "flex h-[350px] w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors",
+                  isDragActive 
+                    ? "border-primary bg-primary/5" 
+                    : "border-muted hover:border-muted-foreground/50",
+                    "sm:h-[300px]"
+                )}
+              >
+                <input {...getInputProps()} />
+                <div className="flex flex-col items-center gap-2">
+                  <div className="rounded-full bg-muted p-4">
+                    <Upload className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-medium">
+                      {isDragActive ? 'Drop the file here' : 'Drag & drop an image here'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      PNG, JPG or GIF (max. 5MB)
+                    </p>
+                  </div>
                 </div>
+                {isDragActive && (
+                  <div className="absolute inset-0 bg-primary/5 backdrop-blur-sm" />
+                )}
               </div>
             )}
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4" />
-                  Allow Comments
-                </Label>
-                <Switch
-                  checked={uploadState.allowComments}
-                  onCheckedChange={(checked) => 
-                    setUploadState(prev => ({ ...prev, allowComments: checked }))
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Label className="flex items-center gap-2">
-                  <Share2 className="h-4 w-4" />
-                  Allow Sharing
-                </Label>
-                <Switch
-                  checked={uploadState.allowSharing}
-                  onCheckedChange={(checked) => 
-                    setUploadState(prev => ({ ...prev, allowSharing: checked }))
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Label className="flex items-center gap-2">
-                  <Download className="h-4 w-4" />
-                  Allow Download
-                </Label>
-                <Switch
-                  checked={uploadState.allowDownload}
-                  onCheckedChange={(checked) => 
-                    setUploadState(prev => ({ ...prev, allowDownload: checked }))
-                  }
-                />
-              </div>
-            </div>
           </div>
-        </div>
 
-        <div className="border-t bg-muted/50 px-4 py-3">
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <Button 
-              variant="ghost" 
-              onClick={handleClose}
-              disabled={isLoading}
-              className="w-full sm:w-auto"
-            >
-              Cancel
-            </Button>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              {imgSrc && (
-                <Button 
-                  variant="ghost"
-                  onClick={() => setImgSrc('')}
-                  disabled={isLoading}
-                  className="w-full sm:w-auto"
-                >
-                  Change Image
-                </Button>
+            <div className="space-y-4">
+              {isLoading ? (
+                <div className="space-y-4">
+                  <Skeleton className="h-20 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <Textarea
+                    placeholder="Add a description..."
+                    value={uploadState.description}
+                    onChange={(e) => setUploadState(prev => ({ ...prev, description: e.target.value }))}
+                    className="h-20"
+                  />
+                  
+                  <div className="space-y-2">
+                    <Label>Visibility</Label>
+                    <Select
+                      value={uploadState.visibility}
+                      onValueChange={(value) => setUploadState(prev => ({ 
+                        ...prev, 
+                        visibility: value,
+                        // Reset customAudience when not CUSTOM
+                        customAudience: value !== Visibility.CUSTOM ? '' : prev.customAudience
+                      }))}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select visibility" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={Visibility.PUBLIC}>
+                          <div className="flex items-center gap-2">
+                            <Globe className="h-4 w-4" />
+                            Public
+                          </div>
+                        </SelectItem>
+                        <SelectItem value={Visibility.PRIVATE}>
+                          <div className="flex items-center gap-2">
+                            <Lock className="h-4 w-4" />
+                            Private
+                          </div>
+                        </SelectItem>
+                        <SelectItem value={Visibility.FRIENDS}>
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4" />
+                            Friends Only
+                          </div>
+                        </SelectItem>
+                        <SelectItem value={Visibility.CUSTOM}>
+                          <div className="flex items-center gap-2">
+                            <Settings className="h-4 w-4" />
+                            Custom
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {/* Show Custom Audience Input when CUSTOM is selected */}
+                    {uploadState.visibility === Visibility.CUSTOM && (
+                      <div className="mt-2">
+                        <Label>Custom Audience</Label>
+                        <Input
+                          placeholder="Enter emails or usernames"
+                          value={uploadState.customAudience}
+                          onChange={(e) => setUploadState(prev => ({ 
+                            ...prev, 
+                            customAudience: e.target.value 
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
-              <Button 
-                onClick={handleSave} 
-                disabled={!imgSrc || isLoading}
-                className="w-full sm:min-w-[100px] sm:w-auto"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {uploadProgress < 100 ? 'Uploading...' : 'Processing...'}
-                  </>
-                ) : (
-                  'Upload & Save'
-                )}
-              </Button>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4" />
+                    Allow Comments
+                  </Label>
+                  <Switch
+                    checked={uploadState.allowComments}
+                    onCheckedChange={(checked) => 
+                      setUploadState(prev => ({ ...prev, allowComments: checked }))
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label className="flex items-center gap-2">
+                    <Share2 className="h-4 w-4" />
+                    Allow Sharing
+                  </Label>
+                  <Switch
+                    checked={uploadState.allowSharing}
+                    onCheckedChange={(checked) => 
+                      setUploadState(prev => ({ ...prev, allowSharing: checked }))
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label className="flex items-center gap-2">
+                    <Download className="h-4 w-4" />
+                    Allow Download
+                  </Label>
+                  <Switch
+                    checked={uploadState.allowDownload}
+                    onCheckedChange={(checked) => 
+                      setUploadState(prev => ({ ...prev, allowDownload: checked }))
+                    }
+                  />
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-  
-      </DialogContent>
-    </Dialog>
+          <div className="border-t bg-muted/50 px-4 py-3">
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <Button 
+                variant="ghost" 
+                onClick={handleClose}
+                disabled={isLoading}
+                className="w-full sm:w-auto"
+              >
+                Cancel
+              </Button>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                {imgSrc && (
+                  <Button 
+                    variant="ghost"
+                    onClick={() => setImgSrc('')}
+                    disabled={isLoading}
+                    className="w-full sm:w-auto"
+                  >
+                    Change Image
+                  </Button>
+                )}
+                <Button 
+                  onClick={handleSave} 
+                  disabled={!imgSrc || isLoading}
+                  className="w-full sm:min-w-[100px] sm:w-auto"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {uploadProgress < 100 ? 'Uploading...' : 'Processing...'}
+                    </>
+                  ) : (
+                    'Upload & Save'
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+    
+        </DialogContent>
+      </Dialog>
+
+      <UploadProgressDialog 
+        progress={uploadProgress}
+        isOpen={showProgressDialog}
+        onCancel={handleCancelUpload}
+      />
+    </>
   )
 } 

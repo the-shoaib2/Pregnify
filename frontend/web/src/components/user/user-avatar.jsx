@@ -16,35 +16,68 @@ export function UserAvatarSkeleton({ className }) {
   )
 }
 
-export function UserAvatar({ user, className, showStatus = false, isLoading, onLoad }) {
-  // Extract the actual user data from the response
+export function UserAvatar({ 
+  user, 
+  className, 
+  showStatus = false, 
+  isLoading, 
+  onLoad,
+  useThumb = true
+}) {
   const userData = user?.data || user
 
   const displayName = React.useMemo(() => {
-    if (!userData) return ''
-    if (userData?.basicInfo?.name?.full) {
-      return userData.basicInfo.name.full
+    if (!userData) return 'Guest User'
+    if (userData?.basicInfo?.name?.firstName && userData?.basicInfo?.name?.lastName) {
+      return `${userData.basicInfo.name.firstName} ${userData.basicInfo.name.lastName}`
     }
     if (userData?.basicInfo?.email) return userData.basicInfo.email.split('@')[0]
-    return userData?.basicInfo?.username || userData?.basicInfo?.userID || ''
+    return userData?.basicInfo?.username || userData?.basicInfo?.userID || 'Guest User'
   }, [userData])
 
-  const initials = React.useMemo(() => {
-    if (!userData) return 'GU'
+  const avatarUrl = React.useMemo(() => {
+    if (!userData?.basicInfo) return null
     
-    // Get first letter of first name and last name
-    const firstNameInitial = userData?.basicInfo?.name?.first?.charAt(0)
-    const lastNameInitial = userData?.basicInfo?.name?.last?.charAt(0)
+    // If useThumb is true, try thumbnail first
+    if (useThumb) {
+      return userData.basicInfo.avatarThumb || userData.basicInfo.avatar || null
+    }
+    
+    // If useThumb is false, use full avatar
+    return userData.basicInfo.avatar || userData.basicInfo.avatarThumb || null
+  }, [userData?.basicInfo, useThumb])
+
+  const initials = React.useMemo(() => {
+    if (!userData?.basicInfo) return 'GU'
+    
+    // Try to get initials from firstName and lastName
+    const firstNameInitial = userData.basicInfo?.name?.firstName?.charAt(0)
+    const lastNameInitial = userData.basicInfo?.name?.lastName?.charAt(0)
     
     if (firstNameInitial && lastNameInitial) {
       return `${firstNameInitial}${lastNameInitial}`.toUpperCase()
     }
     
-    // Fallback to email if no name
-    if (userData?.basicInfo?.email) {
-      return userData.basicInfo.email.slice(0, 2).toUpperCase()
+    // Try to get initials from email
+    if (userData.basicInfo?.email) {
+      const emailInitials = userData.basicInfo.email
+        .split('@')[0]
+        .slice(0, 2)
+        .toUpperCase()
+      if (emailInitials) return emailInitials
     }
     
+    // Try to get initials from username
+    if (userData.basicInfo?.username) {
+      return userData.basicInfo.username.slice(0, 2).toUpperCase()
+    }
+
+    // Try to get initials from userID
+    if (userData.basicInfo?.userID) {
+      return userData.basicInfo.userID.slice(0, 2).toUpperCase()
+    }
+    
+    // Final fallback
     return 'GU'
   }, [userData])
 
@@ -56,16 +89,19 @@ export function UserAvatar({ user, className, showStatus = false, isLoading, onL
     <div className="relative">
       <Avatar className={cn("", className)}>
         <AvatarImage 
-          src={userData?.basicInfo?.avatar || '/avatars/default.jpg'} 
+          src={avatarUrl}
           alt={displayName}
           className="object-cover"
           onError={(e) => {
             e.target.onerror = null
-            e.target.src = '/avatars/default.jpg'
+            e.target.src = ''
           }}
           onLoad={onLoad}
         />
-        <AvatarFallback className="bg-primary/10 text-primary">
+        <AvatarFallback 
+          className="bg-primary/10 text-primary"
+          delayMs={100}
+        >
           {initials}
         </AvatarFallback>
       </Avatar>

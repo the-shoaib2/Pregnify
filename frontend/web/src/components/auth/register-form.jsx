@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Loader2, Eye, EyeOff } from "lucide-react"
+import { Loader, Eye, EyeOff } from "lucide-react"
 import React, { useCallback } from "react"
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 
@@ -625,7 +625,7 @@ export function RegisterForm({ className, ...props }) {
               {loading ? (
                 <>
                   Creating account...
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader className="mr-2 h-4 w-4 animate-spin" />
                 </>
               ) : (
                 "Create account"

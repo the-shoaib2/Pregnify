@@ -1,95 +1,69 @@
-import { useState, useEffect, useMemo, Suspense } from "react"
+import { useState, useEffect, useMemo, memo } from "react"
 import { Badge } from "@/components/ui/badge"
-import { ImageDialog } from "@/components/image-view"
 import { useAuth } from '@/contexts/auth-context/auth-context'
-import React from "react"
-import { lazyLoad } from '@/utils/lazy-load.jsx'
-import { Skeleton } from "@/components/ui/skeleton"
-import { CoverPhotoSkeleton } from './cover-photo'
-import { ProfilePictureSkeleton } from './profile-picture'
+import { cn } from "@/lib/utils"
+import { CoverPhotoSkeleton, CoverPhotoUpload } from './cover-photo'
+import { ProfilePictureSkeleton, ProfilePicture } from './profile-picture'
+import { AuthService } from '@/services/auth'
 
-
-// Profile Header Skeleton Component
-function ProfileHeaderSkeleton() {
-  return (
-    <div className="space-y-4">
-      <div className="relative">
-        {/* Cover photo skeleton */}
-        <div className="relative">
-          <Skeleton className="h-40 w-full rounded-lg sm:h-48" />
-          <div className="absolute right-4 top-4">
-            <Skeleton className="h-7 w-7 rounded-full border-2 border-background" />
-          </div>
-        </div>
-        
-        {/* Profile picture skeleton */}
-        <div className="absolute -bottom-2 left-4 z-10">
-          <div className="relative">
-            <div className="relative rounded-full border-4 border-background">
-              <Skeleton className="h-24 w-24 rounded-full" />
-              <div className="absolute -bottom-0.5 -right-0.5">
-                <Skeleton className="h-7 w-7 rounded-full border-2 border-background" />
-              </div>
-            </div>
-            <div className="absolute -right-1 -top-1">
-              <Skeleton className="h-4 w-4 rounded-full border-2 border-background" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Content skeleton */}
-      <div className="mt-12 px-4">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Skeleton className="h-7 w-40" />
-            <Skeleton className="h-2.5 w-2.5 rounded-full" />
-          </div>
-          <Skeleton className="h-4 w-[60%]" />
-        </div>
+const ProfileHeaderSkeleton = memo(() => (
+  <div className="space-y-4 animate-in fade-in duration-300">
+    <div className="relative">
+      <CoverPhotoSkeleton />
+      <div className="absolute -bottom-2 left-4 z-10">
+        <ProfilePictureSkeleton />
       </div>
     </div>
-  )
-}
+  </div>
+))
+ProfileHeaderSkeleton.displayName = 'ProfileHeaderSkeleton'
 
-// Lazy load components with suspense
-const ProfilePicture = lazyLoad(() => import('./profile-picture').then(mod => ({ 
-  default: mod.ProfilePicture 
-})))
-
-const CoverPhotoUpload = lazyLoad(() => import('./cover-photo').then(mod => ({ 
-  default: mod.CoverPhotoUpload 
-})))
-
-export function ProfileHeader({ user, loading }) {
+const ProfileHeader = memo(({ user, loading }) => {
   const { profile, refreshData } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
-  const [showAvatarDialog, setShowAvatarDialog] = useState(false)
-  const [showCoverDialog, setShowCoverDialog] = useState(false)
-  const [uploadType, setUploadType] = useState(null)
   const [isAvatarLoading, setIsAvatarLoading] = useState(false)
   const [isCoverLoading, setIsCoverLoading] = useState(false)
 
-  const userData = useMemo(() => user?.data || user || profile?.data || profile, [user, profile])
+  useEffect(() => {
+    AuthService.getProfile()
+      .catch(error => {
+        if (error.message === 'Authentication required') {
+          // Handle auth error (redirect to login, etc)
+        }
+      })
+  }, [])
+
+  const userData = useMemo(() => {
+    const data = user?.data || user || profile?.data || profile
+    if (!data) return null
+
+    return {
+      ...data,
+      basicInfo: {
+        ...data.basicInfo,
+        avatar: data.basicInfo?.avatar || null,
+        avatarThumb: data.basicInfo?.avatarThumb || data.basicInfo?.avatar || null,
+        cover: data.basicInfo?.cover || null,
+      }
+    }
+  }, [user, profile])
 
   useEffect(() => {
     if (userData) {
-      setIsLoading(false)
+      // Add a small delay to ensure smooth transition
+      const timer = setTimeout(() => {
+        setIsLoading(false)
+      }, 100)
+      return () => clearTimeout(timer)
     }
   }, [userData])
-
-  if (isLoading || loading || !userData) {
-    return <ProfileHeaderSkeleton />
-  }
 
   const handleUploadComplete = async (file, type) => {
     try {
       if (type === 'avatar') {
         setIsAvatarLoading(true)
-        // Handle avatar upload
       } else {
         setIsCoverLoading(true)
-        // Handle cover upload
       }
       await refreshData()
     } finally {
@@ -98,25 +72,28 @@ export function ProfileHeader({ user, loading }) {
     }
   }
 
+  if (isLoading || loading || !userData) {
+    return <ProfileHeaderSkeleton />
+  }
+
   return (
-    <div className="space-y-4">
+    <div className={cn(
+      "space-y-4 transition-all duration-300",
+      loading ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"
+    )}>
       <div className="relative">
-        <Suspense fallback={<CoverPhotoSkeleton />}>
-          <CoverPhotoUpload 
-            user={userData}
-            onUpload={(file) => handleUploadComplete(file, 'cover')}
-            loading={isCoverLoading}
-          />
-        </Suspense>
+        <CoverPhotoUpload 
+          user={userData}
+          onUpload={(file) => handleUploadComplete(file, 'cover')}
+          loading={isCoverLoading}
+        />
         
         <div className="absolute -bottom-2 left-4 z-10">
-          <Suspense fallback={<ProfilePictureSkeleton />}>
-            <ProfilePicture 
-              user={userData}
-              onUpload={(file) => handleUploadComplete(file, 'avatar')}
-              loading={isAvatarLoading}
-            />
-          </Suspense>
+          <ProfilePicture 
+            user={userData}
+            onUpload={(file) => handleUploadComplete(file, 'avatar')}
+            loading={isAvatarLoading}
+          />
         </div>
       </div>
 
@@ -130,11 +107,11 @@ export function ProfileHeader({ user, loading }) {
               
               {/* Status Badge */}
               <div className="relative">
-                {userData?.basicInfo?.status?.activeStatus === "ONLINE" && (
+                {userData?.accountStatus?.activeStatus === "ONLINE" && (
                   <Badge className="h-2.5 w-2.5 rounded-full bg-green-500 p-0" />
                 )}
-                {(userData?.basicInfo?.status?.activeStatus === "OFFLINE" || 
-                  userData?.basicInfo?.status?.activeStatus === "UNDEFINED") && (
+                {(userData?.accountStatus?.activeStatus === "OFFLINE" || 
+                  userData?.accountStatus?.activeStatus === "UNDEFINED") && (
                   <Badge className="h-2.5 w-2.5 rounded-full bg-red-500 p-0" />
                 )}
               </div>
@@ -146,21 +123,9 @@ export function ProfileHeader({ user, loading }) {
           </div>
         </div>
       </div>
-
-      {/* Dialogs */}
-      <ImageDialog
-        image={userData?.basicInfo?.avatar}
-        title="Profile Picture"
-        isOpen={showAvatarDialog}
-        onClose={() => setShowAvatarDialog(false)}
-      />
-
-      <ImageDialog
-        image={userData?.basicInfo?.cover}
-        title="Cover Photo"
-        isOpen={showCoverDialog}
-        onClose={() => setShowCoverDialog(false)}
-      />
     </div>
   )
-} 
+})
+ProfileHeader.displayName = 'ProfileHeader'
+
+export { ProfileHeader } 

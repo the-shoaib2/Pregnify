@@ -1,128 +1,87 @@
 import api from '../api'
 import { memoize, debounce } from 'lodash'
-import CryptoJS from 'crypto-js'
+import { CacheManager, CONSTANTS } from '../../utils/security'
+import { logError } from '../../utils/errorHandler'
+import { loadProfile } from '../settings/index'
 
-// Cache configuration
-const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+const { CACHE_DURATION } = CONSTANTS
 const MIN_REFRESH_INTERVAL = 2000 // 2 seconds
-const AUTH_CACHE_KEY = 'auth_cache'
 
-// Encryption configuration
-const ENCRYPTION_KEY = import.meta.env.VITE_ENCRYPTION_KEY 
-
-// Encryption functions
-const encryptData = (data) => {
-  return CryptoJS.AES.encrypt(JSON.stringify(data), ENCRYPTION_KEY).toString()
-}
-
-const decryptData = (ciphertext) => {
-  try {
-    const bytes = CryptoJS.AES.decrypt(ciphertext, ENCRYPTION_KEY)
-    const decrypted = bytes.toString(CryptoJS.enc.Utf8)
-    if (!decrypted) {
-      localStorage.removeItem('auth_cache')
-      return null
-    }
-    return JSON.parse(decrypted)
-  } catch (error) {
-    localStorage.removeItem('auth_cache')
-    return null
-  }
-}
-
-// Cache management
-const getCache = () => {
-  const cache = localStorage.getItem(AUTH_CACHE_KEY)
-  return cache ? decryptData(cache) : { user: null, profile: null, tokens: null }
-}
-
-const setCache = (key, value) => {
-  const cache = getCache()
-  cache[key] = {
-    value,
-    timestamp: Date.now()
-  }
-  localStorage.setItem('auth_cache', encryptData(cache))
-}
-
-const clearCache = () => {
-  localStorage.removeItem('auth_cache')
-}
-
-const isCacheValid = (key) => {
-  const cache = getCache()
-  const item = cache[key]
-  if (!item) return false
-  return Date.now() - item.timestamp < CACHE_DURATION
-}
-
-// Memoized and debounced API calls
-const memoizedLogin = memoize(
-  (credentials) => api.post('/auth/login', credentials),
-  (credentials) => JSON.stringify(credentials)
-)
-
-
-const User = memoize(
-  async () => {
-    const MAX_RETRIES = 3
-    let retryCount = 0
-
-    while (retryCount < MAX_RETRIES) {
-      try {
-        const cacheKey = 'user'
-        if (isCacheValid(cacheKey)) {
-          return getCache()[cacheKey].value
-        }
-        const response = await api.get('/auth/me')
-        setCache(cacheKey, response)
-        return response
-      } catch (error) {
-        retryCount++
-        if (retryCount === MAX_RETRIES) {
-          logError(error)
-          throw error
-        }
-        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount))
-      }
-    }
-  }
-)
-
-const logError = (error) => {
-// Implement error logging logic here
-
-
-  console.error(error)
-}
-
+// Optimized auth service
 export const AuthService = {
-  // Authentication with optimized caching
   login: async (credentials) => {
-    const response = await memoizedLogin(credentials)
-    clearCache() // Clear cache on new login
-    return response
+    try {
+      // First, perform login
+      const response = await api.post('/auth/login', credentials)
+      
+      if (!response.data?.tokens?.accessToken) {
+        throw new Error('No access token received')
+      }
+
+      // Set token in API client
+      api.defaults.headers.common['Authorization'] = `Bearer ${response.data.tokens.accessToken}`
+
+      // Immediately fetch user data
+      const userResponse = await api.get('/auth/user')
+      
+      // Update cache with both login response and user data
+      CacheManager.set({
+        user: userResponse.data.user,
+        tokens: response.data.tokens,
+        profile: response.data.profile,
+        lastRefresh: Date.now()
+      })
+
+      return {
+        ...response.data,
+        user: userResponse.data.user
+      }
+    } catch (error) {
+      CacheManager.clear()
+      throw error
+    }
   },
+
+  logout: async () => {
+    try {
+      const response = await api.post('/auth/logout')
+      CacheManager.clear()
+      return response
+    } catch (error) {
+      CacheManager.clear()
+      throw error
+    }
+  },
+
+  getProfile: async (options = {}) => {
+    const { forceRefresh = false } = options
+    return loadProfile(forceRefresh)
+  },
+
+  refreshToken: memoize(async () => {
+    try {
+      const cache = CacheManager.get()
+      const response = await api.post('/auth/refresh', {
+        refreshToken: cache.tokens?.refreshToken
+      })
+      
+      // Update tokens in cache
+      CacheManager.set({
+        tokens: response.data.tokens
+      })
+      
+      return response
+    } catch (error) {
+      CacheManager.clear()
+      throw error
+    }
+  }, () => 'refresh_token', 300000), // 5 minutes cache
 
   register: async (data) => {
     const response = await api.post('/auth/register', data)
-    clearCache() // Clear cache on new registration
+    CacheManager.clear() // Clear cache on new registration
     return response
   },
-
-  logout: async (data) => {
-    const response = await api.post('/auth/logout', data)
-    clearCache() // Clear cache on logout
-    memoizedLogin.cache.clear() // Clear memoization cache
-    User.cache.clear()
-    return response
-  },
-
-  refreshToken: debounce(
-    (data) => api.post('/auth/refresh-token', data),
-    MIN_REFRESH_INTERVAL,
-    { leading: true, trailing: false }
-  ),
 
   getCurrentUser: memoize(
     async () => {
@@ -132,11 +91,14 @@ export const AuthService = {
       while (retryCount < MAX_RETRIES) {
         try {
           const cacheKey = 'user'
-          if (isCacheValid(cacheKey)) {
-            return getCache()[cacheKey].value
+          const cache = CacheManager.get()
+          if (cache[cacheKey] && Date.now() - cache.timestamp < CACHE_DURATION) {
+            return cache[cacheKey]
           }
           const response = await api.get('/auth/user')
-          setCache(cacheKey, response)
+          CacheManager.set({
+            [cacheKey]: response
+          })
           console.log('User fetched from API:', response) // Debugging
           return response
         } catch (error) {
@@ -223,7 +185,7 @@ export const AuthService = {
         newPassword,
         confirmPassword
       })
-      clearCache()
+      CacheManager.clear()
       return response
     } catch (error) {
       if (error.response?.status === 400) {
@@ -231,5 +193,5 @@ export const AuthService = {
       }
       throw error
     }
-  }, (args) => JSON.stringify(args), 300000)
+  }, (args) => JSON.stringify(args), 300000)  // 5 minutes
 }

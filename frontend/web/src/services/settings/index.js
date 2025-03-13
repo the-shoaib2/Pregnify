@@ -1,4 +1,54 @@
 import api from '../api'
+import { CacheManager, CONSTANTS } from '../../utils/security'
+import { AuthService } from '../auth'
+
+const { CACHE_DURATION } = CONSTANTS
+
+// Profile loader with auth check
+export const loadProfile = async (forceRefresh = false) => {
+  const cache = CacheManager.get()
+  const token = CacheManager.getToken()
+
+  // Check if we need to refresh token
+  if (!token) {
+    try {
+      await AuthService.refreshToken()
+    } catch (error) {
+      throw new Error('Authentication required')
+    }
+  }
+
+  // Check cache first
+  if (!forceRefresh && 
+      cache.profile && 
+      Date.now() - cache.lastRefresh < CACHE_DURATION) {
+    return cache.profile
+  }
+
+  try {
+    const response = await api.get('/account/profile', {
+      headers: {
+        Authorization: `Bearer ${CacheManager.getToken()}`
+      }
+    })
+    
+    const profile = response.data
+
+    // Update cache
+    CacheManager.set({
+      profile,
+      lastRefresh: Date.now()
+    })
+
+    return profile
+  } catch (error) {
+    if (error.response?.status === 401) {
+      CacheManager.clear()
+      throw new Error('Authentication required')
+    }
+    throw error
+  }
+}
 
 export const SettingsService = {
   // Profile & Personal Info

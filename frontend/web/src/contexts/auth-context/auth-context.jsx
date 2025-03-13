@@ -218,15 +218,34 @@ export function AuthProvider({ children }) {
     login: async (credentials) => {
       try {
         setIsLoadingUser(true)
+        // First, perform login
         const response = await axios.post(`${API_URL}/auth/login`, credentials)
         const { tokens } = response.data
         
-        if (tokens?.accessToken) {
-          setAuthToken(tokens.accessToken)
-          await fetchUserData(true)
-          return response.data
+        if (!tokens?.accessToken) {
+          throw new Error('No access token received')
         }
-        throw new Error('No access token received')
+
+        // Set the token immediately
+        setAuthToken(tokens.accessToken)
+        
+        // Immediately fetch user data
+        const userData = await fetchUserData(true)
+        if (!userData) {
+          throw new Error('Failed to fetch user data')
+        }
+
+        // Update cache with both token and user data
+        updateAuthCache({
+          user: userData,
+          profile: null,
+          tokens: {
+            accessToken: tokens.accessToken,
+            timestamp: Date.now()
+          }
+        })
+
+        return response.data
       } finally {
         setIsLoadingUser(false)
       }

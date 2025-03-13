@@ -8,7 +8,7 @@ import {
   CreditCard,
   LogOut,
   Sparkles,
-  Loader2
+  Loader
 } from "lucide-react"
 import {
   AlertDialog,
@@ -41,7 +41,7 @@ import { useAuth } from "@/contexts/auth-context/auth-context"
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
 import { NavUserSkeleton } from "@/components/nav-user-skeleton"
-import { UserAvatar, UserAvatarWithInfo } from "@/components/user/user-avatar"
+import { UserAvatarWithInfo } from "@/components/user/user-avatar"
 
 const NavUser = () => {
   const { user } = useAuth()
@@ -88,7 +88,7 @@ const NavUser = () => {
             <SidebarMenuButton
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
-              <UserAvatarWithInfo user={user} />
+              <UserAvatarWithInfo user={user} useThumb={false} />
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
@@ -132,7 +132,7 @@ const NavUser = () => {
                   {isLoggingOut ? (
                     <>
                       Logging out..
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader className="mr-2 h-4 w-4 animate-spin" />
                     </>
                   ) : (
                     'Log out'
@@ -155,7 +155,7 @@ const NavUser = () => {
                     {isLoggingOut ? (
                       <>
                         Logging out..
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <Loader className="mr-2 h-4 w-4 animate-spin" />
                       </>
                     ) : (
                       'Log out'
