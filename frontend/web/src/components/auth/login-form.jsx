@@ -44,14 +44,36 @@ export function LoginForm({
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
+    const startTime = Date.now()
+    
     try {
+      if (!formData.email || !formData.password) {
+        throw new Error('Please fill in all fields')
+      }
+
+      console.time('Full Login Process')
+      
+      // Wait for login to complete first
       const response = await login(formData)
+      
       if (response?.tokens?.accessToken) {
+        try {
+          // Now fetch profile after login is complete
+          await AuthService.getProfile({ forceRefresh: true })
+        } catch (profileError) {
+          console.error('Profile load error:', profileError)
+          // Continue with navigation even if profile fails
+        }
+        
+        const totalTime = Date.now() - startTime
+        console.log(`✨ Total time until navigation: ${totalTime}ms`)
+        
         toast.success('Login successful')
         navigate('/')
       } else {
         throw new Error('No token received')
       }
+      console.timeEnd('Full Login Process')
     } catch (error) {
       if (error.response?.status === 429) {
         toast.error('Too many requests. Please wait before trying again.')
@@ -210,7 +232,7 @@ export function LoginForm({
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      className="absolute  right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                       onClick={() => setShowPassword(!showPassword)}
                     >
                       {showPassword ? (

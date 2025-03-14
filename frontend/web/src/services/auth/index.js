@@ -10,35 +10,50 @@ const CACHE_DURATION = CONSTANTS.CACHE_DURATION
 // Track refresh token operations
 let refreshTokenPromise = null
 
+// Add request cache
+const requestCache = new Map()
+
 // Optimized auth service
 export const AuthService = {
   login: async (credentials) => {
     try {
-      // First, perform login
-      const response = await api.post('/auth/login', credentials)
+      console.time('Total Login Flow')
       
-      if (!response.data?.tokens?.accessToken) {
+      // Single login request that returns all needed data
+      const loginResponse = await api.post('/auth/login', credentials, {
+        params: {
+          include: 'user,profile,settings' // Request all data in one call
+        },
+        headers: {
+          'Priority': 'high'
+        }
+      })
+
+      if (!loginResponse.data?.tokens?.accessToken) {
         throw new Error('No access token received')
       }
 
-      // Set token in API client
-      api.defaults.headers.common['Authorization'] = `Bearer ${response.data.tokens.accessToken}`
+      // Batch process all data in memory
+      const { tokens, user, profile, settings } = loginResponse.data
 
-      // Immediately fetch user data
-      const userResponse = await api.get('/auth/user')
-      
-      // Update cache with both login response and user data
-      CacheManager.set({
-        user: userResponse.data.user,
-        tokens: response.data.tokens,
-        profile: response.data.profile,
-        lastRefresh: Date.now()
-      })
-
-      return {
-        ...response.data,
-        user: userResponse.data.user
+      // Prepare cache data
+      const cacheData = {
+        tokens,
+        user,
+        profile,
+        settings,
+        lastRefresh: Date.now(),
+        timestamp: Date.now()
       }
+
+      // Set token for future requests
+      api.defaults.headers.common['Authorization'] = `Bearer ${tokens.accessToken}`
+
+      // Batch update cache in one operation
+      CacheManager.set(cacheData)
+
+      console.timeEnd('Total Login Flow')
+      return loginResponse.data
     } catch (error) {
       CacheManager.clear()
       throw error
@@ -56,11 +71,62 @@ export const AuthService = {
     }
   },
 
-  // Load profile with options
-  getProfile: async (options = {}) => {
-    const { forceRefresh = false } = options
-    return loadProfile(forceRefresh)
-  },
+  // Optimized getProfile to use cached data first
+  getProfile: memoize(
+    async (options = {}) => {
+      const opts = options || {}
+      const { forceRefresh = false } = opts
+      const cacheKey = 'profile'
+
+      try {
+        // Use request cache
+        if (!forceRefresh && requestCache.has(cacheKey)) {
+          return requestCache.get(cacheKey)
+        }
+
+        const cache = CacheManager.get()
+        
+        // Use cached profile if valid and not forcing refresh
+        if (!forceRefresh && cache.profile && 
+            Date.now() - cache.timestamp < CACHE_DURATION) {
+          return cache.profile
+        }
+
+        // Token check
+        if (!cache.tokens?.accessToken) {
+          throw new Error('No access token available')
+        }
+
+        // Only fetch if needed
+        const promise = api.get('/account/profile')
+          .then(response => {
+            const profile = response.data
+            
+            // Update only profile in cache
+            CacheManager.set({
+              profile,
+              lastRefresh: Date.now()
+            })
+            
+            return profile
+          })
+          .catch(error => {
+            requestCache.delete(cacheKey)
+            throw error
+          })
+          .finally(() => {
+            setTimeout(() => requestCache.delete(cacheKey), 1000)
+          })
+
+        requestCache.set(cacheKey, promise)
+        return promise
+      } catch (error) {
+        requestCache.delete(cacheKey)
+        throw error
+      }
+    },
+    (options = {}) => `${options?.forceRefresh || false}-${Math.floor(Date.now() / 30000)}`
+  ),
 
   // Load user with options
 
@@ -108,44 +174,61 @@ export const AuthService = {
     return response
   },
 
-  getCurrentUser: async () => {
-    try {
-      const cache = CacheManager.get()
+  getCurrentUser: memoize(
+    async () => {
+      const cacheKey = 'current-user'
       
-      // Check if we have a cached user and it's still valid
-      if (cache.user && Date.now() - cache.timestamp < CACHE_DURATION) {
-        return cache.user
-      }
-      
-      // Use retry mechanism for reliability
-      const response = await retryRequest(
-        () => api.get('/auth/user'),
-        3
-      )
-      
-      const user = response.data
-      
-      // Update cache
-      CacheManager.set({
-        user,
-        lastRefresh: Date.now()
-      })
-      
-      return user
-    } catch (error) {
-      if (error.response?.status === 401) {
-        // Try to refresh token on auth failure
-        try {
-          await AuthService.refreshToken()
-          return AuthService.getCurrentUser()
-        } catch (refreshError) {
-          CacheManager.clear()
-          throw refreshError
+      try {
+        // Check request cache first
+        if (requestCache.has(cacheKey)) {
+          return requestCache.get(cacheKey)
         }
+
+        const cache = CacheManager.get()
+        
+        // Use cached user if valid
+        if (cache.user && Date.now() - cache.timestamp < CACHE_DURATION) {
+          return cache.user
+        }
+
+        // Store promise in request cache
+        const promise = api.get('/auth/user')
+          .then(response => {
+            const user = response.data
+            
+            // Update cache
+            CacheManager.set({
+              user,
+              lastRefresh: Date.now()
+            })
+            
+            return user
+          })
+          .finally(() => {
+            // Clear request cache after 1 second
+            setTimeout(() => requestCache.delete(cacheKey), 1000)
+          })
+
+        requestCache.set(cacheKey, promise)
+        return promise
+
+      } catch (error) {
+        if (error.response?.status === 401) {
+          requestCache.delete(cacheKey)
+          try {
+            await AuthService.refreshToken()
+            return AuthService.getCurrentUser()
+          } catch (refreshError) {
+            CacheManager.clear() 
+            throw refreshError
+          }
+        }
+        throw error
       }
-      throw error
-    }
-  },
+    },
+    // Cache key based on timestamp (cache for 30 seconds)
+    () => Math.floor(Date.now() / 30000)
+  ),
   
   findUserForReset: memoize(
     async (data) => {

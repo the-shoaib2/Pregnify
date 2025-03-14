@@ -3,49 +3,105 @@ import { CacheManager } from '../utils/security'
 
 const API_URL = import.meta.env.VITE_API_URL
 
+// Add performance tracking
+const performanceLog = {
+  requests: new Map(),
+  logTiming: (config, duration) => {
+    console.log(`🚀 ${config.method.toUpperCase()} ${config.url}: ${duration}ms`)
+  }
+}
+
 const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json'
+  },
+  // Browser-compatible timeout and retry settings
+  timeout: 10000,
+  validateStatus: status => status < 500,
+  retry: 1,
+  retryDelay: 1000,
+  // Performance options
+  decompress: true,
+  maxRedirects: 5,
+  transitional: {
+    silentJSONParsing: true,
+    forcedJSONParsing: true,
+    clarifyTimeoutError: true
   }
 })
 
-// Request interceptor with improved token handling
+// Optimize request queue with memory cleanup
+const requestQueue = new Map()
+const queueTimeout = 50 // Reduce queue timeout
+
+// Request interceptor
 api.interceptors.request.use(
-  (config) => {
-    // Always get the latest token from CacheManager
-    const token = CacheManager.getToken()
+  async (config) => {
+    performanceLog.requests.set(config, Date.now())
     
+    const token = CacheManager.getToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
 
-    // Special handling for FormData
-    if (config.data instanceof FormData) {
-      // Set specific boundary
-      const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2)
-      config.headers['Content-Type'] = `multipart/form-data; boundary=${boundary}`
-      
-      // Don't transform the data
-      config.transformRequest = [(data) => data]
+    // Queue similar requests with shorter timeout
+    const requestKey = `${config.method}-${config.url}`
+    if (requestQueue.has(requestKey)) {
+      return requestQueue.get(requestKey)
     }
 
-    return config
+    const promise = Promise.resolve(config)
+    requestQueue.set(requestKey, promise)
+    setTimeout(() => requestQueue.delete(requestKey), queueTimeout)
+
+    return promise
   },
-  (error) => {
-    return Promise.reject(error)
-  }
+  (error) => Promise.reject(error)
 )
 
-// Response interceptor with rate limiting and auth handling
+// Response interceptor with timing and safe caching
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Calculate and log request duration
+    const startTime = performanceLog.requests.get(response.config)
+    if (startTime) {
+      const duration = Date.now() - startTime
+      performanceLog.logTiming(response.config, duration)
+      performanceLog.requests.delete(response.config)
+    }
+
+    // Cache successful GET responses if caching headers allow
+    if (response.config.method === 'get') {
+      try {
+        const cacheKey = `api-cache-${response.config.url}`
+        sessionStorage.setItem(cacheKey, JSON.stringify({
+          data: response.data,
+          timestamp: Date.now()
+        }))
+      } catch (e) {
+        console.warn('Cache storage failed:', e)
+      }
+    }
+
+    return response
+  },
   async (error) => {
+    // Log timing for errors too
+    if (error.config) {
+      const startTime = performanceLog.requests.get(error.config)
+      if (startTime) {
+        const duration = Date.now() - startTime
+        performanceLog.logTiming(error.config, duration)
+        performanceLog.requests.delete(error.config)
+      }
+    }
+
     const originalRequest = error.config
 
     // Handle rate limiting
     if (error.response?.status === 429) {
-      const retryAfter = error.response.headers['retry-after'] || 5
+      const retryAfter = parseInt(error.response.headers['retry-after']) || 5
       await new Promise(resolve => setTimeout(resolve, retryAfter * 1000))
       return api(originalRequest)
     }
@@ -62,9 +118,11 @@ api.interceptors.response.use(
           throw new Error('No refresh token')
         }
 
+        console.time('Token Refresh')
         const response = await axios.post(`${API_URL}/auth/refresh-token`, {
           refreshToken
         })
+        console.timeEnd('Token Refresh')
 
         const { accessToken } = response.data
         
@@ -80,7 +138,6 @@ api.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${accessToken}`
         return api(originalRequest)
       } catch (refreshError) {
-        // Clear cache on refresh failure
         CacheManager.clear()
         return Promise.reject(refreshError)
       }

@@ -23,31 +23,26 @@ const ProfileHeader = memo(({ user, loading, uploadingImage, uploadingCover, onA
   const [isLoading, setIsLoading] = useState(true)
   const [isAvatarLoading, setIsAvatarLoading] = useState(false)
   const [isCoverLoading, setIsCoverLoading] = useState(false)
+  const [profileData, setProfileData] = useState(null)
 
   useEffect(() => {
-    AuthService.getProfile()
-      .catch(error => {
-        if (error.message === 'Authentication required') {
-          // Handle auth error (redirect to login, etc)
-        }
-      })
+    const loadProfile = async () => {
+      try {
+        const profileData = await AuthService.getProfile()
+        setProfileData(profileData)
+      } catch (error) {
+        console.error('Failed to load profile:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadProfile()
   }, [])
 
   const userData = useMemo(() => {
     // Ensure we have a valid data object to work with
-    const data = profile?.data || user || {}
-    return data
-  }, [user, profile])
-
-  useEffect(() => {
-    if (userData) {
-      // Add a small delay to ensure smooth transition
-      const timer = setTimeout(() => {
-        setIsLoading(false)
-      }, 100)
-      return () => clearTimeout(timer)
-    }
-  }, [userData])
+    return profileData?.data || user || {}
+  }, [user, profileData])
 
   const handleUploadComplete = async (file, type) => {
     try {
@@ -57,6 +52,11 @@ const ProfileHeader = memo(({ user, loading, uploadingImage, uploadingCover, onA
         setIsCoverLoading(true)
       }
       await refreshData()
+      // Refresh profile data after upload
+      const newProfileData = await AuthService.getProfile({ forceRefresh: true })
+      setProfileData(newProfileData)
+    } catch (error) {
+      console.error('Upload complete error:', error)
     } finally {
       setIsAvatarLoading(false)
       setIsCoverLoading(false)

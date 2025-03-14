@@ -1,4 +1,5 @@
 import CryptoJS from 'crypto-js'
+import { memoize } from 'lodash'
 
 // Cache configuration
 const CACHE_DURATION = 15 * 24 * 60 * 1000 // 15 minutes
@@ -37,6 +38,24 @@ const decryptData = (ciphertext) => {
     return null
   }
 }
+
+// Add new memoized token getter
+const memoizedGetToken = memoize(
+  () => {
+    try {
+      const cache = localStorage.getItem(AUTH_CACHE_KEY)
+      if (!cache) return null
+      
+      const decrypted = decryptData(cache)
+      return decrypted?.tokens?.accessToken || null
+    } catch (error) {
+      console.error('Token retrieval error:', error)
+      return null
+    }
+  },
+  // Cache for 1 minute
+  () => Math.floor(Date.now() / 60000)
+)
 
 // Improved cache manager with token validation
 export const CacheManager = {
@@ -87,13 +106,7 @@ export const CacheManager = {
   },
 
   getToken: () => {
-    try {
-      const cache = CacheManager.get()
-      return cache.tokens?.accessToken || null
-    } catch (error) {
-      console.error('Token retrieval error:', error)
-      return null
-    }
+    return memoizedGetToken()
   },
   
   // Check if token is valid (not expired)
@@ -108,6 +121,11 @@ export const CacheManager = {
       console.error('Token validation error:', error)
       return false
     }
+  },
+
+  // Add new method to invalidate token cache
+  invalidateTokenCache: () => {
+    memoizedGetToken.cache.clear()
   }
 }
 
