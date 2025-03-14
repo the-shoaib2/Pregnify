@@ -1,9 +1,9 @@
 import CryptoJS from 'crypto-js'
 
 // Cache configuration
-const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+const CACHE_DURATION = 15 * 24 * 60 * 1000 // 15 minutes
 const AUTH_CACHE_KEY = 'auth_cache'
-
+const MIN_REFRESH_INTERVAL = 2000 // 2 seconds between refreshes
 // Encryption configuration
 const ENCRYPTION_KEY = import.meta.env.VITE_ENCRYPTION_KEY
 
@@ -113,7 +113,8 @@ export const CacheManager = {
 
 export const CONSTANTS = {
   CACHE_DURATION,
-  AUTH_CACHE_KEY
+  AUTH_CACHE_KEY,
+  MIN_REFRESH_INTERVAL
 }
 
 export { encryptData, decryptData } 

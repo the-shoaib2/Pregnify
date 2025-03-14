@@ -337,7 +337,7 @@ const getNavItems = (role) => {
         { title: "Preferences", url: "/settings/preferences", component: Link },
         { title: "Billing", url: "/settings/billing", component: Link },
         { title: "System", url: "/settings/system", component: Link },
-        { title: "Help & Legal", url: "/settings/help&Legal", component: Link }
+        { title: "Help & Legal", url: "/settings/help", component: Link }
       ]
     }
   ]
@@ -366,8 +366,8 @@ export function AppSidebar({ ...props }) {
   const sidebarData = {
     user: {
       name: user ? `${user?.basicInfo?.name?.firstName} ${user?.basicInfo?.name?.lastName}` : 'Guest User',
-      email: user?.basicInfo?.email || 'guest@example.com',
-      avatar: user?.basicInfo?.avatar || '/avatars/default.jpg',
+      email: user?.basicInfo?.email,
+      avatar: user?.basicInfo?.avatar ,
       initials: getInitials(user)
     },
     navMain: navMainItems,

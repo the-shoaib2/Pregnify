@@ -4,8 +4,8 @@ import { CacheManager, CONSTANTS } from '../../utils/security'
 import { logError, retryRequest } from '../../utils/errorHandler'
 import { loadProfile } from '../settings/index'
 
-const { CACHE_DURATION } = CONSTANTS
-const MIN_REFRESH_INTERVAL = 2000 // 2 seconds
+const MIN_REFRESH_INTERVAL = CONSTANTS.CACHE_DURATION
+const CACHE_DURATION = CONSTANTS.CACHE_DURATION
 
 // Track refresh token operations
 let refreshTokenPromise = null
@@ -56,10 +56,14 @@ export const AuthService = {
     }
   },
 
+  // Load profile with options
   getProfile: async (options = {}) => {
     const { forceRefresh = false } = options
     return loadProfile(forceRefresh)
   },
+
+  // Load user with options
+
 
   // Improved refresh token with singleton promise
   refreshToken: async () => {
@@ -76,7 +80,7 @@ export const AuthService = {
           throw new Error('No refresh token available')
         }
         
-        const response = await api.post('/auth/refresh', {
+        const response = await api.post('/auth/refresh-token', {
           refreshToken: cache.tokens.refreshToken
         })
         

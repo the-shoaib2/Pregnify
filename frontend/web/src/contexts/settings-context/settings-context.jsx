@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/auth-context/auth-context'
 import { toast } from 'react-hot-toast'
 import { ProfileService } from '@/services/settings'
 import { CacheManager } from '@/utils/security'
+import { CONSTANTS } from '@/utils/security'
 
 const SettingsContext = createContext({})
 
@@ -22,7 +23,6 @@ export function SettingsProvider({ children }) {
   const profileFetchInProgress = useRef(false)
   const settingsFetchInProgress = useRef(false)
   const lastProfileFetchTime = useRef(0)
-  const FETCH_COOLDOWN = 2000 // 2 seconds cooldown between fetches
 
   // Improved profile fetching with proper error handling and request deduplication
   const fetchProfile = useCallback(async (forceRefresh = false) => {
@@ -32,7 +32,7 @@ export function SettingsProvider({ children }) {
     const now = Date.now()
     if (!forceRefresh && 
         profileFetchInProgress.current || 
-        (now - lastProfileFetchTime.current < FETCH_COOLDOWN)) {
+        (now - lastProfileFetchTime.current < CONSTANTS.MIN_REFRESH_INTERVAL)) {
       return state.profile
     }
     

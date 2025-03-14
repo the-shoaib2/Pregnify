@@ -1,38 +1,12 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo, lazy } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import axios from 'axios'
-import { lazyLoad } from '@/utils/lazy-load.jsx'
 import { toast } from 'react-hot-toast'
-import { memoize } from 'lodash'
-import CryptoJS from 'crypto-js'
 import { ProfileService } from '@/services/settings'
+import { encryptData, decryptData, CONSTANTS } from '@/utils/security'
 
 const AuthContext = createContext({})
 
 const API_URL = import.meta.env.VITE_API_URL
-
-// Cache duration in milliseconds
-const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
-
-const ENCRYPTION_KEY = import.meta.env.VITE_ENCRYPTION_KEY || 'default-secure-key'
-
-const encryptData = (data) => {
-  return CryptoJS.AES.encrypt(JSON.stringify(data), ENCRYPTION_KEY).toString()
-}
-
-const decryptData = (ciphertext) => {
-  try {
-    const bytes = CryptoJS.AES.decrypt(ciphertext, ENCRYPTION_KEY)
-    const decrypted = bytes.toString(CryptoJS.enc.Utf8)
-    if (!decrypted) {
-      localStorage.removeItem('auth_cache')
-      return null
-    }
-    return JSON.parse(decrypted)
-  } catch (error) {
-    localStorage.removeItem('auth_cache')
-    return null
-  }
-}
 
 
 export function AuthProvider({ children }) {
@@ -47,7 +21,7 @@ export function AuthProvider({ children }) {
   const lastFetchTime = useRef(Date.now())
   const refreshInProgress = useRef(false)
   const lastRefreshTime = useRef(Date.now())
-  const MIN_REFRESH_INTERVAL = 2000 // 2 seconds between refreshes
+  const MIN_REFRESH_INTERVAL = CONSTANTS.MIN_REFRESH_INTERVAL // 2 seconds between refreshes
 
   // Memoized auth state
   const { user, profile, tokens } = useMemo(() => authState, [authState])
@@ -61,7 +35,7 @@ export function AuthProvider({ children }) {
       }
     })
     setAuthState(newState)
-    localStorage.setItem('auth_cache', encryptedState)
+    localStorage.setItem(CONSTANTS.AUTH_CACHE_KEY, encryptedState)
   }, [])
 
   const fetchProfile = useCallback(async () => {
@@ -80,7 +54,7 @@ export function AuthProvider({ children }) {
         accessToken: token,
         timestamp: Date.now()
       }
-      localStorage.setItem('auth_cache', encryptData({
+      localStorage.setItem(CONSTANTS.AUTH_CACHE_KEY, encryptData({
         ...authState,
         tokens: authData
       }))
@@ -100,7 +74,7 @@ export function AuthProvider({ children }) {
         const timeSinceLastRefresh = now - lastRefreshTime.current
 
         // Return cached data if within cache duration and not forced
-        if (!force && user && timeSinceLastRefresh < CACHE_DURATION) {
+        if (!force && user && timeSinceLastRefresh < CONSTANTS.CACHE_DURATION) {
           return user
         }
 
@@ -156,7 +130,7 @@ export function AuthProvider({ children }) {
       const now = Date.now()
       const timeSinceLastFetch = now - lastFetchTime.current
       
-      if (!user || timeSinceLastFetch >= CACHE_DURATION) {
+      if (!user || timeSinceLastFetch >= CONSTANTS.CACHE_DURATION) {
         await fetchUserData(true)
       }
     } catch (error) {
@@ -189,12 +163,12 @@ export function AuthProvider({ children }) {
     updateAuthCache({ user: null, profile: null })
     lastFetchTime.current = 0
     delete axios.defaults.headers.common['Authorization']
-    localStorage.removeItem('auth_cache')
+    localStorage.removeItem(CONSTANTS.AUTH_CACHE_KEY)
   }, [updateAuthCache])
 
   const refreshData = useCallback(async () => {
     const now = Date.now()
-    if (now - lastRefreshTime.current < MIN_REFRESH_INTERVAL) {
+    if (now - lastRefreshTime.current < CONSTANTS.MIN_REFRESH_INTERVAL) {
       return { userData: user, profileData: profile }
     }
 
@@ -225,7 +199,7 @@ export function AuthProvider({ children }) {
         setAuthToken(tokens.accessToken)
         
         // Add a small delay before fetching user data to ensure token is properly set
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // await new Promise(resolve => setTimeout(resolve, CONSTANTS.MIN_REFRESH_INTERVAL));
         
         // Retry user data fetch with exponential backoff
         let userData = null;
