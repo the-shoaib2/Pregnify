@@ -49,26 +49,6 @@ export default function AccountsPage() {
     })
   }
 
-  const handleProfileAction = (action) => {
-    switch (action) {
-      case 'follow':
-        toast.success('User followed successfully')
-        break
-      case 'message':
-        toast.success('Message dialog opened')
-        break
-      case 'report':
-        toast.error('User reported')
-        break
-      case 'block':
-        toast.error('User blocked')
-        break
-      default:
-        break
-    }
-  }
-
-
   return (
     <div className="space-y-6">
       <div>
