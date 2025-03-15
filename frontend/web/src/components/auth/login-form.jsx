@@ -17,6 +17,32 @@ import { Loader, Eye, EyeOff, Key } from "lucide-react"
 import { startAuthentication } from "@simplewebauthn/browser"
 import { AuthService } from "@/services/auth"
 
+const validateEmail = (email) => {
+  if (!email) {
+    return 'Email is required'
+  }
+  
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(email)) {
+    return 'Please enter a valid email address'
+  }
+  
+  return null
+}
+
+const validatePassword = (password) => {
+  if (!password) {
+    return 'Password is required'
+  }
+
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
+  if (!passwordRegex.test(password)) {
+    return 'Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character'
+  }
+
+  return null
+}
+
 export function LoginForm({
   className,
   ...props
@@ -41,42 +67,57 @@ export function LoginForm({
     }))
   }
 
+  const validateForm = () => {
+    const emailError = validateEmail(formData.email)
+    if (emailError) {
+      toast.error(emailError)
+      return false
+    }
+
+    const passwordError = validatePassword(formData.password)
+    if (passwordError) {
+      toast.error(passwordError)
+      return false
+    }
+
+    return true
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setIsLoading(true)
-    const startTime = Date.now()
     
+    if (!validateForm()) {
+      return
+    }
+
+    setIsLoading(true)
+    const startTime = performance.now()
+
     try {
-      if (!formData.email || !formData.password) {
-        throw new Error('Please fill in all fields')
+      console.time('Login Process')
+      const response = await login(formData)
+
+      if (!response?.tokens?.accessToken) {
+        throw new Error('Authentication failed - Invalid credentials')
       }
 
-      console.time('Full Login Process')
-      
-      // Wait for login to complete first
-      const response = await login(formData)
-      
-      if (response?.tokens?.accessToken) {
-        try {
-          // Now fetch profile after login is complete
-          await AuthService.getProfile({ forceRefresh: true })
-        } catch (profileError) {
-          console.error('Profile load error:', profileError)
-          // Continue with navigation even if profile fails
-        }
-        
-        const totalTime = Date.now() - startTime
-        console.log(`✨ Total time until navigation: ${totalTime}ms`)
-        
-        toast.success('Login successful')
-        navigate('/')
-      } else {
-        throw new Error('No token received')
-      }
-      console.timeEnd('Full Login Process')
+      const loginTime = Math.round(performance.now() - startTime)
+      console.log(`✨ Login completed in ${loginTime}ms`)
+      console.timeEnd('Login Process')
+
+      toast.success('Login Successful!')
+      navigate('/', { replace: true })
+
     } catch (error) {
+      console.error('Login error:', error)
+      
+      // Enhanced error handling
       if (error.response?.status === 429) {
-        toast.error('Too many requests. Please wait before trying again.')
+        toast.error('Too many attempts. Please try again in a few minutes.')
+      } else if (error.response?.status === 401) {
+        toast.error('Invalid email or password')
+      } else if (error.response?.status >= 500) {
+        toast.error('Server error. Please try again later.')
       } else {
         toast.error(error.message || 'Login failed. Please try again.')
       }
