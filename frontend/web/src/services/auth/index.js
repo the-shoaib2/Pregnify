@@ -22,7 +22,7 @@ export const AuthService = {
       // Single login request that returns all needed data
       const loginResponse = await api.post('/auth/login', credentials, {
         params: {
-          include: 'user,profile,settings' // Request all data in one call
+          include: 'user,profile,settings,preferences' // Include profile in initial request
         },
         headers: {
           'Priority': 'high'
@@ -36,20 +36,20 @@ export const AuthService = {
       // Batch process all data in memory
       const { tokens, user, profile, settings } = loginResponse.data
 
-      // Prepare cache data
+      // Set token for future requests
+      api.defaults.headers.common['Authorization'] = `Bearer ${tokens.accessToken}`
+
+      // Prepare and cache all data at once
       const cacheData = {
         tokens,
         user,
-        profile,
+        profile, // Cache profile immediately
         settings,
         lastRefresh: Date.now(),
         timestamp: Date.now()
       }
 
-      // Set token for future requests
-      api.defaults.headers.common['Authorization'] = `Bearer ${tokens.accessToken}`
-
-      // Batch update cache in one operation
+      // Single cache update
       CacheManager.set(cacheData)
 
       console.timeEnd('Total Login Flow')
@@ -79,7 +79,7 @@ export const AuthService = {
       const cacheKey = 'profile'
 
       try {
-        // Use request cache
+        // Check request cache first to prevent duplicate in-flight requests
         if (!forceRefresh && requestCache.has(cacheKey)) {
           return requestCache.get(cacheKey)
         }
@@ -92,17 +92,12 @@ export const AuthService = {
           return cache.profile
         }
 
-        // Token check
-        if (!cache.tokens?.accessToken) {
-          throw new Error('No access token available')
-        }
-
         // Only fetch if needed
         const promise = api.get('/account/profile')
           .then(response => {
             const profile = response.data
             
-            // Update only profile in cache
+            // Update cache with new profile data
             CacheManager.set({
               profile,
               lastRefresh: Date.now()
@@ -115,16 +110,20 @@ export const AuthService = {
             throw error
           })
           .finally(() => {
-            setTimeout(() => requestCache.delete(cacheKey), 1000)
+            // Clear request cache after delay
+            setTimeout(() => requestCache.delete(cacheKey), 2000)
           })
 
+        // Store promise in request cache to prevent duplicate calls
         requestCache.set(cacheKey, promise)
         return promise
+
       } catch (error) {
         requestCache.delete(cacheKey)
         throw error
       }
     },
+    // Cache key based on forceRefresh flag and time window
     (options = {}) => `${options?.forceRefresh || false}-${Math.floor(Date.now() / 30000)}`
   ),
 

@@ -41,28 +41,26 @@ export function SettingsProvider({ children }) {
     try {
       setState(prev => ({ ...prev, loading: true }))
       
-      const token = CacheManager.getToken()
-      if (!token) {
-        toast.error('Authentication required to load profile')
-        return null
+      // Use cached profile if available
+      if (!forceRefresh && state.profile) {
+        return state.profile
       }
       
-      const profile = await ProfileService.getProfile(forceRefresh)
-      setState(prev => ({ ...prev, profile, loading: false }))
+      const profile = await ProfileService.getProfile({ forceRefresh })
+      
+      // Update state only if profile changed
+      if (JSON.stringify(profile) !== JSON.stringify(state.profile)) {
+        setState(prev => ({ ...prev, profile }))
+      }
+      
       lastProfileFetchTime.current = Date.now()
       return profile
     } catch (error) {
       console.error('Failed to fetch profile:', error)
-      
-      if (error.message.includes('Authentication required')) {
-        toast.error('Please log in to view your profile')
-      } else {
-        toast.error('Failed to load profile data')
-      }
-      
-      setState(prev => ({ ...prev, loading: false }))
+      toast.error('Failed to load profile data')
       return null
     } finally {
+      setState(prev => ({ ...prev, loading: false }))
       profileFetchInProgress.current = false
     }
   }, [authUser, state.profile])
@@ -135,6 +133,14 @@ export function SettingsProvider({ children }) {
     updateSettings,
     fetchProfile
   }), [state, loadSettings, updateSettings, fetchProfile])
+
+  // Add cleanup for refs
+  useEffect(() => {
+    return () => {
+      profileFetchInProgress.current = false
+      lastProfileFetchTime.current = 0
+    }
+  }, [])
 
   return (
     <SettingsContext.Provider value={value}>

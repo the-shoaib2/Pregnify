@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense, memo } from "react"
 import { useAuth } from "@/contexts/auth-context/auth-context"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "react-hot-toast"
 import { Card, CardContent } from "@/components/ui/card"
-
+import { useSettings } from "@/contexts/settings-context/settings-context"
+import { ProfileService } from '@/services/settings'
 import {
   Phone,
   User,
@@ -17,24 +18,28 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs"
 
-import { ProfileHeader } from "@/components/profile-header/page"
-import PersonalTab from "./tabs/personal/page"
-import AccountTab from "./tabs/account/page"
-import ContactTab from "./tabs/contact/page"
-import ActivityTab from "./tabs/activity/page"
-import ProfileCompletionCard from "./tabs/profile-completion/page"
-import StatsOverviewCard from "./tabs/statistics-overview/page"
-import { FileUpload } from "@/components/file-upload"
-import { lazyLoad } from '@/utils/lazy-load.jsx'
-import { ProfileService } from '@/services/settings'
-
-// Import the ImageView component
-const ImageView = lazyLoad(() => import('@/components/image-view').then(mod => ({
-  default: mod.ImageView
+// Lazy load components correctly
+const ProfileHeader = lazy(() => import("@/components/profile-header/page").then(module => ({
+  default: module.ProfileHeader
 })))
 
-// Loading skeleton component
-function ProfileSkeleton() {
+const PersonalTab = lazy(() => import("./tabs/personal/page"))
+const AccountTab = lazy(() => import("./tabs/account/page"))
+const ContactTab = lazy(() => import("./tabs/contact/page"))
+const ActivityTab = lazy(() => import("./tabs/activity/page"))
+const ProfileCompletionCard = lazy(() => import("./tabs/profile-completion/page"))
+const StatsOverviewCard = lazy(() => import("./tabs/statistics-overview/page"))
+const FileUpload = lazy(() => import("@/components/file-upload").then(module => ({
+  default: module.FileUpload
+})))
+
+// Memoized loading states
+const LoadingStats = memo(() => <div>Loading stats...</div>)
+const LoadingTabs = memo(() => <div>Loading tabs...</div>)
+const LoadingCompletion = memo(() => <div>Loading completion...</div>)
+
+// Memoized ProfileSkeleton component
+const ProfileSkeleton = memo(() => {
   return (
     <div className="space-y-6">
       {/* Cover */}
@@ -82,41 +87,53 @@ function ProfileSkeleton() {
       </div>
     </div>
   )
+})
+
+ProfileSkeleton.displayName = 'ProfileSkeleton'
+
+// Error Boundary Component
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Component Error:', error, errorInfo)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <div>Something went wrong. Please try refreshing the page.</div>
+    }
+    return this.props.children
+  }
 }
 
 export default function ProfilePage() {
   const { user, profile, refreshData } = useAuth()
-  const [uploadingImage, setUploadingImage] = useState(false)
-  const [uploadingCover, setUploadingCover] = useState(false)
-  const [pageLoading, setPageLoading] = useState(true)
-  const [isUpdating, setIsUpdating] = useState(false)
+  const { loading, fetchProfile } = useSettings()
+  
+  // Memoized state
+  const [state, setState] = useState({
+    pageLoading: true,
+    isUpdating: false,
+    uploadingImage: false,
+    uploadingCover: false
+  })
 
-  // Use profile data or fall back to user data
-  const profileData = profile?.data || user || {}
+  // Memoize profile data to prevent unnecessary re-renders
+  const profileData = useMemo(() => {
+    return profile?.data || user || {}
+  }, [profile?.data, user])
 
-  console.log("Profile Data : ", profileData)
-
-  // Initialize page when component mounts
-  useEffect(() => {
-    const initPage = async () => {
-      try {
-        if (!profile) {
-          await refreshData()
-        }
-        setPageLoading(false)
-      } catch (error) {
-        console.error("Failed to load profile data:", error)
-        toast.error("Failed to load profile data")
-        setPageLoading(false)
-      }
-    }
-    
-    initPage()
-  }, [profile, refreshData])
-
-  // Update profile settings
+  // Memoized update handlers
   const updateProfile = useCallback(async (type, data) => {
-    setIsUpdating(true)
+    setState(prev => ({ ...prev, isUpdating: true }))
     try {
       let result
       switch (type) {
@@ -133,18 +150,17 @@ export default function ProfilePage() {
           throw new Error(`Unknown update type: ${type}`)
       }
       
-      // Refresh data after update
       await refreshData()
       return result
     } catch (error) {
       console.error(`Failed to update ${type}:`, error)
       throw error
     } finally {
-      setIsUpdating(false)
+      setState(prev => ({ ...prev, isUpdating: false }))
     }
   }, [refreshData])
 
-  // Optimized save handler
+  // Memoized save handler
   const handleSave = useCallback(async (data) => {
     if (!data) return
 
@@ -183,169 +199,200 @@ export default function ProfilePage() {
     }
   }, [updateProfile])
 
-  // Loading state
-  if (pageLoading) {
-    return <ProfileSkeleton />
-  }
-
-
-  const handleAvatarSuccess = async (data) => {
+  // Memoized upload handlers
+  const handleAvatarSuccess = useCallback(async (data) => {
     try {
-      await updateProfile('avatar', {
-        avatar: data.file.url
-      })
+      await updateProfile('avatar', { avatar: data.file.url })
     } catch (error) {
       console.error('Failed to update avatar:', error)
     } finally {
-      setUploadingImage(false)
+      setState(prev => ({ ...prev, uploadingImage: false }))
     }
-  }
+  }, [updateProfile])
 
-  const handleCoverSuccess = async (data) => {
+  const handleCoverSuccess = useCallback(async (data) => {
     try {
-      await updateProfile('cover', {
-        cover: data.file.url
-      })
+      await updateProfile('cover', { cover: data.file.url })
     } catch (error) {
       console.error('Failed to update cover:', error)
     } finally {
-      setUploadingCover(false)
+      setState(prev => ({ ...prev, uploadingCover: false }))
     }
+  }, [updateProfile])
+
+  // Remove the console.log effect and add a debug function
+  const debugProfile = useCallback((data) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Profile Data:', data)
+    }
+  }, [])
+
+  useEffect(() => {
+    debugProfile(profileData)
+  }, [profileData, debugProfile])
+
+  // Optimized page initialization
+  useEffect(() => {
+    let mounted = true
+
+    const initPage = async () => {
+      try {
+        if (!profile && !loading) {
+          await fetchProfile()
+        }
+        if (mounted) {
+          setState(prev => ({ ...prev, pageLoading: false }))
+        }
+      } catch (error) {
+        console.error("Failed to load profile data:", error)
+        toast.error("Failed to load profile data")
+        if (mounted) {
+          setState(prev => ({ ...prev, pageLoading: false }))
+        }
+      }
+    }
+    
+    initPage()
+
+    return () => {
+      mounted = false
+    }
+  }, [profile, loading, fetchProfile])
+
+  if (state.pageLoading) {
+    return <ProfileSkeleton />
   }
 
   return (
-    <div className="space-y-6">
-      <ProfileHeader
-        user={profileData}
-        uploadingImage={uploadingImage}
-        uploadingCover={uploadingCover}
-        onAvatarClick={() => {
-          setUploadingImage(true)
-        }}
-        onCoverClick={() => {
-          setUploadingCover(true)
-        }}
-      />
-
-      {/* Avatar Upload Dialog */}
-      <FileUpload
-        fileType="image/jpeg"
-        fileCategory="PROFILE"
-        onUpload={handleAvatarSuccess}
-        isOpen={uploadingImage}
-        onClose={() => setUploadingImage(false)}
-        description="Upload your profile picture"
-        aspect={1}
-        circular={true}
-        allowComments={true}
-        allowSharing={true}
-        allowDownload={true}
-      />
-
-      {/* Cover Upload Dialog */}
-      <FileUpload
-        fileType="image/jpeg"
-        fileCategory="COVER"
-        onUpload={handleCoverSuccess}
-        isOpen={uploadingCover}
-        onClose={() => setUploadingCover(false)}
-        description="Upload your cover photo"
-        aspect={16 / 9}
-        circular={false}
-        cropSizes={{
-          width: 100,
-          height: 40
-        }}
-        allowComments={true}
-        allowSharing={true}
-        allowDownload={true}
-      />
-
-      {/* Main Content - More Compact Layout */}
-      <div className="grid gap-4">
-        {/* Stats Card */}
-        <Card className="border-none shadow-none">
-          <CardContent className="p-0">
-            <StatsOverviewCard user={profileData} />
-          </CardContent>
-        </Card>
-
-        {/* Tabs Section - More Compact */}
-        <Card className="border-none shadow-none">
-          <CardContent className="p-0">
-            <Tabs defaultValue="personal" className="w-full">
-              <TabsList className="w-full grid grid-cols-4 h-12 items-center bg-muted/50 p-1 rounded-lg">
-                <TabsTrigger value="personal" className="data-[state=active]:bg-background">
-                  <User className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Personal</span>
-                </TabsTrigger>
-                <TabsTrigger value="account" className="data-[state=active]:bg-background">
-                  <Shield className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Account</span>
-                </TabsTrigger>
-                <TabsTrigger value="contact" className="data-[state=active]:bg-background">
-                  <Phone className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Contact</span>
-                </TabsTrigger>
-                <TabsTrigger value="activity" className="data-[state=active]:bg-background">
-                  <Activity className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Activity</span>
-                </TabsTrigger>
-              </TabsList>
-
-              <div className="mt-4">
-                <TabsContent value="personal">
-                  <PersonalTab
-                    user={profileData}
-                    formData={profileData}
-                    handleChange={() => {}}
-                    handleSave={handleSave}
-                    settingsLoading={isUpdating}
-                  />
-                </TabsContent>
-
-
-                <TabsContent value="account">
-                  <AccountTab
-                    user={profileData}
-                    formData={profileData}
-                    handleChange={() => {}}
-                    handleSave={handleSave}
-                    settingsLoading={isUpdating}
-                    updateSettings={updateProfile}
-                  />
-                </TabsContent>
-
-                <TabsContent value="contact">
-                  <ContactTab
-                    user={profileData}
-                    formData={profileData}
-                    handleChange={() => {}}
-                    handleSave={handleSave}
-                    settingsLoading={isUpdating}
-                  />
-                </TabsContent>
-
-                <TabsContent value="activity">
-                  <ActivityTab user={profileData} />
-                </TabsContent>
-
-
-              </div>
-            </Tabs>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Profile Completion Card */}
-      <Card className="border-none shadow-none">
-        <CardContent className="p-0">
-          <ProfileCompletionCard
+    <ErrorBoundary>
+      <div className="space-y-6">
+        <Suspense fallback={<ProfileSkeleton />}>
+          <ProfileHeader
             user={profileData}
-            isLoading={pageLoading || isUpdating}
+            uploadingImage={state.uploadingImage}
+            uploadingCover={state.uploadingCover}
+            onAvatarClick={() => setState(prev => ({ ...prev, uploadingImage: true }))}
+            onCoverClick={() => setState(prev => ({ ...prev, uploadingCover: true }))}
           />
-        </CardContent>
-      </Card>
-    </div>
+
+          <FileUpload
+            fileType="image/jpeg"
+            fileCategory="PROFILE"
+            onUpload={handleAvatarSuccess}
+            isOpen={state.uploadingImage}
+            onClose={() => setState(prev => ({ ...prev, uploadingImage: false }))}
+            description="Upload your profile picture"
+            aspect={1}
+            circular={true}
+            allowComments={true}
+            allowSharing={true}
+            allowDownload={true}
+          />
+
+          <FileUpload
+            fileType="image/jpeg"
+            fileCategory="COVER"
+            onUpload={handleCoverSuccess}
+            isOpen={state.uploadingCover}
+            onClose={() => setState(prev => ({ ...prev, uploadingCover: false }))}
+            description="Upload your cover photo"
+            aspect={16 / 9}
+            circular={false}
+            cropSizes={{
+              width: 100,
+              height: 40
+            }}
+            allowComments={true}
+            allowSharing={true}
+            allowDownload={true}
+          />
+
+          <div className="grid gap-4">
+            <Suspense fallback={<LoadingStats />}>
+              <Card className="border-none shadow-none">
+                <CardContent className="p-0">
+                  <StatsOverviewCard user={profileData} />
+                </CardContent>
+              </Card>
+            </Suspense>
+
+            <Suspense fallback={<LoadingTabs />}>
+              <Card className="border-none shadow-none">
+                <CardContent className="p-0">
+                  <Tabs defaultValue="personal" className="w-full">
+                    <TabsList className="w-full grid grid-cols-4 h-12 items-center bg-muted/50 p-1 rounded-lg">
+                      <TabsTrigger value="personal" className="data-[state=active]:bg-background">
+                        <User className="h-4 w-4 mr-2" />
+                        <span className="hidden sm:inline">Personal</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="account" className="data-[state=active]:bg-background">
+                        <Shield className="h-4 w-4 mr-2" />
+                        <span className="hidden sm:inline">Account</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="contact" className="data-[state=active]:bg-background">
+                        <Phone className="h-4 w-4 mr-2" />
+                        <span className="hidden sm:inline">Contact</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="activity" className="data-[state=active]:bg-background">
+                        <Activity className="h-4 w-4 mr-2" />
+                        <span className="hidden sm:inline">Activity</span>
+                      </TabsTrigger>
+                    </TabsList>
+
+                    <div className="mt-4">
+                      <TabsContent value="personal">
+                        <PersonalTab
+                          user={profileData}
+                          formData={profileData}
+                          handleChange={() => {}}
+                          handleSave={handleSave}
+                          settingsLoading={state.isUpdating}
+                        />
+                      </TabsContent>
+
+                      <TabsContent value="account">
+                        <AccountTab
+                          user={profileData}
+                          formData={profileData}
+                          handleChange={() => {}}
+                          handleSave={handleSave}
+                          settingsLoading={state.isUpdating}
+                          updateSettings={updateProfile}
+                        />
+                      </TabsContent>
+
+                      <TabsContent value="contact">
+                        <ContactTab
+                          user={profileData}
+                          formData={profileData}
+                          handleChange={() => {}}
+                          handleSave={handleSave}
+                          settingsLoading={state.isUpdating}
+                        />
+                      </TabsContent>
+
+                      <TabsContent value="activity">
+                        <ActivityTab user={profileData} />
+                      </TabsContent>
+                    </div>
+                  </Tabs>
+                </CardContent>
+              </Card>
+            </Suspense>
+
+            <Suspense fallback={<LoadingCompletion />}>
+              <Card className="border-none shadow-none">
+                <CardContent className="p-0">
+                  <ProfileCompletionCard
+                    user={profileData}
+                    isLoading={state.pageLoading || state.isUpdating}
+                  />
+                </CardContent>
+              </Card>
+            </Suspense>
+          </div>
+        </Suspense>
+      </div>
+    </ErrorBoundary>
   )
 }

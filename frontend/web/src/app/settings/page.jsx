@@ -73,7 +73,6 @@ const settingsGroups = [
 ]
 
 export default function SettingsPage() {
-  const { user } = useAuth()
 
   return (
     <div className="space-y-6">
