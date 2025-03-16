@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react"
+import React, { useState, useCallback, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -304,12 +304,22 @@ function ActivityFilterDropdown({ filter, setFilter }) {
   );
 }
 
-export default function ActivityTab({ user }) {
-  const [activities, setActivities] = useState(user?.activity?.recent || []);
+export default function ActivityTab({ profile }) {
+  const [activities, setActivities] = useState(profile?.activity?.recent || []);
   const [isLoading, setIsLoading] = useState(false);
   const [filter, setFilter] = useState('all');
   const [isExpanded, setIsExpanded] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    console.log('Activity Tab Data:', {
+      activities,
+      lastLogin: profile?.activity?.lastLogin,
+      filter,
+      activityCount: activities.length,
+      timestamp: new Date().toISOString()
+    });
+  }, [activities, filter, profile?.activity]);
 
   // Fetch latest activities
   const refreshActivities = useCallback(async () => {
@@ -423,7 +433,7 @@ export default function ActivityTab({ user }) {
             <div className="text-sm text-muted-foreground space-y-1">
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
-                Last active: {format(new Date(user?.activity?.lastLogin), 'PPpp')}
+                Last active: {profile?.activity?.lastLogin ? format(new Date(profile?.activity?.lastLogin), 'PPpp') : 'Never'}
               </div>
             </div>
           </CardFooter>
@@ -432,7 +442,7 @@ export default function ActivityTab({ user }) {
 
       {!isExpanded && (
         <div className="px-6 pb-4 text-sm text-muted-foreground transition-all duration-300 ease-in-out">
-          {filteredActivities.length} activities • Last active {formatDistance(new Date(user?.activity?.lastLogin), new Date(), { addSuffix: true })}
+          {filteredActivities.length} activities • Last active {profile?.activity?.lastLogin ? formatDistance(new Date(profile?.activity?.lastLogin), new Date(), { addSuffix: true }) : 'Never'}
         </div>
       )}
     </Card>

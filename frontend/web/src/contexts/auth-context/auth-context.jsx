@@ -11,7 +11,7 @@ const API_URL = import.meta.env.VITE_API_URL
 
 export function AuthProvider({ children }) {
   const [authState, setAuthState] = useState(() => {
-    const cachedAuth = localStorage.getItem('auth_cache')
+    const cachedAuth = localStorage.getItem(CONSTANTS.AUTH_CACHE_KEY)
     return cachedAuth ? decryptData(cachedAuth) : { user: null, profile: null, tokens: null }
   })
   

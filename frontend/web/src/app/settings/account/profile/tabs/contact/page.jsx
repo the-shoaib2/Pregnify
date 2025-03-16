@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import React from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import {
@@ -25,7 +26,20 @@ import { InputWithIcon } from "@/components/input-with-icon"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "react-hot-toast"
 
-export default function ContactTab({ user, formData, handleChange, handleSave, settingsLoading, updateSettings }) {
+export default function ContactTab({ profile, formData, handleChange, handleSave, settingsLoading, updateSettings }) {
+  useEffect(() => {
+    console.log('Contact Tab Data:', {
+      profile,
+      contactInfo: {
+        email: profile?.email,
+        phone: profile?.phone,
+        verifiedEmail: profile?.emailVerified,
+        verifiedPhone: profile?.phoneVerified
+      },
+      timestamp: new Date().toISOString()
+    });
+  }, [profile]);
+
   // Local form state
   const [localForm, setLocalForm] = useState({
     phoneNumber: "",
@@ -39,8 +53,8 @@ export default function ContactTab({ user, formData, handleChange, handleSave, s
 
   // Initialize form with data
   useEffect(() => {
-    if (formData?.personal?.[0]) {
-      const personal = formData.personal[0];
+    if (profile?.personal?.[0]) {
+      const personal = profile.personal[0];
       setLocalForm({
         phoneNumber: personal.contactNumber || "",
         presentAddress: personal.presentAddress || "",
@@ -49,7 +63,7 @@ export default function ContactTab({ user, formData, handleChange, handleSave, s
       });
       setIsDirty(false);
     }
-  }, [formData]);
+  }, [profile]);
 
   // Handle local form changes
   const handleLocalChange = (field, value) => {
@@ -103,7 +117,7 @@ export default function ContactTab({ user, formData, handleChange, handleSave, s
         <div className="space-y-3 sm:space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <Label className="text-sm sm:text-base font-medium">Phone Number</Label>
-            {formData?.personal?.[0]?.isPhoneVerified && (
+            {profile?.personal?.[0]?.isPhoneVerified && (
               <Badge variant="success" className="h-5 sm:h-6 px-2 flex items-center gap-1">
                 <CheckCircle2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                 Verified
