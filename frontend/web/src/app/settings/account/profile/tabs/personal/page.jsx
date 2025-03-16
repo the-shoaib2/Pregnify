@@ -16,10 +16,8 @@ import ErrorBoundary from "@/components/error-boundary"
 import toast from "react-hot-toast"
 
 // Lazy load form sections with error boundaries
-const BasicInfoSection = lazy(() => import("./components/sections/basic-info"))
-const ContactSection = lazy(() => import("./components/sections/contact"))
+const BasicInfoPersonalSection = lazy(() => import("./components/sections/basic-info-personal"))
 const DocumentsSection = lazy(() => import("./components/sections/documents"))
-const PersonalDetailsSection = lazy(() => import("./components/sections/personal-details"))
 
 // Loading state component
 const LoadingState = ({ children }) => (
@@ -89,12 +87,6 @@ export default function PersonalTab({
         age: personal?.age || "",
         isDeceased: personal?.isDeceased || false,
         
-        // Contact Information
-        contactNumber: personal?.contactNumber || "",
-        address: personal?.address || "",
-        presentAddress: personal?.presentAddress || "",
-        permanentAddress: personal?.permanentAddress || "",
-        
         // Location Information
         placeOfBirth: personal?.placeOfBirth || "",
         countryOfBirth: personal?.countryOfBirth || "",
@@ -131,11 +123,8 @@ export default function PersonalTab({
   
   // Memoize section states
   const [expandedSections, setExpandedSections] = useState({
-    basic: true,
-    contact: true,
-    documents: true,
-    education: true,
-    additional: true
+    basicPersonal: true,
+    documents: true
   })
 
   // Memoized handlers with error handling
@@ -242,36 +231,21 @@ export default function PersonalTab({
   return (
     <div className="flex flex-col gap-6">
       <ErrorBoundary>
-        <Suspense fallback={<LoadingState>Loading basic information...</LoadingState>}>
+        <Suspense fallback={<LoadingState>Loading personal information...</LoadingState>}>
           <CardWithCollapse
-            section="basic"
-            title="Basic Information"
-            description="Your primary personal information"
+            section="basicPersonal"
+            title="Personal Information"
+            description="Your personal details and information"
           >
-            <BasicInfoSection
+            <BasicInfoPersonalSection
               formValues={formValues}
               handleChange={handleLocalChange}
               handleSave={handleSectionSave}
               date={date}
               onDateSelect={handleDateSelect}
               genderOptions={GENDER_OPTIONS}
-              loading={settingsLoading}
-            />
-          </CardWithCollapse>
-        </Suspense>
-      </ErrorBoundary>
-
-      <ErrorBoundary>
-        <Suspense fallback={<LoadingState>Loading contact information...</LoadingState>}>
-          <CardWithCollapse
-            section="contact"
-            title="Contact Information"
-            description="Your contact and address details"
-          >
-            <ContactSection
-              formValues={formValues}
-              handleChange={handleLocalChange}
-              handleSave={handleSectionSave}
+              maritalStatusOptions={MARITAL_STATUS_OPTIONS}
+              bloodGroups={BLOOD_GROUPS}
               loading={settingsLoading}
             />
           </CardWithCollapse>
@@ -289,25 +263,6 @@ export default function PersonalTab({
               formValues={formValues}
               handleChange={handleLocalChange}
               handleSave={handleSectionSave}
-              loading={settingsLoading}
-            />
-          </CardWithCollapse>
-        </Suspense>
-      </ErrorBoundary>
-
-      <ErrorBoundary>
-        <Suspense fallback={<LoadingState>Loading personal details...</LoadingState>}>
-          <CardWithCollapse
-            section="personal"
-            title="Personal Details"
-            description="Additional personal information"
-          >
-            <PersonalDetailsSection
-              formValues={formValues}
-              handleChange={handleLocalChange}
-              handleSave={handleSectionSave}
-              maritalStatusOptions={MARITAL_STATUS_OPTIONS}
-              bloodGroups={BLOOD_GROUPS}
               loading={settingsLoading}
             />
           </CardWithCollapse>
