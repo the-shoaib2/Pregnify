@@ -36,12 +36,11 @@ export default function LoadingScreen({ onAnimationComplete }) {
         "transition-transform duration-500 ease-in-out",
         isHiding ? "scale-95" : "scale-100"
       )}>
-        <Loader className="h-8 w-8 animate-spin text-primary" />
+        {/* <Loader className="h-8 w-8 animate-spin text-primary" /> */}
         <div className={cn(
           "text-sm font-medium text-muted-foreground",
           "animate-pulse"
         )}>
-          {/* Loading... */}
         </div>
       </div>
     </div>

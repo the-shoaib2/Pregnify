@@ -1,9 +1,8 @@
-import { useState, useEffect, useMemo, lazy, Suspense } from "react"
+import { useState, useMemo, lazy, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { format } from "date-fns"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
-  Loader,
   ChevronUp,
   ChevronDown,
 } from "lucide-react"
@@ -14,18 +13,11 @@ import {
 } from "@/components/ui/collapsible"
 import ErrorBoundary from "@/components/error-boundary"
 import toast from "react-hot-toast"
+import { FormSectionSkeleton, CardSkeleton } from "./components/skeleton"
 
 // Lazy load form sections with error boundaries
 const BasicInfoPersonalSection = lazy(() => import("./components/sections/basic-info-personal"))
 const DocumentsSection = lazy(() => import("./components/sections/documents"))
-
-// Loading state component
-const LoadingState = ({ children }) => (
-  <div className="flex items-center justify-center p-4 space-x-2">
-    <Loader className="h-4 w-4 animate-spin" />
-    <div className="text-sm text-muted-foreground">{children}</div>
-  </div>
-)
 
 // Constants
 const GENDER_OPTIONS = [
@@ -121,6 +113,12 @@ export default function PersonalTab({
     formValues.dateOfBirth ? new Date(formValues.dateOfBirth) : null
   )
   
+  // Track loading states for each section
+  const [sectionLoading, setSectionLoading] = useState({
+    basicPersonal: false,
+    documents: false
+  })
+  
   // Memoize section states
   const [expandedSections, setExpandedSections] = useState({
     basicPersonal: true,
@@ -153,6 +151,12 @@ export default function PersonalTab({
   
   const handleSectionSave = useMemo(() => async (section, data) => {
     try {
+      // Set section loading state
+      setSectionLoading(prev => ({
+        ...prev,
+        [section === 'basic-personal' ? 'basicPersonal' : section]: true
+      }))
+      
       const sectionData = {
         personal: {
           0: {
@@ -170,6 +174,12 @@ export default function PersonalTab({
     } catch (error) {
       console.error("Error saving section data:", error)
       throw new Error(`Failed to save ${section} information`)
+    } finally {
+      // Reset section loading state
+      setSectionLoading(prev => ({
+        ...prev,
+        [section === 'basic-personal' ? 'basicPersonal' : section]: false
+      }))
     }
   }, [formValues, personal, handleSave])
 
@@ -190,7 +200,8 @@ export default function PersonalTab({
     section, 
     title, 
     description, 
-    children 
+    children,
+    isLoading
   }) => (
     <Card className="relative">
       <Collapsible
@@ -220,7 +231,7 @@ export default function PersonalTab({
 
         <CollapsibleContent>
           <CardContent className="pt-0">
-            {children}
+            {isLoading ? <FormSectionSkeleton /> : children}
           </CardContent>
         </CollapsibleContent>
       </Collapsible>
@@ -231,11 +242,12 @@ export default function PersonalTab({
   return (
     <div className="flex flex-col gap-6">
       <ErrorBoundary>
-        <Suspense fallback={<LoadingState>Loading personal information...</LoadingState>}>
+        <Suspense fallback={<CardSkeleton />}>
           <CardWithCollapse
             section="basicPersonal"
             title="Personal Information"
             description="Your personal details and information"
+            isLoading={settingsLoading || sectionLoading.basicPersonal}
           >
             <BasicInfoPersonalSection
               formValues={formValues}
@@ -246,24 +258,25 @@ export default function PersonalTab({
               genderOptions={GENDER_OPTIONS}
               maritalStatusOptions={MARITAL_STATUS_OPTIONS}
               bloodGroups={BLOOD_GROUPS}
-              loading={settingsLoading}
+              loading={settingsLoading || sectionLoading.basicPersonal}
             />
           </CardWithCollapse>
         </Suspense>
       </ErrorBoundary>
 
       <ErrorBoundary>
-        <Suspense fallback={<LoadingState>Loading documents...</LoadingState>}>
+        <Suspense fallback={<CardSkeleton />}>
           <CardWithCollapse
             section="documents"
             title="Documents & Identity"
             description="Your identification and document information"
+            isLoading={settingsLoading || sectionLoading.documents}
           >
             <DocumentsSection
               formValues={formValues}
               handleChange={handleLocalChange}
               handleSave={handleSectionSave}
-              loading={settingsLoading}
+              loading={settingsLoading || sectionLoading.documents}
             />
           </CardWithCollapse>
         </Suspense>

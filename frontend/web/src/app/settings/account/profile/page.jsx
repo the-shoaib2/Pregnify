@@ -4,8 +4,9 @@ import { useSettings } from "@/contexts/settings-context/settings-context"
 import { ProfileSkeleton } from "./components/profile-skeleton"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { toast } from "react-hot-toast"
-import { Loader } from "lucide-react"
 import ErrorBoundary from "@/components/error-boundary"
+import { CardSkeleton } from "./tabs/personal/components/skeleton"
+import { ProfileHeaderSkeleton } from "./components/profile-header-skeleton"
 
 // Lazy load components
 const ProfileHeader = lazy(() => import("@/app/settings/account/profile/components/profile-header/page").then(module => ({
@@ -19,13 +20,6 @@ const AccountTab = lazy(() => import("./tabs/account/page"))
 const ContactTab = lazy(() => import("./tabs/contact/page"))
 const ActivityTab = lazy(() => import("./tabs/activity/page"))
 
-// Loading states
-const LoadingState = ({ children }) => (
-  <div className="flex items-center justify-center p-4 space-x-2">
-    <Loader className="h-4 w-4 animate-spin" />
-    <div className="text-sm text-muted-foreground">{children}</div>
-  </div>
-)
 
 export default function ProfilePage() {
   const { user, profile, refreshData } = useAuth()
@@ -46,60 +40,52 @@ export default function ProfilePage() {
   const profileData = useMemo(() => {
     try {
       const data = profile?.data || user || {}
-      if (!Object.keys(data).length) {
-        throw new Error("No profile data available")
-      }
       return data
     } catch (error) {
       console.error("Error processing profile data:", error)
-      throw new Error("Failed to process profile data")
+      return null
     }
   }, [profile?.data, user])
 
+  // Check if profile data is available
+  const hasProfileData = useMemo(() => {
+    return profileData && Object.keys(profileData).length > 0
+  }, [profileData])
+
   // Initialize profile data
   useEffect(() => {
-    let mounted = true
-    
-    if (!state.initialized && !loading) {
-      const initPage = async () => {
-        try {
-          if (!profileData) {
-            await fetchProfile()
-          }
-          if (mounted) {
-            setState(prev => ({ 
-              ...prev, 
-              pageLoading: false,
-              initialized: true 
-            }))
-          }
-        } catch (error) {
-          console.error("Failed to load profile data:", error)
-          if (mounted) {
-            setState(prev => ({
-              ...prev,
-              pageLoading: false,
-              initialized: true,
-              error: new Error("Failed to load profile data")
-            }))
-          }
-          throw error
+    const initializeProfile = async () => {
+      try {
+        if (!state.initialized) {
+          await fetchProfile()
+          setState(prev => ({
+            ...prev,
+            initialized: true,
+            pageLoading: false
+          }))
         }
+      } catch (error) {
+        console.error("Error initializing profile:", error)
+        setState(prev => ({
+          ...prev,
+          error,
+          pageLoading: false
+        }))
       }
-      initPage()
     }
 
-    return () => { mounted = false }
-  }, [state.initialized, loading, profileData, fetchProfile])
+    initializeProfile()
+  }, [fetchProfile, state.initialized])
 
-  // Handle save with error handling
+  // Handle save
   const handleSave = useCallback(async (data) => {
-    setState(prev => ({ ...prev, isUpdating: true }))
     try {
+      setState(prev => ({ ...prev, isUpdating: true }))
       await refreshData(data)
       toast.success("Profile updated successfully")
     } catch (error) {
-      console.error("Failed to update profile:", error)
+      console.error("Error saving profile:", error)
+      toast.error("Failed to update profile")
       throw new Error("Failed to update profile")
     } finally {
       setState(prev => ({ ...prev, isUpdating: false }))
@@ -117,17 +103,21 @@ export default function ProfilePage() {
   return (
     <div className="flex flex-col gap-6">
       <ErrorBoundary>
-        <Suspense fallback={<LoadingState>Loading profile header...</LoadingState>}>
-          <ProfileHeader 
-            profile={profileData} 
-            onSave={handleSave}
-            loading={state.isUpdating}
-          />
+        <Suspense fallback={<ProfileHeaderSkeleton />}>
+          {hasProfileData ? (
+            <ProfileHeader 
+              profile={profileData} 
+              onSave={handleSave}
+              loading={state.isUpdating}
+            />
+          ) : (
+            <ProfileHeaderSkeleton />
+          )}
         </Suspense>
       </ErrorBoundary>
 
       <ErrorBoundary>
-        <Suspense fallback={<LoadingState>Loading tabs...</LoadingState>}>
+        <Suspense fallback={<CardSkeleton />}>
           <Tabs 
             defaultValue="personal" 
             value={activeTab}
@@ -163,48 +153,64 @@ export default function ProfilePage() {
 
             <TabsContent value="personal" className="mt-2">
               <ErrorBoundary>
-                <Suspense fallback={<LoadingState>Loading personal info...</LoadingState>}>
-                  <PersonalTab 
-                    profile={profileData} 
-                    handleSave={handleSave} 
-                    settingsLoading={state.isUpdating || loading} 
-                  />
+                <Suspense fallback={<CardSkeleton />}>
+                  {hasProfileData ? (
+                    <PersonalTab 
+                      profile={profileData} 
+                      handleSave={handleSave} 
+                      settingsLoading={state.isUpdating || loading}
+                    />
+                  ) : (
+                    <CardSkeleton />
+                  )}
                 </Suspense>
               </ErrorBoundary>
             </TabsContent>
 
             <TabsContent value="account" className="mt-2">
               <ErrorBoundary>
-                <Suspense fallback={<LoadingState>Loading account info...</LoadingState>}>
-                  <AccountTab 
-                    profile={profileData} 
-                    handleSave={handleSave} 
-                    settingsLoading={state.isUpdating || loading} 
-                  />
+                <Suspense fallback={<CardSkeleton />}>
+                  {hasProfileData ? (
+                    <AccountTab 
+                      profile={profileData} 
+                      handleSave={handleSave} 
+                      settingsLoading={state.isUpdating || loading}
+                    />
+                  ) : (
+                    <CardSkeleton />
+                  )}
                 </Suspense>
               </ErrorBoundary>
             </TabsContent>
 
             <TabsContent value="contact" className="mt-2">
               <ErrorBoundary>
-                <Suspense fallback={<LoadingState>Loading contact info...</LoadingState>}>
-                  <ContactTab 
-                    profile={profileData} 
-                    handleSave={handleSave} 
-                    settingsLoading={state.isUpdating || loading} 
-                  />
+                <Suspense fallback={<CardSkeleton />}>
+                  {hasProfileData ? (
+                    <ContactTab 
+                      profile={profileData} 
+                      handleSave={handleSave} 
+                      settingsLoading={state.isUpdating || loading}
+                    />
+                  ) : (
+                    <CardSkeleton />
+                  )}
                 </Suspense>
               </ErrorBoundary>
             </TabsContent>
 
             <TabsContent value="activity" className="mt-2">
               <ErrorBoundary>
-                <Suspense fallback={<LoadingState>Loading activity...</LoadingState>}>
-                  <ActivityTab 
-                    profile={profileData} 
-                    handleSave={handleSave} 
-                    settingsLoading={state.isUpdating || loading} 
-                  />
+                <Suspense fallback={<CardSkeleton />}>
+                  {hasProfileData ? (
+                    <ActivityTab 
+                      profile={profileData} 
+                      handleSave={handleSave} 
+                      settingsLoading={state.isUpdating || loading}
+                    />
+                  ) : (
+                    <CardSkeleton />
+                  )}
                 </Suspense>
               </ErrorBoundary>
             </TabsContent>
@@ -213,11 +219,15 @@ export default function ProfilePage() {
       </ErrorBoundary>
 
       <ErrorBoundary>
-        <Suspense fallback={<LoadingState>Loading completion status...</LoadingState>}>
-          <ProfileCompletionCard 
-            profile={profileData} 
-            loading={state.isUpdating || loading} 
-          />
+        <Suspense fallback={<CardSkeleton />}>
+          {hasProfileData ? (
+            <ProfileCompletionCard 
+              profile={profileData} 
+              loading={state.isUpdating || loading} 
+            />
+          ) : (
+            <CardSkeleton />
+          )}
         </Suspense>
       </ErrorBoundary>
     </div>

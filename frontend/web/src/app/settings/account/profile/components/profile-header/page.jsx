@@ -2,21 +2,10 @@ import { useState, useEffect, useMemo, memo } from "react"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from '@/contexts/auth-context/auth-context'
 import { cn } from "@/lib/utils"
-import { CoverPhotoSkeleton, CoverPhotoUpload } from './cover-photo'
-import { ProfilePictureSkeleton, ProfilePicture } from './profile-picture'
+import { CoverPhotoUpload } from './cover-photo'
+import { ProfilePicture } from './profile-picture'
 import { AuthService } from '@/services/auth'
-
-const ProfileHeaderSkeleton = memo(() => (
-  <div className="space-y-4 animate-in fade-in duration-300">
-    <div className="relative">
-      <CoverPhotoSkeleton />
-      <div className="absolute -bottom-2 left-4 z-10">
-        <ProfilePictureSkeleton />
-      </div>
-    </div>
-  </div>
-))
-ProfileHeaderSkeleton.displayName = 'ProfileHeaderSkeleton'
+import { ProfileHeaderSkeleton } from '../profile-header-skeleton'
 
 const ProfileHeader = memo(({ user, loading, uploadingImage, uploadingCover, onAvatarClick, onCoverClick }) => {
   const { profile, refreshData } = useAuth()
@@ -63,6 +52,7 @@ const ProfileHeader = memo(({ user, loading, uploadingImage, uploadingCover, onA
     }
   }
 
+  // Show skeleton during loading or when data is not available
   if (isLoading || loading || !userData) {
     return <ProfileHeaderSkeleton />
   }
@@ -127,4 +117,4 @@ const ProfileHeader = memo(({ user, loading, uploadingImage, uploadingCover, onA
 })
 ProfileHeader.displayName = 'ProfileHeader'
 
-export { ProfileHeader } 
+export { ProfileHeader }
