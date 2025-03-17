@@ -309,7 +309,6 @@ export default function ActivityTab({ profile }) {
   const [isLoading, setIsLoading] = useState(false);
   const [filter, setFilter] = useState('all');
   const [isExpanded, setIsExpanded] = useState(true);
-  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     console.log('Activity Tab Data:', {
@@ -345,16 +344,13 @@ export default function ActivityTab({ profile }) {
   }, [activities, filter]);
 
   return (
-    <Card className={`
-      animate-in fade-in duration-300 relative transition-all
-      ${isFullscreen ? 'fixed inset-4 z-50 m-0 overflow-auto' : ''}
-    `}>
+    <Card className="animate-in fade-in duration-300 relative transition-all">
       <Collapsible
         open={isExpanded}
         onOpenChange={setIsExpanded}
         className="space-y-2 transition-all duration-300 ease-in-out"
       >
-        <div className="absolute right-4 top-4 flex items-center gap-2 z-20">
+        <div className="absolute right-4 top-4 flex items-center gap-2 z-10">
           <CollapsibleTrigger asChild>
             <Button
               variant="ghost"
@@ -368,18 +364,6 @@ export default function ActivityTab({ profile }) {
               )}
             </Button>
           </CollapsibleTrigger>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => setIsFullscreen(!isFullscreen)}
-          >
-            {isFullscreen ? (
-              <Minimize2 className="h-4 w-4" />
-            ) : (
-              <Maximize2 className="h-4 w-4" />
-            )}
-          </Button>
         </div>
 
         <CardHeader className="space-y-1 pr-24">
@@ -424,7 +408,7 @@ export default function ActivityTab({ profile }) {
             </div>
 
             {/* Activity Timeline */}
-            <div className={`relative ${isFullscreen ? 'h-[calc(100vh-300px)]' : ''}`}>
+            <div className="relative">
               <ActivityTimeline activities={filteredActivities} />
             </div>
           </CardContent>
