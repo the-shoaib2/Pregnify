@@ -1,11 +1,10 @@
 import api from '../api'
 import { memoize, debounce } from 'lodash'
 import { CacheManager, CONSTANTS } from '../../utils/security'
-import { logError, retryRequest } from '../../utils/errorHandler'
-import { loadProfile } from '../settings/index'
 
 const MIN_REFRESH_INTERVAL = CONSTANTS.CACHE_DURATION
 const CACHE_DURATION = CONSTANTS.CACHE_DURATION
+const CACHE_KEY = CONSTANTS.AUTH_CACHE_KEY
 
 // Track refresh token operations
 let refreshTokenPromise = null
@@ -21,9 +20,7 @@ export const AuthService = {
       
       // Single login request that returns all needed data
       const loginResponse = await api.post('/auth/login', credentials, {
-        params: {
-          include: 'user,profile,settings,preferences' // Include profile in initial request
-        },
+        include: 'user,preferences',
         headers: {
           'Priority': 'high'
         }
@@ -34,7 +31,7 @@ export const AuthService = {
       }
 
       // Batch process all data in memory
-      const { tokens, user, profile, settings } = loginResponse.data
+      const { tokens, user } = loginResponse.data
 
       // Set token for future requests
       api.defaults.headers.common['Authorization'] = `Bearer ${tokens.accessToken}`
@@ -43,19 +40,17 @@ export const AuthService = {
       const cacheData = {
         tokens,
         user,
-        profile, // Cache profile immediately
-        settings,
         lastRefresh: Date.now(),
         timestamp: Date.now()
       }
 
       // Single cache update
-      CacheManager.set(cacheData)
+      CacheManager.set(CACHE_KEY, cacheData)
 
       console.timeEnd('Total Login Flow')
       return loginResponse.data
     } catch (error) {
-      CacheManager.clear()
+      CacheManager.clear(CACHE_KEY)
       throw error
     }
   },
@@ -63,72 +58,13 @@ export const AuthService = {
   logout: async () => {
     try {
       const response = await api.post('/auth/logout')
-      CacheManager.clear()
+      CacheManager.clear(CACHE_KEY)
       return response
     } catch (error) {
-      CacheManager.clear()
+      CacheManager.clear(CACHE_KEY)
       throw error
     }
   },
-
-  // Optimized getProfile to use cached data first
-  getProfile: memoize(
-    async (options = {}) => {
-      const opts = options || {}
-      const { forceRefresh = false } = opts
-      const cacheKey = 'profile'
-
-      try {
-        // Check request cache first to prevent duplicate in-flight requests
-        if (!forceRefresh && requestCache.has(cacheKey)) {
-          return requestCache.get(cacheKey)
-        }
-
-        const cache = CacheManager.get()
-        
-        // Use cached profile if valid and not forcing refresh
-        if (!forceRefresh && cache.profile && 
-            Date.now() - cache.timestamp < CACHE_DURATION) {
-          return cache.profile
-        }
-
-        // Only fetch if needed
-        const promise = api.get('/account/profile')
-          .then(response => {
-            const profile = response.data
-            
-            // Update cache with new profile data
-            CacheManager.set({
-              profile,
-              lastRefresh: Date.now()
-            })
-            
-            return profile
-          })
-          .catch(error => {
-            requestCache.delete(cacheKey)
-            throw error
-          })
-          .finally(() => {
-            // Clear request cache after delay
-            setTimeout(() => requestCache.delete(cacheKey), 2000)
-          })
-
-        // Store promise in request cache to prevent duplicate calls
-        requestCache.set(cacheKey, promise)
-        return promise
-
-      } catch (error) {
-        requestCache.delete(cacheKey)
-        throw error
-      }
-    },
-    // Cache key based on forceRefresh flag and time window
-    (options = {}) => `${options?.forceRefresh || false}-${Math.floor(Date.now() / 30000)}`
-  ),
-
-  // Load user with options
-
 
   // Improved refresh token with singleton promise
   refreshToken: async () => {
@@ -139,7 +75,7 @@ export const AuthService = {
     
     try {
       refreshTokenPromise = (async () => {
-        const cache = CacheManager.get()
+        const cache = CacheManager.get(CACHE_KEY)
         
         if (!cache.tokens?.refreshToken) {
           throw new Error('No refresh token available')
@@ -150,7 +86,7 @@ export const AuthService = {
         })
         
         // Update tokens in cache
-        CacheManager.set({
+        CacheManager.set(CACHE_KEY, {
           tokens: response.data.tokens
         })
         
@@ -159,7 +95,7 @@ export const AuthService = {
       
       return await refreshTokenPromise
     } catch (error) {
-      CacheManager.clear()
+      CacheManager.clear(CACHE_KEY)
       throw error
     } finally {
       // Clear the promise reference after completion
@@ -169,21 +105,20 @@ export const AuthService = {
 
   register: async (data) => {
     const response = await api.post('/auth/register', data)
-    CacheManager.clear() // Clear cache on new registration
+    CacheManager.clear(CACHE_KEY) // Clear cache on new registration
     return response
   },
 
   getCurrentUser: memoize(
     async () => {
-      const cacheKey = 'current-user'
-      
+      const cacheKey = 'currentUser'
       try {
-        // Check request cache first
+        // Check request cache first to prevent duplicate in-flight requests
         if (requestCache.has(cacheKey)) {
           return requestCache.get(cacheKey)
         }
 
-        const cache = CacheManager.get()
+        const cache = CacheManager.get(CACHE_KEY)
         
         // Use cached user if valid
         if (cache.user && Date.now() - cache.timestamp < CACHE_DURATION) {
@@ -196,7 +131,7 @@ export const AuthService = {
             const user = response.data
             
             // Update cache
-            CacheManager.set({
+            CacheManager.set(CACHE_KEY, {
               user,
               lastRefresh: Date.now()
             })
@@ -218,7 +153,7 @@ export const AuthService = {
             await AuthService.refreshToken()
             return AuthService.getCurrentUser()
           } catch (refreshError) {
-            CacheManager.clear() 
+            CacheManager.clear(CACHE_KEY) 
             throw refreshError
           }
         }

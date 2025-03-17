@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useState, useMemo, useCallback, useEffect } from 'react'
 import { InputWithIcon } from "@/components/input-with-icon"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -16,6 +16,7 @@ import {
   Loader,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import toast from "react-hot-toast"
 
 export default function DocumentsSection({
   formValues,
@@ -24,9 +25,46 @@ export default function DocumentsSection({
   loading
 }) {
   const [saving, setSaving] = useState(false)
+  const [localFormValues, setLocalFormValues] = useState(formValues || {})
   const [expiryDate, setExpiryDate] = useState(() => 
-    formValues.passportExpiry ? new Date(formValues.passportExpiry) : null
+    localFormValues.passportExpiry ? new Date(localFormValues.passportExpiry) : null
   )
+  const [dataInitialized, setDataInitialized] = useState(false)
+
+  // Initialize local form values when props change
+  useEffect(() => {
+    try {
+      if (formValues && Object.keys(formValues).length > 0) {
+        setLocalFormValues(formValues)
+        
+        // Update expiry date if it exists
+        if (formValues.passportExpiry) {
+          setExpiryDate(new Date(formValues.passportExpiry))
+        }
+        
+        setDataInitialized(true)
+      }
+    } catch (error) {
+      console.error("Error initializing documents form values:", error)
+    }
+  }, [formValues])
+
+  // Handle local form changes
+  const handleLocalChange = useCallback((field, value) => {
+    try {
+      // Update local state
+      setLocalFormValues(prev => ({
+        ...prev,
+        [field]: value
+      }))
+      
+      // Propagate change to parent component
+      handleChange(field, value)
+    } catch (error) {
+      console.error(`Error updating ${field}:`, error)
+      toast.error(`Failed to update ${field}`)
+    }
+  }, [handleChange])
 
   // Memoize the submit handler for better performance
   const handleSubmit = useCallback(async (e) => {
@@ -36,55 +74,57 @@ export default function DocumentsSection({
       setSaving(true)
       
       // Validate required fields
-      if (!formValues.passportNumber) {
-        throw new Error("Passport number is required")
+      if (!localFormValues.passportNumber) {
+        toast.error("Passport number is required")
+        return
       }
 
       // Extract documents info fields
       const documentsInfo = {
-        passportNumber: formValues.passportNumber,
-        passportExpiry: formValues.passportExpiry,
-        citizenship: formValues.citizenship,
-        nationality: formValues.nationality,
-        placeOfBirth: formValues.placeOfBirth,
-        countryOfBirth: formValues.countryOfBirth,
+        passportNumber: localFormValues.passportNumber,
+        passportExpiry: localFormValues.passportExpiry,
+        citizenship: localFormValues.citizenship,
+        nationality: localFormValues.nationality,
+        placeOfBirth: localFormValues.placeOfBirth,
+        countryOfBirth: localFormValues.countryOfBirth,
       }
 
       await handleSave('documents', documentsInfo)
+      toast.success("Document information saved successfully")
     } catch (error) {
-      console.error("Error saving documents info:", error)
-      throw new Error("Failed to save documents information")
+      console.error("Error saving document info:", error)
+      toast.error("Failed to save document information")
     } finally {
       setSaving(false)
     }
-  }, [formValues, handleSave])
+  }, [localFormValues, handleSave])
 
   // Memoize the date select handler for better performance
-  const handleExpiryDateSelect = useCallback((newDate) => {
+  const handleDateSelect = useCallback((newDate) => {
     try {
       setExpiryDate(newDate)
-      const formattedDate = format(newDate, 'yyyy-MM-dd')
-      handleChange('passportExpiry', formattedDate)
+      const formattedDate = newDate ? format(newDate, "yyyy-MM-dd") : null
+      handleLocalChange('passportExpiry', formattedDate)
     } catch (error) {
-      console.error("Error handling expiry date selection:", error)
-      throw new Error("Failed to update passport expiry date")
+      console.error("Error handling date selection:", error)
+      toast.error("Failed to update expiry date")
     }
-  }, [handleChange])
+  }, [handleLocalChange])
 
-  // Memoize the document fields for better performance
-  const DocumentFields = useMemo(() => (
+  // Memoize the documents fields for better performance
+  const DocumentsFields = useMemo(() => (
     <div className="grid gap-4 md:grid-cols-2">
       <InputWithIcon
         icon={IdCard}
         label="Passport Number"
-        value={formValues.passportNumber}
-        onChange={(e) => handleChange('passportNumber', e.target.value)}
-        required
+        value={localFormValues.passportNumber || ''}
+        onChange={(e) => handleLocalChange('passportNumber', e.target.value)}
         placeholder="Enter passport number"
+        required
       />
       <div className="grid w-full items-center gap-1.5">
-        <label htmlFor="expiry" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-          Passport Expiry
+        <label htmlFor="passport-expiry" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+          Passport Expiry Date
         </label>
         <Popover>
           <PopoverTrigger asChild>
@@ -103,9 +143,9 @@ export default function DocumentsSection({
             <Calendar
               mode="single"
               selected={expiryDate}
-              onSelect={handleExpiryDateSelect}
-              disabled={(date) => date < new Date()}
+              onSelect={handleDateSelect}
               initialFocus
+              disabled={(date) => date < new Date()}
             />
           </PopoverContent>
         </Popover>
@@ -113,40 +153,40 @@ export default function DocumentsSection({
       <InputWithIcon
         icon={Flag}
         label="Citizenship"
-        value={formValues.citizenship}
-        onChange={(e) => handleChange('citizenship', e.target.value)}
+        value={localFormValues.citizenship || ''}
+        onChange={(e) => handleLocalChange('citizenship', e.target.value)}
         placeholder="Enter citizenship"
       />
       <InputWithIcon
         icon={Flag}
         label="Nationality"
-        value={formValues.nationality}
-        onChange={(e) => handleChange('nationality', e.target.value)}
+        value={localFormValues.nationality || ''}
+        onChange={(e) => handleLocalChange('nationality', e.target.value)}
         placeholder="Enter nationality"
       />
       <InputWithIcon
         icon={Flag}
         label="Place of Birth"
-        value={formValues.placeOfBirth}
-        onChange={(e) => handleChange('placeOfBirth', e.target.value)}
+        value={localFormValues.placeOfBirth || ''}
+        onChange={(e) => handleLocalChange('placeOfBirth', e.target.value)}
         placeholder="Enter place of birth"
       />
       <InputWithIcon
         icon={Flag}
         label="Country of Birth"
-        value={formValues.countryOfBirth}
-        onChange={(e) => handleChange('countryOfBirth', e.target.value)}
+        value={localFormValues.countryOfBirth || ''}
+        onChange={(e) => handleLocalChange('countryOfBirth', e.target.value)}
         placeholder="Enter country of birth"
       />
     </div>
-  ), [formValues, expiryDate, handleChange, handleExpiryDateSelect])
+  ), [localFormValues, expiryDate, handleLocalChange, handleDateSelect])
 
   // Memoize the save button for better performance
   const SaveButton = useMemo(() => (
-    <div className="flex justify-end">
+    <div className="flex justify-end mt-6">
       <Button 
         type="submit" 
-        disabled={saving || loading}
+        disabled={saving || loading || !dataInitialized}
         className="w-fit"
       >
         {(saving || loading) && (
@@ -156,11 +196,17 @@ export default function DocumentsSection({
         Save Changes
       </Button>
     </div>
-  ), [saving, loading])
+  ), [saving, loading, dataInitialized])
+
+  // If data is not yet initialized, show a loading message
+  if (!dataInitialized && !Object.keys(localFormValues).length) {
+    return <div className="py-4">Loading document information...</div>
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {DocumentFields}
+      <h3 className="text-lg font-medium">Document Information</h3>
+      {DocumentsFields}
       {SaveButton}
     </form>
   )

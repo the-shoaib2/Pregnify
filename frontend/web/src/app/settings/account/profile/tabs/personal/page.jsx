@@ -1,4 +1,4 @@
-import { useState, useMemo, lazy, Suspense } from "react"
+import { useState, useMemo, lazy, Suspense, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { format } from "date-fns"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,17 +15,73 @@ import ErrorBoundary from "@/components/error-boundary"
 import toast from "react-hot-toast"
 import { FormSectionSkeleton, CardSkeleton } from "./components/skeleton"
 
-// Lazy load form sections with error boundaries
-const BasicInfoPersonalSection = lazy(() => import("./components/sections/basic-info-personal"))
-const DocumentsSection = lazy(() => import("./components/sections/documents"))
-const EducationSection = lazy(() => import("./components/sections/education"))
-const MedicalSection = lazy(() => import("./components/sections/medical"))
+// Preload section components to avoid initial render issues
+const BasicInfoPersonalSection = lazy(() => {
+  // Preload the component
+  return import("./components/sections/basic-info-personal")
+})
+
+const DocumentsSection = lazy(() => {
+  // Preload the component
+  return import("./components/sections/documents")
+})
+
+const EducationSection = lazy(() => {
+  // Preload the component
+  return import("./components/sections/education")
+})
+
+const MedicalSection = lazy(() => {
+  // Preload the component
+  return import("./components/sections/medical")
+})
+
+// Preload all section components when the component mounts
+const preloadSectionComponents = () => {
+  // Preload all components in parallel
+  const preloads = [
+    import("./components/sections/basic-info-personal"),
+    import("./components/sections/documents"),
+    import("./components/sections/education"),
+    import("./components/sections/medical")
+  ]
+  
+  // Execute all preloads
+  return Promise.all(preloads).catch(error => {
+    console.error("Error preloading section components:", error)
+    // Don't throw here, just log the error
+  })
+}
 
 export default function PersonalTab({
   profile,
   handleSave,
   settingsLoading
 }) {
+  // Track component preloading state
+  const [componentsPreloaded, setComponentsPreloaded] = useState(false)
+  const [dataInitialized, setDataInitialized] = useState(false)
+  const [dataFetched, setDataFetched] = useState(false)
+  
+  // Preload all section components when the component mounts
+  useEffect(() => {
+    const preloadComponents = async () => {
+      try {
+        await preloadSectionComponents()
+        setComponentsPreloaded(true)
+      } catch (error) {
+        console.error("Error during component preloading:", error)
+      }
+    }
+    
+    preloadComponents()
+    
+    // Cleanup function
+    return () => {
+      // Any cleanup needed when component unmounts
+    }
+  }, [])
+  
   // Memoize personal data extraction with error handling
   const personal = useMemo(() => {
     try {
@@ -42,7 +98,7 @@ export default function PersonalTab({
       }
     } catch (error) {
       console.error("Error processing personal data:", error)
-      throw new Error("Failed to process personal information")
+      return {}
     }
   }, [profile?.personal])
 
@@ -52,10 +108,10 @@ export default function PersonalTab({
       return profile?.education || {}
     } catch (error) {
       console.error("Error processing education data:", error)
-      throw new Error("Failed to process education information")
+      return {}
     }
   }, [profile?.education])
-
+  
   // Memoize form values with error handling
   const [formValues, setFormValues] = useState(() => {
     try {
@@ -111,14 +167,79 @@ export default function PersonalTab({
       }
     } catch (error) {
       console.error("Error initializing form values:", error)
-      throw new Error("Failed to initialize form data")
+      return {}
     }
   })
+  
+  // Update form values when personal data changes
+  useEffect(() => {
+    try {
+      setFormValues({
+        // Basic Information
+        id: personal?.id || "",
+        firstName: personal?.firstName || "",
+        middleName: personal?.middleName || "",
+        lastName: personal?.lastName || "",
+        nickName: personal?.nickName || "",
+        dateOfBirth: personal?.dateOfBirth || "",
+        genderIdentity: personal?.genderIdentity || "",
+        description: personal?.description || "",
+        age: personal?.age || "",
+        isDeceased: personal?.isDeceased || false,
+        
+        // Location Information
+        placeOfBirth: personal?.placeOfBirth || "",
+        countryOfBirth: personal?.countryOfBirth || "",
+        nationality: personal?.nationality || "",
+        
+        // Documents & Identity
+        passportNumber: personal?.passportNumber || "",
+        passportExpiry: personal?.passportExpiry || "",
+        citizenship: personal?.citizenship || "",
+        
+        // Personal Details
+        maritalStatus: personal?.maritalStatus || "",
+        bloodGroup: personal?.bloodGroup || "",
+        occupation: personal?.occupation || "",
+        religion: personal?.religion || "",
+        hobbies: personal?.hobbies || "",
+        additionalInfo: personal?.additionalInfo || "",
+
+        // Education Information
+        degree: education?.degree || "",
+        fieldOfStudy: education?.fieldOfStudy || "",
+        qualification: education?.qualification || "",
+        institution: education?.institution || "",
+        yearOfPassing: education?.yearOfPassing || "",
+        gpa: education?.gpa || "",
+
+        // Medical Information
+        allergies: personal?.allergies || "",
+        chronicConditions: personal?.chronicConditions || "",
+        medications: personal?.medications || "",
+        medicalNotes: personal?.medicalNotes || "",
+
+        // System Fields
+        createdAt: personal?.createdAt || "",
+        updatedAt: personal?.updatedAt || "",
+        deletedAt: personal?.deletedAt || null,
+      })
+    } catch (error) {
+      console.error("Error updating form values:", error)
+    }
+  }, [personal, education])
   
   // Memoize date state
   const [date, setDate] = useState(() => 
     formValues.dateOfBirth ? new Date(formValues.dateOfBirth) : null
   )
+  
+  // Update date when dateOfBirth changes
+  useEffect(() => {
+    if (formValues.dateOfBirth) {
+      setDate(new Date(formValues.dateOfBirth))
+    }
+  }, [formValues.dateOfBirth])
   
   // Track loading states for each section
   const [sectionLoading, setSectionLoading] = useState({
@@ -145,7 +266,7 @@ export default function PersonalTab({
       }))
     } catch (error) {
       console.error("Error updating form value:", error)
-      throw new Error(`Failed to update ${field}`)
+      toast.error(`Failed to update ${field}`)
     }
   }, [])
   
@@ -156,11 +277,11 @@ export default function PersonalTab({
       handleLocalChange('dateOfBirth', formattedDate)
     } catch (error) {
       console.error("Error handling date selection:", error)
-      throw new Error("Failed to update date of birth")
+      toast.error("Failed to update date of birth")
     }
   }, [handleLocalChange])
   
-  const handleSectionSave = useMemo(() => async (section, data) => {
+  const handleSectionSave = useCallback(async (section, data) => {
     try {
       // Set section loading state
       setSectionLoading(prev => ({
@@ -195,7 +316,7 @@ export default function PersonalTab({
       toast.success(`${section} information updated successfully`)
     } catch (error) {
       console.error("Error saving section data:", error)
-      throw new Error(`Failed to save ${section} information`)
+      toast.error(`Failed to save ${section} information`)
     } finally {
       // Reset section loading state
       setSectionLoading(prev => ({
@@ -213,7 +334,6 @@ export default function PersonalTab({
       }))
     } catch (error) {
       console.error("Error toggling section:", error)
-      throw new Error(`Failed to toggle ${section} section`)
     }
   }, [])
 

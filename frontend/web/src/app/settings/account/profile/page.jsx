@@ -8,22 +8,81 @@ import ErrorBoundary from "@/components/error-boundary"
 import { CardSkeleton } from "./tabs/personal/components/skeleton"
 import { ProfileHeaderSkeleton } from "./components/profile-header-skeleton"
 
-// Lazy load components
-const ProfileHeader = lazy(() => import("@/app/settings/account/profile/components/profile-header/page").then(module => ({
-  default: module.ProfileHeader
-})))
-const ProfileCompletionCard = lazy(() => import("./tabs/personal/components/profile-completion/page"))
+// Preload components to avoid initial render issues
+const ProfileHeader = lazy(() => {
+  // Preload the component
+  const componentPromise = import("@/app/settings/account/profile/components/profile-header/page").then(module => ({
+    default: module.ProfileHeader
+  }))
+  
+  // Return the component promise
+  return componentPromise
+})
 
-// Lazy load tabs
-const PersonalTab = lazy(() => import("./tabs/personal/page"))
-const AccountTab = lazy(() => import("./tabs/account/page"))
-const ContactTab = lazy(() => import("./tabs/contact/page"))
-const ActivityTab = lazy(() => import("./tabs/activity/page"))
+const ProfileCompletionCard = lazy(() => {
+  // Preload the component
+  const componentPromise = import("./tabs/personal/components/profile-completion/page")
+  
+  // Return the component promise
+  return componentPromise
+})
 
+// Preload tab components with improved error handling
+const PersonalTab = lazy(() => {
+  // Preload the component
+  const componentPromise = import("./tabs/personal/page")
+  
+  // Return the component promise
+  return componentPromise
+})
+
+const AccountTab = lazy(() => {
+  // Preload the component
+  const componentPromise = import("./tabs/account/page")
+  
+  // Return the component promise
+  return componentPromise
+})
+
+const ContactTab = lazy(() => {
+  // Preload the component
+  const componentPromise = import("./tabs/contact/page")
+  
+  // Return the component promise
+  return componentPromise
+})
+
+const ActivityTab = lazy(() => {
+  // Preload the component
+  const componentPromise = import("./tabs/activity/page")
+  
+  // Return the component promise
+  return componentPromise
+})
+
+// Preload all tab components when the app starts
+const preloadComponents = () => {
+  // Preload all components in parallel
+  const preloads = [
+    import("@/app/settings/account/profile/components/profile-header/page"),
+    import("./tabs/personal/components/profile-completion/page"),
+    import("./tabs/personal/page"),
+    import("./tabs/account/page"),
+    import("./tabs/contact/page"),
+    import("./tabs/activity/page")
+  ]
+  
+  // Execute all preloads
+  return Promise.all(preloads).catch(error => {
+    console.error("Error preloading components:", error)
+    // Don't throw here, just log the error
+  })
+}
 
 export default function ProfilePage() {
-  const { user, profile, refreshData } = useAuth()
-  const { loading, fetchProfile } = useSettings()
+  const { user, refreshData } = useAuth()
+  const [profile, setProfile] = useState();
+  const { loading: settingsLoading, fetchProfile } = useSettings()
   
   const [state, setState] = useState({
     pageLoading: true,
@@ -31,39 +90,54 @@ export default function ProfilePage() {
     uploadingImage: false,
     uploadingCover: false,
     initialized: false,
-    error: null
+    error: null,
+    componentsPreloaded: false,
+    dataFetched: false
   })
 
   const [activeTab, setActiveTab] = useState('personal')
 
-  // Memoize profile data
+  // Memoize profile data with better error handling
   const profileData = useMemo(() => {
     try {
-      const data = profile?.data || user || {}
+      const data = profile?.data || {}
       return data
     } catch (error) {
       console.error("Error processing profile data:", error)
-      return null
+      return {}
     }
-  }, [profile?.data, user])
+  }, [profile?.data])
 
-  // Check if profile data is available
+  // Check if profile data is available with better null handling
   const hasProfileData = useMemo(() => {
     return profileData && Object.keys(profileData).length > 0
   }, [profileData])
 
-  // Initialize profile data
+  // Preload components when the app starts
+  useEffect(() => {
+    if (!state.componentsPreloaded) {
+      preloadComponents().then(() => {
+        setState(prev => ({
+          ...prev,
+          componentsPreloaded: true
+        }))
+      })
+    }
+  }, [state.componentsPreloaded])
+
+  // Initialize profile data with better error handling and immediate data fetching
   useEffect(() => {
     const initializeProfile = async () => {
       try {
-        if (!state.initialized) {
-          await fetchProfile()
-          setState(prev => ({
-            ...prev,
-            initialized: true,
-            pageLoading: false
-          }))
-        }
+        // Always fetch profile data on component mount
+        const profileResponse = await fetchProfile(true)
+        setProfile(profileResponse) 
+        setState(prev => ({
+          ...prev,
+          initialized: true,
+          pageLoading: false,
+          dataFetched: true
+        }))
       } catch (error) {
         console.error("Error initializing profile:", error)
         setState(prev => ({
@@ -71,165 +145,211 @@ export default function ProfilePage() {
           error,
           pageLoading: false
         }))
+        toast.error("Failed to load profile data")
       }
     }
 
+    // Always fetch data on component mount
     initializeProfile()
-  }, [fetchProfile, state.initialized])
+    
+    // Return cleanup function
+    return () => {
+      // Cleanup code if needed
+    }
+  }, [fetchProfile]) // Remove state.initialized dependency to ensure it always runs
 
-  // Handle save
+  // Handle image upload state
+  const handleImageUploadState = useCallback((isUploading, type) => {
+    setState(prev => ({
+      ...prev,
+      uploadingImage: type === 'avatar' ? isUploading : prev.uploadingImage,
+      uploadingCover: type === 'cover' ? isUploading : prev.uploadingCover
+    }))
+  }, [])
+
+  // Handle image upload completion with centralized data refresh
+  const handleUploadComplete = useCallback(async (file, type) => {
+    try {
+      handleImageUploadState(true, type)
+      // Use the refreshData function to update all necessary data
+      await refreshData()
+      // Fetch fresh profile data
+      const profileResponse = await fetchProfile(true)
+      console.log("Profile response:", profileResponse)
+      setProfile(profileResponse)
+      toast.success(`${type === 'avatar' ? 'Profile picture' : 'Cover photo'} updated successfully`)
+    } catch (error) {
+      console.error(`Error updating ${type}:`, error)
+      toast.error(`Failed to update ${type === 'avatar' ? 'profile picture' : 'cover photo'}`)
+    } finally {
+      handleImageUploadState(false, type)
+    }
+  }, [refreshData, fetchProfile])
+
+  // Handle save with better error handling
   const handleSave = useCallback(async (data) => {
     try {
       setState(prev => ({ ...prev, isUpdating: true }))
       await refreshData(data)
+      // Refresh profile data after save
+      const profileResponse = await fetchProfile(true)
+      setProfile(profileResponse)
       toast.success("Profile updated successfully")
     } catch (error) {
       console.error("Error saving profile:", error)
       toast.error("Failed to update profile")
-      throw new Error("Failed to update profile")
     } finally {
       setState(prev => ({ ...prev, isUpdating: false }))
     }
-  }, [refreshData])
+  }, [refreshData, fetchProfile])
 
-  if (state.pageLoading) {
-    return <ProfileSkeleton />
-  }
+  // Handle tab change
+  const handleTabChange = useCallback((value) => {
+    setActiveTab(value)
+  }, [])
 
-  if (state.error) {
-    throw state.error
-  }
+  // Loading state for the entire page
+  const isLoading = useMemo(() => {
+    return state.pageLoading || settingsLoading || !state.initialized
+  }, [state.pageLoading, settingsLoading, state.initialized])
 
   return (
-    <div className="flex flex-col gap-6">
-      <ErrorBoundary>
-        <Suspense fallback={<ProfileHeaderSkeleton />}>
-          {hasProfileData ? (
-            <ProfileHeader 
-              profile={profileData} 
-              onSave={handleSave}
-              loading={state.isUpdating}
-            />
-          ) : (
-            <ProfileHeaderSkeleton />
-          )}
-        </Suspense>
-      </ErrorBoundary>
+    <ErrorBoundary>
+      <div className="container mx-auto py-6 space-y-8">
+        {isLoading ? (
+          <ProfileSkeleton />
+        ) : (
+          <div className="space-y-8">
+            {/* Pass profile data and handlers to ProfileHeader */}
+            <ErrorBoundary>
+              <Suspense fallback={<ProfileHeaderSkeleton />}>
+                <ProfileHeader 
+                  user={user} 
+                  profile={profile} 
+                  profileData={profileData}
+                  loading={isLoading} 
+                  uploadingImage={state.uploadingImage}
+                  uploadingCover={state.uploadingCover}
+                  onAvatarClick={() => handleImageUploadState(true, 'avatar')}
+                  onCoverClick={() => handleImageUploadState(true, 'cover')}
+                  onUploadComplete={handleUploadComplete}
+                />
+              </Suspense>
+            </ErrorBoundary>
 
-      <ErrorBoundary>
-        <Suspense fallback={<CardSkeleton />}>
-          <Tabs 
-            defaultValue="personal" 
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="w-full"
-          >
-            <TabsList className="w-full bg-foreground/10 p-1">
-              <TabsTrigger 
-                value="personal" 
-                className="w-full data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
-              >
-                Personal
-              </TabsTrigger>
-              <TabsTrigger 
-                value="account"
-                className="w-full data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
-              >
-                Account
-              </TabsTrigger>
-              <TabsTrigger 
-                value="contact"
-                className="w-full data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
-              >
-                Contact
-              </TabsTrigger>
-              <TabsTrigger 
-                value="activity"
-                className="w-full data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
-              >
-                Activity
-              </TabsTrigger>
-            </TabsList>
+            <Tabs 
+              defaultValue="personal" 
+              value={activeTab}
+              onValueChange={handleTabChange}
+              className="w-full"
+            >
+              <TabsList className="w-full bg-foreground/10 p-1">
+                <TabsTrigger 
+                  value="personal" 
+                  className="w-full data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+                >
+                  Personal
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="account"
+                  className="w-full data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+                >
+                  Account
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="contact"
+                  className="w-full data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+                >
+                  Contact
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="activity"
+                  className="w-full data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+                >
+                  Activity
+                </TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="personal" className="mt-2">
-              <ErrorBoundary>
-                <Suspense fallback={<CardSkeleton />}>
-                  {hasProfileData ? (
-                    <PersonalTab 
-                      profile={profileData} 
-                      handleSave={handleSave} 
-                      settingsLoading={state.isUpdating || loading}
-                    />
-                  ) : (
-                    <CardSkeleton />
-                  )}
-                </Suspense>
-              </ErrorBoundary>
-            </TabsContent>
+              <TabsContent value="personal" className="mt-2">
+                <ErrorBoundary>
+                  <Suspense fallback={<CardSkeleton />}>
+                    {hasProfileData ? (
+                      <PersonalTab 
+                        profile={profileData} 
+                        handleSave={handleSave} 
+                        settingsLoading={state.isUpdating || settingsLoading}
+                      />
+                    ) : (
+                      <CardSkeleton />
+                    )}
+                  </Suspense>
+                </ErrorBoundary>
+              </TabsContent>
 
-            <TabsContent value="account" className="mt-2">
-              <ErrorBoundary>
-                <Suspense fallback={<CardSkeleton />}>
-                  {hasProfileData ? (
-                    <AccountTab 
-                      profile={profileData} 
-                      handleSave={handleSave} 
-                      settingsLoading={state.isUpdating || loading}
-                    />
-                  ) : (
-                    <CardSkeleton />
-                  )}
-                </Suspense>
-              </ErrorBoundary>
-            </TabsContent>
+              <TabsContent value="account" className="mt-2">
+                <ErrorBoundary>
+                  <Suspense fallback={<CardSkeleton />}>
+                    {hasProfileData ? (
+                      <AccountTab 
+                        profile={profileData} 
+                        handleSave={handleSave} 
+                        settingsLoading={state.isUpdating || settingsLoading}
+                      />
+                    ) : (
+                      <CardSkeleton />
+                    )}
+                  </Suspense>
+                </ErrorBoundary>
+              </TabsContent>
 
-            <TabsContent value="contact" className="mt-2">
-              <ErrorBoundary>
-                <Suspense fallback={<CardSkeleton />}>
-                  {hasProfileData ? (
-                    <ContactTab 
-                      profile={profileData} 
-                      handleSave={handleSave} 
-                      settingsLoading={state.isUpdating || loading}
-                    />
-                  ) : (
-                    <CardSkeleton />
-                  )}
-                </Suspense>
-              </ErrorBoundary>
-            </TabsContent>
+              <TabsContent value="contact" className="mt-2">
+                <ErrorBoundary>
+                  <Suspense fallback={<CardSkeleton />}>
+                    {hasProfileData ? (
+                      <ContactTab 
+                        profile={profileData} 
+                        handleSave={handleSave} 
+                        settingsLoading={state.isUpdating || settingsLoading}
+                      />
+                    ) : (
+                      <CardSkeleton />
+                    )}
+                  </Suspense>
+                </ErrorBoundary>
+              </TabsContent>
 
-            <TabsContent value="activity" className="mt-2">
-              <ErrorBoundary>
-                <Suspense fallback={<CardSkeleton />}>
-                  {hasProfileData ? (
-                    <ActivityTab 
-                      profile={profileData} 
-                      handleSave={handleSave} 
-                      settingsLoading={state.isUpdating || loading}
-                    />
-                  ) : (
-                    <CardSkeleton />
-                  )}
-                </Suspense>
-              </ErrorBoundary>
-            </TabsContent>
-          </Tabs>
-        </Suspense>
-      </ErrorBoundary>
+              <TabsContent value="activity" className="mt-2">
+                <ErrorBoundary>
+                  <Suspense fallback={<CardSkeleton />}>
+                    {hasProfileData ? (
+                      <ActivityTab 
+                        profile={profileData} 
+                        handleSave={handleSave} 
+                        settingsLoading={state.isUpdating || settingsLoading}
+                      />
+                    ) : (
+                      <CardSkeleton />
+                    )}
+                  </Suspense>
+                </ErrorBoundary>
+              </TabsContent>
+            </Tabs>
 
-      <ErrorBoundary>
-        <Suspense fallback={<CardSkeleton />}>
-          {hasProfileData ? (
-            <ProfileCompletionCard 
-              profile={profileData} 
-              loading={state.isUpdating || loading} 
-            />
-          ) : (
-            <CardSkeleton />
-          )}
-        </Suspense>
-      </ErrorBoundary>
-    </div>
+            <ErrorBoundary>
+              <Suspense fallback={<CardSkeleton />}>
+                {hasProfileData ? (
+                  <ProfileCompletionCard 
+                    profile={profileData} 
+                    loading={state.isUpdating || settingsLoading} 
+                  />
+                ) : (
+                  <CardSkeleton />
+                )}
+              </Suspense>
+            </ErrorBoundary>
+          </div>
+        )}
+      </div>
+    </ErrorBoundary>
   )
 }

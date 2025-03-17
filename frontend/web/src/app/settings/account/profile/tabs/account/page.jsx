@@ -15,7 +15,6 @@ import {
   Loader,
 } from "lucide-react"
 import { toast } from "react-hot-toast"
-import { useAuth } from "@/contexts/auth-context/auth-context"
 import ErrorBoundary from "@/components/error-boundary"
 
 // Lazy load section components
@@ -149,9 +148,9 @@ const SectionLoading = ({ title }) => (
   </div>
 );
 
-export default function AccountTab({ handleChange, handleSave, settingsLoading, updateSettings }) {
-  const { profile } = useAuth()
-  const profileData = profile?.data || {}
+export default function AccountTab({ profile, handleSave, settingsLoading }) {
+  // Use the profile data passed as props instead of fetching it from useAuth
+  const profileData = profile || {}
 
   // Extract basic info from the profile using useMemo for performance
   const basicInfo = useMemo(() => profileData?.basicInfo || {}, [profileData]);
@@ -268,7 +267,7 @@ export default function AccountTab({ handleChange, handleSave, settingsLoading, 
       setVerificationSuccess(true);
       setSuccessMessage("Email verified successfully!");
       
-      await updateSettings('verification', { emailVerified: true });
+      // await updateSettings('verification', { emailVerified: true });
       
       setTimeout(() => {
         setVerificationDialogOpen(false);
@@ -280,7 +279,7 @@ export default function AccountTab({ handleChange, handleSave, settingsLoading, 
     } finally {
       setIsVerifying(false);
     }
-  }, [basicInfo.email, verificationCode, updateSettings]);
+  }, [basicInfo.email, verificationCode]);
 
   // Memoized username validation
   const usernameValidation = useMemo(() => 
@@ -301,7 +300,6 @@ export default function AccountTab({ handleChange, handleSave, settingsLoading, 
     usernameValidation,
     formatDate,
     profileData,
-    updateSettings,
     // Verification props
     verificationDialogOpen,
     setVerificationDialogOpen,
@@ -318,7 +316,7 @@ export default function AccountTab({ handleChange, handleSave, settingsLoading, 
   }), [
     basicInfo, accountStatus, personal, formValues, handleLocalChange,
     handleSubmit, settingsLoading, isDirty, usernameValidation, profileData,
-    updateSettings, verificationDialogOpen, verificationMethod, verificationCode,
+    verificationDialogOpen, verificationMethod, verificationCode,
     isVerifying, verificationSent, verificationSuccess, successMessage,
     sendVerificationEmail, verifyOTPCode
   ]);

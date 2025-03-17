@@ -4,56 +4,52 @@ import { useAuth } from '@/contexts/auth-context/auth-context'
 import { cn } from "@/lib/utils"
 import { CoverPhotoUpload } from './cover-photo'
 import { ProfilePicture } from './profile-picture'
-import { AuthService } from '@/services/auth'
 import { ProfileHeaderSkeleton } from '../profile-header-skeleton'
 
-const ProfileHeader = memo(({ user, loading, uploadingImage, uploadingCover, onAvatarClick, onCoverClick }) => {
-  const { profile, refreshData } = useAuth()
-  const [isLoading, setIsLoading] = useState(true)
+const ProfileHeader = memo(({ 
+  user, 
+  profile, 
+  profileData: parentProfileData, 
+  loading, 
+  uploadingImage, 
+  uploadingCover, 
+  onAvatarClick, 
+  onCoverClick,
+  onUploadComplete
+}) => {
   const [isAvatarLoading, setIsAvatarLoading] = useState(false)
   const [isCoverLoading, setIsCoverLoading] = useState(false)
-  const [profileData, setProfileData] = useState(null)
 
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const profileData = await AuthService.getProfile()
-        setProfileData(profileData)
-      } catch (error) {
-        console.error('Failed to load profile:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    loadProfile()
-  }, [])
-
+  // Use the profile data passed from parent component
   const userData = useMemo(() => {
     // Ensure we have a valid data object to work with
-    return profileData?.data || user || {}
-  }, [user, profileData])
+    return parentProfileData || profile?.data || user || {}
+  }, [parentProfileData, profile?.data, user])
 
-  const handleUploadComplete = async (file, type) => {
+  const handleAvatarUpload = async (file) => {
     try {
-      if (type === 'avatar') {
-        setIsAvatarLoading(true)
-      } else {
-        setIsCoverLoading(true)
-      }
-      await refreshData()
-      // Refresh profile data after upload
-      const newProfileData = await AuthService.getProfile({ forceRefresh: true })
-      setProfileData(newProfileData)
+      setIsAvatarLoading(true)
+      await onUploadComplete(file, 'avatar')
     } catch (error) {
-      console.error('Upload complete error:', error)
+      console.error('Avatar upload error:', error)
     } finally {
       setIsAvatarLoading(false)
+    }
+  }
+
+  const handleCoverUpload = async (file) => {
+    try {
+      setIsCoverLoading(true)
+      await onUploadComplete(file, 'cover')
+    } catch (error) {
+      console.error('Cover upload error:', error)
+    } finally {
       setIsCoverLoading(false)
     }
   }
 
   // Show skeleton during loading or when data is not available
-  if (isLoading || loading || !userData) {
+  if (loading || !userData) {
     return <ProfileHeaderSkeleton />
   }
 
@@ -65,7 +61,7 @@ const ProfileHeader = memo(({ user, loading, uploadingImage, uploadingCover, onA
       <div className="relative">
         <CoverPhotoUpload 
           user={userData}
-          onUpload={(file) => handleUploadComplete(file, 'cover')}
+          onUpload={handleCoverUpload}
           loading={isCoverLoading || uploadingCover}
           onClick={onCoverClick}
         />
@@ -73,7 +69,7 @@ const ProfileHeader = memo(({ user, loading, uploadingImage, uploadingCover, onA
         <div className="absolute -bottom-2 left-4 z-10">
           <ProfilePicture 
             user={userData}
-            onUpload={(file) => handleUploadComplete(file, 'avatar')}
+            onUpload={handleAvatarUpload}
             loading={isAvatarLoading || uploadingImage}
             onClick={onAvatarClick}
           />

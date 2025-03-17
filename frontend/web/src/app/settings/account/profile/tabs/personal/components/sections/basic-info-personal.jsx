@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useState, useMemo, useCallback, useEffect } from 'react'
 import { InputWithIcon } from "@/components/input-with-icon"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -26,6 +26,7 @@ import {
   FileText,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import toast from "react-hot-toast"
 
 // Constants
 const GENDER_OPTIONS = [
@@ -55,6 +56,37 @@ export default function BasicInfoPersonalSection({
   loading
 }) {
   const [saving, setSaving] = useState(false)
+  const [localFormValues, setLocalFormValues] = useState(formValues)
+  const [dataInitialized, setDataInitialized] = useState(false)
+
+  // Initialize local form values when props change
+  useEffect(() => {
+    try {
+      if (formValues && Object.keys(formValues).length > 0) {
+        setLocalFormValues(formValues)
+        setDataInitialized(true)
+      }
+    } catch (error) {
+      console.error("Error initializing form values:", error)
+    }
+  }, [formValues])
+
+  // Handle local form changes
+  const handleLocalChange = useCallback((field, value) => {
+    try {
+      // Update local state
+      setLocalFormValues(prev => ({
+        ...prev,
+        [field]: value
+      }))
+      
+      // Propagate change to parent component
+      handleChange(field, value)
+    } catch (error) {
+      console.error(`Error updating ${field}:`, error)
+      toast.error(`Failed to update ${field}`)
+    }
+  }, [handleChange])
 
   // Memoize the submit handler for better performance
   const handleSubmit = useCallback(async (e) => {
@@ -64,73 +96,83 @@ export default function BasicInfoPersonalSection({
       setSaving(true)
       
       // Validate required fields
-      if (!formValues.firstName) {
-        throw new Error("First name is required")
+      if (!localFormValues.firstName) {
+        toast.error("First name is required")
+        return
       }
 
       // Extract combined fields
       const combinedData = {
         // Basic info fields
-        firstName: formValues.firstName,
-        middleName: formValues.middleName,
-        lastName: formValues.lastName,
-        nickName: formValues.nickName,
-        dateOfBirth: formValues.dateOfBirth,
-        genderIdentity: formValues.genderIdentity,
-        description: formValues.description,
-        age: formValues.age,
-        isDeceased: formValues.isDeceased,
+        firstName: localFormValues.firstName,
+        middleName: localFormValues.middleName,
+        lastName: localFormValues.lastName,
+        nickName: localFormValues.nickName,
+        dateOfBirth: localFormValues.dateOfBirth,
+        genderIdentity: localFormValues.genderIdentity,
+        description: localFormValues.description,
+        age: localFormValues.age,
+        isDeceased: localFormValues.isDeceased,
         
         // Personal details fields
-        maritalStatus: formValues.maritalStatus,
-        bloodGroup: formValues.bloodGroup,
-        occupation: formValues.occupation,
-        religion: formValues.religion,
-        hobbies: formValues.hobbies,
-        additionalInfo: formValues.additionalInfo,
+        maritalStatus: localFormValues.maritalStatus,
+        bloodGroup: localFormValues.bloodGroup,
+        occupation: localFormValues.occupation,
+        religion: localFormValues.religion,
+        hobbies: localFormValues.hobbies,
+        additionalInfo: localFormValues.additionalInfo,
       }
 
       await handleSave('basic-personal', combinedData)
     } catch (error) {
       console.error("Error saving information:", error)
-      throw new Error("Failed to save information")
+      toast.error("Failed to save information")
     } finally {
       setSaving(false)
     }
-  }, [formValues, handleSave])
+  }, [localFormValues, handleSave])
 
-  // Memoize the basic info section for better performance
+  // Memoize the basic info fields for better performance
   const BasicInfoFields = useMemo(() => (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium">Basic Information</h3>
       <div className="grid gap-4 md:grid-cols-2">
         <InputWithIcon
           icon={User}
           label="First Name"
-          value={formValues.firstName}
-          onChange={(e) => handleChange('firstName', e.target.value)}
+          value={localFormValues.firstName || ''}
+          onChange={(e) => handleLocalChange('firstName', e.target.value)}
+          placeholder="Enter first name"
           required
         />
         <InputWithIcon
           icon={User}
           label="Middle Name"
-          value={formValues.middleName}
-          onChange={(e) => handleChange('middleName', e.target.value)}
+          value={localFormValues.middleName || ''}
+          onChange={(e) => handleLocalChange('middleName', e.target.value)}
+          placeholder="Enter middle name"
         />
+      </div>
+      
+      <div className="grid gap-4 md:grid-cols-2">
         <InputWithIcon
           icon={User}
           label="Last Name"
-          value={formValues.lastName}
-          onChange={(e) => handleChange('lastName', e.target.value)}
+          value={localFormValues.lastName || ''}
+          onChange={(e) => handleLocalChange('lastName', e.target.value)}
+          placeholder="Enter last name"
         />
         <InputWithIcon
           icon={User}
-          label="Nick Name"
-          value={formValues.nickName}
-          onChange={(e) => handleChange('nickName', e.target.value)}
+          label="Nickname"
+          value={localFormValues.nickName || ''}
+          onChange={(e) => handleLocalChange('nickName', e.target.value)}
+          placeholder="Enter nickname"
         />
+      </div>
+      
+      <div className="grid gap-4 md:grid-cols-2">
         <div className="grid w-full items-center gap-1.5">
-          <label htmlFor="dob" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+          <label htmlFor="date-of-birth" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
             Date of Birth
           </label>
           <Popover>
@@ -158,11 +200,11 @@ export default function BasicInfoPersonalSection({
         </div>
         <div className="grid w-full items-center gap-1.5">
           <label htmlFor="gender" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-            Gender Identity
+            Gender
           </label>
           <Select 
-            value={formValues.genderIdentity} 
-            onValueChange={(value) => handleChange('genderIdentity', value)}
+            value={localFormValues.genderIdentity || ''} 
+            onValueChange={(value) => handleLocalChange('genderIdentity', value)}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select gender" />
@@ -178,20 +220,19 @@ export default function BasicInfoPersonalSection({
         </div>
       </div>
     </div>
-  ), [formValues, date, onDateSelect, handleChange])
+  ), [localFormValues, date, onDateSelect, handleLocalChange])
 
-  // Memoize the personal details section for better performance
+  // Memoize the personal details fields for better performance
   const PersonalDetailsFields = useMemo(() => (
-    <div className="space-y-4 pt-4 border-t">
-      <h3 className="text-lg font-medium">Personal Details</h3>
+    <div className="space-y-4 mt-6">
       <div className="grid gap-4 md:grid-cols-2">
         <div className="grid w-full items-center gap-1.5">
           <label htmlFor="marital-status" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
             Marital Status
           </label>
           <Select 
-            value={formValues.maritalStatus} 
-            onValueChange={(value) => handleChange('maritalStatus', value)}
+            value={localFormValues.maritalStatus || ''} 
+            onValueChange={(value) => handleLocalChange('maritalStatus', value)}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select marital status" />
@@ -205,64 +246,53 @@ export default function BasicInfoPersonalSection({
             </SelectContent>
           </Select>
         </div>
-        <div className="grid w-full items-center gap-1.5">
-          <label htmlFor="blood-group" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-            Blood Group
-          </label>
-          <Select 
-            value={formValues.bloodGroup} 
-            onValueChange={(value) => handleChange('bloodGroup', value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select blood group" />
-            </SelectTrigger>
-            <SelectContent>
-              {BLOOD_GROUPS.map((group) => (
-                <SelectItem key={group} value={group}>
-                  {group}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
         <InputWithIcon
           icon={Activity}
           label="Occupation"
-          value={formValues.occupation}
-          onChange={(e) => handleChange('occupation', e.target.value)}
+          value={localFormValues.occupation || ''}
+          onChange={(e) => handleLocalChange('occupation', e.target.value)}
           placeholder="Enter occupation"
         />
+      </div>
+      
+      <div className="grid gap-4 md:grid-cols-2">
         <InputWithIcon
-          icon={Heart}
+          icon={Book}
           label="Religion"
-          value={formValues.religion}
-          onChange={(e) => handleChange('religion', e.target.value)}
+          value={localFormValues.religion || ''}
+          onChange={(e) => handleLocalChange('religion', e.target.value)}
           placeholder="Enter religion"
         />
         <InputWithIcon
-          icon={Book}
+          icon={Heart}
           label="Hobbies"
-          value={formValues.hobbies}
-          onChange={(e) => handleChange('hobbies', e.target.value)}
-          placeholder="Enter hobbies (comma separated)"
+          value={localFormValues.hobbies || ''}
+          onChange={(e) => handleLocalChange('hobbies', e.target.value)}
+          placeholder="Enter hobbies"
         />
-        <InputWithIcon
-          icon={FileText}
-          label="Additional Information"
-          value={formValues.additionalInfo}
-          onChange={(e) => handleChange('additionalInfo', e.target.value)}
-          placeholder="Any additional information"
+      </div>
+      
+      <div className="grid w-full items-center gap-1.5">
+        <label htmlFor="additional-info" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+          Additional Information
+        </label>
+        <textarea
+          id="additional-info"
+          className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          value={localFormValues.additionalInfo || ''}
+          onChange={(e) => handleLocalChange('additionalInfo', e.target.value)}
+          placeholder="Enter any additional information"
         />
       </div>
     </div>
-  ), [formValues, handleChange, MARITAL_STATUS_OPTIONS, BLOOD_GROUPS])
+  ), [localFormValues, handleLocalChange])
 
   // Memoize the save button for better performance
   const SaveButton = useMemo(() => (
-    <div className="flex justify-end">
+    <div className="flex justify-end mt-6">
       <Button 
         type="submit" 
-        disabled={saving || loading}
+        disabled={saving || loading || !dataInitialized}
         className="w-fit"
       >
         {(saving || loading) && (
@@ -272,12 +302,21 @@ export default function BasicInfoPersonalSection({
         Save Changes
       </Button>
     </div>
-  ), [saving, loading])
+  ), [saving, loading, dataInitialized])
+
+  // If data is not yet initialized, show a loading message
+  if (!dataInitialized && !localFormValues.firstName) {
+    return <div className="py-4">Loading personal information...</div>
+  }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <h3 className="text-lg font-medium">Basic Information</h3>
       {BasicInfoFields}
+      
+      <h3 className="text-lg font-medium mt-6">Personal Details</h3>
       {PersonalDetailsFields}
+      
       {SaveButton}
     </form>
   )

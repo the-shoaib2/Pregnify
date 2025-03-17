@@ -1,9 +1,11 @@
 import api from '../api'
+import { memoize } from 'lodash'
 import { CacheManager, CONSTANTS } from '../../utils/security'
 import { AuthService } from '../auth'
 import { handleApiError } from '../../utils/errorHandler'
 
 const { CACHE_DURATION } = CONSTANTS
+const CACHE_KEY = CONSTANTS.AUTH_CACHE_KEY
 
 // Profile constants
 const PROFILE_ENDPOINTS = {
@@ -18,22 +20,26 @@ let profileRequestPromise = null;
 let lastProfileFetchTime = 0;
 const MIN_FETCH_INTERVAL = 1000; // 1 second minimum between fetches
 
+// Add request cache for deduplication
+const requestCache = new Map()
+
 // Profile loader with improved error handling and request deduplication
-export const loadProfile = async (forceRefresh = false) => {
+export const loadProfile = async (refresh = false) => {
   const now = Date.now();
-  const cache = CacheManager.get();
-  const token = CacheManager.getToken();
+  const cache = CacheManager.get(CACHE_KEY);
+  const token = CacheManager.getToken(CACHE_KEY);
+  const cacheKey = 'profile';
 
   // If a request is already in progress, return that promise
-  if (profileRequestPromise && !forceRefresh) {
-    return profileRequestPromise;
+  if (!refresh && requestCache.has(cacheKey)) {
+    return requestCache.get(cacheKey);
   }
 
   // Check cache first if not forcing refresh and not within minimum fetch interval
-  if (!forceRefresh && 
+  if (!refresh && 
       cache.profile && 
       now - lastProfileFetchTime > MIN_FETCH_INTERVAL &&
-      now - cache.lastRefresh < CACHE_DURATION) {
+      now - cache.timestamp < CACHE_DURATION) {
     return cache.profile;
   }
 
@@ -57,7 +63,7 @@ export const loadProfile = async (forceRefresh = false) => {
       const profile = response.data;
       
       // Update cache
-      CacheManager.set({
+      CacheManager.set(CACHE_KEY, {
         profile,
         lastRefresh: now
       });
@@ -66,10 +72,14 @@ export const loadProfile = async (forceRefresh = false) => {
       return profile;
     })();
 
-    return await profileRequestPromise;
+    // Store in request cache
+    requestCache.set(cacheKey, profileRequestPromise);
+    
+    const result = await profileRequestPromise;
+    return result;
   } catch (error) {
     if (error.response?.status === 401) {
-      CacheManager.clear();
+      CacheManager.clear(CACHE_KEY);
       throw new Error('Authentication required');
     }
     const errorMessage = handleApiError(error);
@@ -77,65 +87,270 @@ export const loadProfile = async (forceRefresh = false) => {
   } finally {
     // Clear the promise reference after completion
     profileRequestPromise = null;
+    // Clear request cache after delay
+    setTimeout(() => requestCache.delete(cacheKey), 2000);
   }
 }
 
-// Centralized profile handling
+// Centralized profile handling with comprehensive error handling
 export const ProfileService = {
-  getProfile: async (forceRefresh = false) => {
+  // Optimized getProfile to use cached data first with memoization
+  getProfile: memoize(
+    async (options = {}) => {
+      const opts = options || {};
+      const { refresh = false } = opts;
+      
+      try {
+        return await loadProfile(refresh);
+      } catch (error) {
+        console.error('Profile fetch error:', error);
+        throw error;
+      }
+    },
+    // Cache key based on refresh flag and time window
+    (options = {}) => `${options?.refresh || false}-${Math.floor(Date.now() / 30000)}`
+  ),
+
+  updateProfile: async (data) => {
     try {
-      return await loadProfile(forceRefresh);
+      const response = await api.patch(PROFILE_ENDPOINTS.UPDATE_PROFILE, data);
+      
+      // Update cache with new profile data
+      const cache = CacheManager.get(CACHE_KEY);
+      if (cache.profile) {
+        CacheManager.set(CACHE_KEY, {
+          profile: { ...cache.profile, ...data },
+          lastRefresh: Date.now()
+        });
+      }
+      
+      return response.data;
     } catch (error) {
-      console.error('Profile fetch error:', error);
-      throw error;
+      console.error('Error updating profile:', error);
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
     }
   },
 
-  updateProfile: (data) => api.patch(PROFILE_ENDPOINTS.UPDATE_PROFILE, data),
+  uploadAvatar: async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      
+      const response = await api.post(PROFILE_ENDPOINTS.UPLOAD_AVATAR, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      // Update avatar in cache if profile exists
+      const cache = CacheManager.get(CACHE_KEY);
+      if (cache.profile) {
+        CacheManager.set(CACHE_KEY, {
+          profile: { 
+            ...cache.profile, 
+            avatar: response.data.avatar || response.data.url || response.data
+          },
+          lastRefresh: Date.now()
+        });
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error updating avatar:', error);
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  },
+
+  uploadCoverPhoto: async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append('cover', file);
+      
+      const response = await api.post(PROFILE_ENDPOINTS.UPLOAD_COVER, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      // Update cover photo in cache if profile exists
+      const cache = CacheManager.get(CACHE_KEY);
+      if (cache.profile) {
+        CacheManager.set(CACHE_KEY, {
+          profile: { 
+            ...cache.profile, 
+            coverPhoto: response.data.cover || response.data.url || response.data
+          },
+          lastRefresh: Date.now()
+        });
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error updating cover photo:', error);
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  }
 }
 
+// Comprehensive settings service with improved error handling
 export const SettingsService = {
   // Profile & Personal Info
-  getProfile: () => api.get('/account/profile'),
-  updatePersonalInfo: (data) => api.patch('/account/profile/update', data),
-  updateEducation: (data) => api.patch('/account/education', data),
-  updateMedicalInfo: (data) => api.patch('/account/medical-info', data),
-  updateEmergencyContacts: (data) => api.patch('/account/emergency-contacts', data),
+  getProfile: async (refresh = false) => {
+    try {
+      return await ProfileService.getProfile({ refresh });
+    } catch (error) {
+      console.error('Settings profile fetch error:', error);
+      throw error;
+    }
+  },
+  
+  updatePersonalInfo: async (data) => {
+    try {
+      const response = await api.patch('/account/profile/update', data);
+      
+      // Update profile in cache
+      const cache = CacheManager.get(CACHE_KEY);
+      if (cache.profile) {
+        CacheManager.set(CACHE_KEY, {
+          profile: { ...cache.profile, ...data },
+          lastRefresh: Date.now()
+        });
+      }
+      
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  },
+  
+  updateEducation: async (data) => {
+    try {
+      const response = await api.patch('/account/education', data);
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  },
+  
+  updateMedicalInfo: async (data) => {
+    try {
+      const response = await api.patch('/account/medical-info', data);
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  },
+  
+  updateEmergencyContacts: async (data) => {
+    try {
+      const response = await api.patch('/account/emergency-contacts', data);
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  },
 
   // Account Settings
-  getSettings: () => api.get('/account/settings'),
-  updateSettings: (data) => api.patch('/account/settings', data),
-  updateSecurity: (data) => api.patch('/account/security', data),
+  getSettings: async () => {
+    try {
+      const response = await api.get('/account/settings');
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  },
+  
+  updateSettings: async (data) => {
+    try {
+      const response = await api.patch('/account/settings', data);
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  },
+  
+  updateSecurity: async (data) => {
+    try {
+      const response = await api.patch('/account/security', data);
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  },
   
   // Preferences
-  updatePreferences: (data) => api.patch('/account/preferences', data),
-  updateAppearance: (data) => api.patch('/account/appearance', data),
-  updateNotifications: (data) => api.patch('/account/notifications', data),
-  updatePrivacy: (data) => api.patch('/account/privacy', data),
+  updatePreferences: async (data) => {
+    try {
+      const response = await api.patch('/account/preferences', data);
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  },
+  
+  updateAppearance: async (data) => {
+    try {
+      const response = await api.patch('/account/appearance', data);
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  },
+  
+  updateNotifications: async (data) => {
+    try {
+      const response = await api.patch('/account/notifications', data);
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  },
+  
+  updatePrivacy: async (data) => {
+    try {
+      const response = await api.patch('/account/privacy', data);
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  },
 
-   // Activity & Account Management
-   getActivityLogs: () => api.get('/account/activity'),
-   deleteAccount: () => api.delete('/account/delete'),
+  // Activity & Account Management
+  getActivityLogs: async () => {
+    try {
+      const response = await api.get('/account/activity');
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  },
+  
+  deleteAccount: async () => {
+    try {
+      const response = await api.delete('/account/delete');
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  },
 
- 
-   // Profile Image
-   uploadProfileImage: (file) => {
-     const formData = new FormData()
-     formData.append('avatar', file)
-     return api.post('/account/profile/avatar', formData, {
-       headers: {
-         'Content-Type': 'multipart/form-data'
-       }
-     })
-   },
-   
-   uploadCoverImage: (file) => {
-     const formData = new FormData()
-     formData.append('cover', file)
-     return api.post('/account/profile/cover', formData, {
-       headers: {
-         'Content-Type': 'multipart/form-data'
-       }
-     })
-   }
-} 
+  // Profile Image - using the ProfileService methods for consistency
+  uploadProfileImage: (file) => ProfileService.uploadAvatar(file),
+  uploadCoverImage: (file) => ProfileService.uploadCoverPhoto(file)
+}
