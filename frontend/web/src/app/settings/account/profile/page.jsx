@@ -8,57 +8,18 @@ import ErrorBoundary from "@/components/error-boundary"
 import { CardSkeleton } from "./tabs/personal/components/skeleton"
 import { ProfileHeaderSkeleton } from "./components/profile-header-skeleton"
 
-// Preload components to avoid initial render issues
-const ProfileHeader = lazy(() => {
-  // Preload the component
-  const componentPromise = import("@/app/settings/account/profile/components/profile-header/page").then(module => ({
-    default: module.ProfileHeader
-  }))
-  
-  // Return the component promise
-  return componentPromise
-})
+// Preload components with improved loading strategy
+const ProfileHeader = lazy(() => import("@/app/settings/account/profile/components/profile-header/page")
+  .then(module => ({ default: module.ProfileHeader }))
+)
 
-const ProfileCompletionCard = lazy(() => {
-  // Preload the component
-  const componentPromise = import("./tabs/personal/components/profile-completion/page")
-  
-  // Return the component promise
-  return componentPromise
-})
+const ProfileCompletionCard = lazy(() => import("./tabs/personal/components/profile-completion/page"))
 
 // Preload tab components with improved error handling
-const PersonalTab = lazy(() => {
-  // Preload the component
-  const componentPromise = import("./tabs/personal/page")
-  
-  // Return the component promise
-  return componentPromise
-})
-
-const AccountTab = lazy(() => {
-  // Preload the component
-  const componentPromise = import("./tabs/account/page")
-  
-  // Return the component promise
-  return componentPromise
-})
-
-const ContactTab = lazy(() => {
-  // Preload the component
-  const componentPromise = import("./tabs/contact/page")
-  
-  // Return the component promise
-  return componentPromise
-})
-
-const ActivityTab = lazy(() => {
-  // Preload the component
-  const componentPromise = import("./tabs/activity/page")
-  
-  // Return the component promise
-  return componentPromise
-})
+const PersonalTab = lazy(() => import("./tabs/personal/page"))
+const AccountTab = lazy(() => import("./tabs/account/page"))
+const ContactTab = lazy(() => import("./tabs/contact/page"))
+const ActivityTab = lazy(() => import("./tabs/activity/page"))
 
 // Preload all tab components when the app starts
 const preloadComponents = () => {
