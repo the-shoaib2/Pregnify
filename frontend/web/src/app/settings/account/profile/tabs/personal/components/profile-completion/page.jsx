@@ -209,19 +209,71 @@ export default function ProfileCompletionCard({ profile, isLoading }) {
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", stiffness: 200, damping: 15 }}
-          className="flex items-center justify-center"
-          style={{ opacity: 0.8 }}
+          className="relative flex items-center justify-center"
         >
-          <motion.div
-            // className="absolute inset-0 opacity-10"
-            style={{
-              background: getScoreColor(score).bg.replace('bg-', ''),
-              opacity: score / 100
-            }}
-          />
-          <p className={`text-xl font-bold ${getScoreColor(score).text}`}>
-            {score}%
-          </p>
+          <div className="relative h-16 w-16 flex items-center justify-center">
+            {/* Background circle with border */}
+            <div className="absolute inset-0 rounded-full border border-border shadow-sm bg-background"></div>
+            
+            {/* Track circle */}
+            <svg className="absolute inset-0" width="64" height="64" viewBox="0 0 64 64">
+              <circle
+                cx="32"
+                cy="32"
+                r="28"
+                fill="none"
+                strokeWidth="3"
+                className="stroke-secondary/40"
+              />
+            </svg>
+            
+            {/* Colored progress circle */}
+            <svg className="absolute inset-0" width="64" height="64" viewBox="0 0 64 64">
+              <motion.circle
+                cx="32"
+                cy="32"
+                r="28"
+                fill="none"
+                strokeWidth="4"
+                stroke="currentColor"
+                initial={{ strokeDasharray: "0 176" }}
+                animate={{ 
+                  strokeDasharray: `${(score / 100) * 176} 176`,
+                  pathLength: score / 100
+                }}
+                transition={{ 
+                  duration: 2, 
+                  ease: [0.34, 1.56, 0.64, 1], // Custom spring-like easing
+                }}
+                strokeLinecap="round"
+                className="stroke-emerald-500"
+                transform="rotate(-90 32 32)"
+              />
+            </svg>
+            
+            {/* Score text */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ 
+                delay: 0.8, 
+                duration: 0.5,
+                type: "spring",
+                stiffness: 400,
+                damping: 10
+              }}
+              className="relative z-10 flex items-center justify-center"
+            >
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.2, duration: 0.3 }}
+                className="text-lg font-extrabold text-yellow-500"
+              >
+                {score}%
+              </motion.span>
+            </motion.div>
+          </div>
         </motion.div>
       </CardHeader>
 
