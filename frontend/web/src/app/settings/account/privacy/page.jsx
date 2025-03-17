@@ -13,7 +13,7 @@ export default function PrivacyPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium">Privacy</h3>
+        <h3 className="">Privacy</h3>
         <p className="text-sm text-muted-foreground">
           Manage your privacy settings and data.
         </p>

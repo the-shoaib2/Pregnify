@@ -13,9 +13,16 @@ import {
   Info,
   Save,
   Loader,
+  ChevronUp,
+  ChevronDown
 } from "lucide-react"
 import { toast } from "react-hot-toast"
 import ErrorBoundary from "@/components/error-boundary"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 
 // Lazy load section components
 const AccountInfoSection = lazy(() => import('./components/account-info-section'))
@@ -151,6 +158,9 @@ const SectionLoading = ({ title }) => (
 export default function AccountTab({ profile, handleSave, settingsLoading }) {
   // Use the profile data passed as props instead of fetching it from useAuth
   const profileData = profile || {}
+
+  // Collapsible state
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Extract basic info from the profile using useMemo for performance
   const basicInfo = useMemo(() => profileData?.basicInfo || {}, [profileData]);
@@ -323,78 +333,100 @@ export default function AccountTab({ profile, handleSave, settingsLoading }) {
 
   return (
     <>
-      <Card className="animate-in fade-in duration-300">
-        <CardHeader className="space-y-1">
-          <CardTitle className="flex items-center gap-2 text-xl">
-            <Shield className="h-5 w-5 text-primary" />
-            Account Information
-          </CardTitle>
-          <CardDescription>
-            Your account details and verification status
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* User ID and Username */}
-          <ErrorBoundary>
-            <Suspense fallback={<SectionLoading title="Account Info" />}>
-              <AccountInfoSection {...sharedProps} />
-            </Suspense>
-          </ErrorBoundary>
-
-          {/* Enhanced Email and Phone Verification */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            {/* Email Card - Enhanced UI */}
-            <ErrorBoundary>
-              <Suspense fallback={<SectionLoading title="Email Verification" />}>
-                <EmailVerificationSection {...sharedProps} />
-              </Suspense>
-            </ErrorBoundary>
-
-            {/* Phone Number Card - Enhanced UI */}
-            <ErrorBoundary>
-              <Suspense fallback={<SectionLoading title="Phone Verification" />}>
-                <PhoneVerificationSection {...sharedProps} />
-              </Suspense>
-            </ErrorBoundary>
+      <Card className="animate-in fade-in duration-300 relative">
+        <Collapsible open={!isCollapsed} onOpenChange={() => setIsCollapsed(!isCollapsed)}>
+          <div className="absolute right-4 top-4 flex items-center gap-2 z-10">
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+              >
+                {!isCollapsed ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
           </div>
+          
+          <CardHeader className="space-y-1">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <Shield className="h-5 w-5 text-primary" />
+              Account Information
+            </CardTitle>
+            <CardDescription>
+              Your account details and verification status
+            </CardDescription>
+          </CardHeader>
+          
+          <CollapsibleContent>
+            <CardContent className="space-y-6">
+              {/* User ID and Username */}
+              <ErrorBoundary>
+                <Suspense fallback={<SectionLoading title="Account Info" />}>
+                  <AccountInfoSection {...sharedProps} />
+                </Suspense>
+              </ErrorBoundary>
 
-          {/* Account Status and Timeline */}
-          <ErrorBoundary>
-            <Suspense fallback={<SectionLoading title="Account Status" />}>
-              <AccountStatusSection {...sharedProps} />
-            </Suspense>
-          </ErrorBoundary>
+              {/* Enhanced Email and Phone Verification */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                {/* Email Card - Enhanced UI */}
+                <ErrorBoundary>
+                  <Suspense fallback={<SectionLoading title="Email Verification" />}>
+                    <EmailVerificationSection {...sharedProps} />
+                  </Suspense>
+                </ErrorBoundary>
 
-          {/* Account Security */}
-          <ErrorBoundary>
-            <Suspense fallback={<SectionLoading title="Account Security" />}>
-              <AccountSecuritySection {...sharedProps} />
-            </Suspense>
-          </ErrorBoundary>
-        </CardContent>
-        <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t pt-6 gap-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Info className="h-4 w-4 shrink-0" />
-            <span>Changes to your account settings may require verification</span>
-          </div>
-          <Button 
-            onClick={handleSubmit}
-            disabled={settingsLoading || !isDirty}
-            className="w-full sm:w-auto"
-          >
-            {settingsLoading ? (
-              <>
-                <Loader className="mr-2 h-4 w-4 animate-spin" />
-                Saving Changes...
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Save Changes
-              </>
-            )}
-          </Button>
-        </CardFooter>
+                {/* Phone Number Card - Enhanced UI */}
+                <ErrorBoundary>
+                  <Suspense fallback={<SectionLoading title="Phone Verification" />}>
+                    <PhoneVerificationSection {...sharedProps} />
+                  </Suspense>
+                </ErrorBoundary>
+              </div>
+
+              {/* Account Status and Timeline */}
+              <ErrorBoundary>
+                <Suspense fallback={<SectionLoading title="Account Status" />}>
+                  <AccountStatusSection {...sharedProps} />
+                </Suspense>
+              </ErrorBoundary>
+
+              {/* Account Security */}
+              <ErrorBoundary>
+                <Suspense fallback={<SectionLoading title="Account Security" />}>
+                  <AccountSecuritySection {...sharedProps} />
+                </Suspense>
+              </ErrorBoundary>
+            </CardContent>
+            
+            <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t pt-6 gap-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Info className="h-4 w-4 shrink-0" />
+                <span>Changes to your account settings may require verification</span>
+              </div>
+              <Button 
+                onClick={handleSubmit}
+                disabled={settingsLoading || !isDirty}
+                className="w-full sm:w-auto"
+              >
+                {settingsLoading ? (
+                  <>
+                    <Loader className="mr-2 h-4 w-4 animate-spin" />
+                    Saving Changes...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Changes
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </CollapsibleContent>
+        </Collapsible>
       </Card>
     </>
   )

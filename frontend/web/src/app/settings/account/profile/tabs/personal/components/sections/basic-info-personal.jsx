@@ -306,15 +306,15 @@ export default function BasicInfoPersonalSection({
 
   // If data is not yet initialized, show a loading message
   if (!dataInitialized && !localFormValues.firstName) {
-    return <div className="py-4">Loading personal information...</div>
+    return <div className="py-4"></div>
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <h3 className="text-lg font-medium">Basic Information</h3>
+      <h3 className="text-md font-medium">Basic Information</h3>
       {BasicInfoFields}
       
-      <h3 className="text-lg font-medium mt-6">Personal Details</h3>
+      <h3 className="text-md font-medium mt-6">Personal Details</h3>
       {PersonalDetailsFields}
       
       {SaveButton}

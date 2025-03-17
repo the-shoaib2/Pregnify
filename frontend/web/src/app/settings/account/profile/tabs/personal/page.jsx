@@ -5,6 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { 
   ChevronUp,
   ChevronDown,
+  User,
+  Book,
+  FileText,
+  Activity
 } from "lucide-react"
 import {
   Collapsible,
@@ -343,7 +347,8 @@ export default function PersonalTab({
     title, 
     description, 
     children,
-    isLoading
+    isLoading,
+    icon: Icon = User
   }) => (
     <Card className="relative">
       <Collapsible
@@ -366,8 +371,11 @@ export default function PersonalTab({
           </CollapsibleTrigger>
         </div>
 
-        <CardHeader className="pr-24 pb-4">
-          <CardTitle>{title}</CardTitle>
+        <CardHeader className="space-y-1">
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <Icon className="h-5 w-5 text-primary" />
+            {title}
+          </CardTitle>
           {description && <CardDescription>{description}</CardDescription>}
         </CardHeader>
 
@@ -390,6 +398,7 @@ export default function PersonalTab({
             title="Personal Information"
             description="Your personal details and information"
             isLoading={settingsLoading || sectionLoading.basicPersonal}
+            icon={User}
           >
             <BasicInfoPersonalSection
               formValues={formValues}
@@ -406,28 +415,11 @@ export default function PersonalTab({
       <ErrorBoundary>
         <Suspense fallback={<CardSkeleton />}>
           <CardWithCollapse
-            section="documents"
-            title="Documents & Identity"
-            description="Your identification and document information"
-            isLoading={settingsLoading || sectionLoading.documents}
-          >
-            <DocumentsSection
-              formValues={formValues}
-              handleChange={handleLocalChange}
-              handleSave={handleSectionSave}
-              loading={settingsLoading || sectionLoading.documents}
-            />
-          </CardWithCollapse>
-        </Suspense>
-      </ErrorBoundary>
-
-      <ErrorBoundary>
-        <Suspense fallback={<CardSkeleton />}>
-          <CardWithCollapse
             section="education"
             title="Education"
             description="Your educational background and qualifications"
             isLoading={settingsLoading || sectionLoading.education}
+            icon={Book}
           >
             <EducationSection
               formValues={formValues}
@@ -442,10 +434,30 @@ export default function PersonalTab({
       <ErrorBoundary>
         <Suspense fallback={<CardSkeleton />}>
           <CardWithCollapse
+            section="documents"
+            title="Documents & Identity"
+            description="Your identification and important documents"
+            isLoading={settingsLoading || sectionLoading.documents}
+            icon={FileText}
+          >
+            <DocumentsSection
+              formValues={formValues}
+              handleChange={handleLocalChange}
+              handleSave={handleSectionSave}
+              loading={settingsLoading || sectionLoading.documents}
+            />
+          </CardWithCollapse>
+        </Suspense>
+      </ErrorBoundary>
+
+      <ErrorBoundary>
+        <Suspense fallback={<CardSkeleton />}>
+          <CardWithCollapse
             section="medical"
             title="Medical Information"
-            description="Your health and medical information"
+            description="Your medical history and health information"
             isLoading={settingsLoading || sectionLoading.medical}
+            icon={Activity}
           >
             <MedicalSection
               formValues={formValues}
