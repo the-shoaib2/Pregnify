@@ -18,25 +18,8 @@ import { FormSectionSkeleton, CardSkeleton } from "./components/skeleton"
 // Lazy load form sections with error boundaries
 const BasicInfoPersonalSection = lazy(() => import("./components/sections/basic-info-personal"))
 const DocumentsSection = lazy(() => import("./components/sections/documents"))
-
-// Constants
-const GENDER_OPTIONS = [
-  { value: 'MALE', label: 'Male' },
-  { value: 'FEMALE', label: 'Female' },
-  { value: 'OTHER', label: 'Other' },
-  { value: 'PREFER_NOT_TO_SAY', label: 'Prefer not to say' }
-]
-
-const MARITAL_STATUS_OPTIONS = [
-  { value: 'SINGLE', label: 'Single' },
-  { value: 'MARRIED', label: 'Married' },
-  { value: 'DIVORCED', label: 'Divorced' },
-  { value: 'WIDOWED', label: 'Widowed' }
-]
-
-const BLOOD_GROUPS = [
-  'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'
-]
+const EducationSection = lazy(() => import("./components/sections/education"))
+const MedicalSection = lazy(() => import("./components/sections/medical"))
 
 export default function PersonalTab({
   profile,
@@ -62,6 +45,16 @@ export default function PersonalTab({
       throw new Error("Failed to process personal information")
     }
   }, [profile?.personal])
+
+  // Memoize education data extraction with error handling
+  const education = useMemo(() => {
+    try {
+      return profile?.education || {}
+    } catch (error) {
+      console.error("Error processing education data:", error)
+      throw new Error("Failed to process education information")
+    }
+  }, [profile?.education])
 
   // Memoize form values with error handling
   const [formValues, setFormValues] = useState(() => {
@@ -97,6 +90,20 @@ export default function PersonalTab({
         hobbies: personal?.hobbies || "",
         additionalInfo: personal?.additionalInfo || "",
 
+        // Education Information
+        degree: education?.degree || "",
+        fieldOfStudy: education?.fieldOfStudy || "",
+        qualification: education?.qualification || "",
+        institution: education?.institution || "",
+        yearOfPassing: education?.yearOfPassing || "",
+        gpa: education?.gpa || "",
+
+        // Medical Information
+        allergies: personal?.allergies || "",
+        chronicConditions: personal?.chronicConditions || "",
+        medications: personal?.medications || "",
+        medicalNotes: personal?.medicalNotes || "",
+
         // System Fields
         createdAt: personal?.createdAt || "",
         updatedAt: personal?.updatedAt || "",
@@ -116,13 +123,17 @@ export default function PersonalTab({
   // Track loading states for each section
   const [sectionLoading, setSectionLoading] = useState({
     basicPersonal: false,
-    documents: false
+    documents: false,
+    education: false,
+    medical: false
   })
   
   // Memoize section states
   const [expandedSections, setExpandedSections] = useState({
     basicPersonal: true,
-    documents: true
+    documents: true,
+    education: true,
+    medical: true
   })
 
   // Memoized handlers with error handling
@@ -157,18 +168,29 @@ export default function PersonalTab({
         [section === 'basic-personal' ? 'basicPersonal' : section]: true
       }))
       
-      const sectionData = {
-        personal: {
-          0: {
-            ...formValues,
-            ...data,
-            emergencyContact: personal.emergencyContact,
-            addresses: personal.addresses,
-            identification: personal.identification,
-            emergency: personal.emergency
+      let sectionData = {}
+      
+      if (section === 'education') {
+        sectionData = {
+          education: {
+            ...data
+          }
+        }
+      } else {
+        sectionData = {
+          personal: {
+            0: {
+              ...formValues,
+              ...data,
+              emergencyContact: personal.emergencyContact,
+              addresses: personal.addresses,
+              identification: personal.identification,
+              emergency: personal.emergency
+            }
           }
         }
       }
+      
       await handleSave(sectionData)
       toast.success(`${section} information updated successfully`)
     } catch (error) {
@@ -255,9 +277,6 @@ export default function PersonalTab({
               handleSave={handleSectionSave}
               date={date}
               onDateSelect={handleDateSelect}
-              genderOptions={GENDER_OPTIONS}
-              maritalStatusOptions={MARITAL_STATUS_OPTIONS}
-              bloodGroups={BLOOD_GROUPS}
               loading={settingsLoading || sectionLoading.basicPersonal}
             />
           </CardWithCollapse>
@@ -277,6 +296,42 @@ export default function PersonalTab({
               handleChange={handleLocalChange}
               handleSave={handleSectionSave}
               loading={settingsLoading || sectionLoading.documents}
+            />
+          </CardWithCollapse>
+        </Suspense>
+      </ErrorBoundary>
+
+      <ErrorBoundary>
+        <Suspense fallback={<CardSkeleton />}>
+          <CardWithCollapse
+            section="education"
+            title="Education"
+            description="Your educational background and qualifications"
+            isLoading={settingsLoading || sectionLoading.education}
+          >
+            <EducationSection
+              formValues={formValues}
+              handleChange={handleLocalChange}
+              handleSave={handleSectionSave}
+              loading={settingsLoading || sectionLoading.education}
+            />
+          </CardWithCollapse>
+        </Suspense>
+      </ErrorBoundary>
+
+      <ErrorBoundary>
+        <Suspense fallback={<CardSkeleton />}>
+          <CardWithCollapse
+            section="medical"
+            title="Medical Information"
+            description="Your health and medical information"
+            isLoading={settingsLoading || sectionLoading.medical}
+          >
+            <MedicalSection
+              formValues={formValues}
+              handleChange={handleLocalChange}
+              handleSave={handleSectionSave}
+              loading={settingsLoading || sectionLoading.medical}
             />
           </CardWithCollapse>
         </Suspense>

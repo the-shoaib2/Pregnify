@@ -27,15 +27,31 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
+// Constants
+const GENDER_OPTIONS = [
+  { value: 'MALE', label: 'Male' },
+  { value: 'FEMALE', label: 'Female' },
+  { value: 'OTHER', label: 'Other' },
+  { value: 'PREFER_NOT_TO_SAY', label: 'Prefer not to say' }
+]
+
+const MARITAL_STATUS_OPTIONS = [
+  { value: 'SINGLE', label: 'Single' },
+  { value: 'MARRIED', label: 'Married' },
+  { value: 'DIVORCED', label: 'Divorced' },
+  { value: 'WIDOWED', label: 'Widowed' }
+]
+
+const BLOOD_GROUPS = [
+  'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'
+]
+
 export default function BasicInfoPersonalSection({
   formValues,
   handleChange,
   handleSave,
   date,
   onDateSelect,
-  genderOptions,
-  maritalStatusOptions,
-  bloodGroups,
   loading
 }) {
   const [saving, setSaving] = useState(false)
@@ -152,7 +168,7 @@ export default function BasicInfoPersonalSection({
               <SelectValue placeholder="Select gender" />
             </SelectTrigger>
             <SelectContent>
-              {genderOptions.map((option) => (
+              {GENDER_OPTIONS.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
@@ -162,7 +178,7 @@ export default function BasicInfoPersonalSection({
         </div>
       </div>
     </div>
-  ), [formValues, date, onDateSelect, handleChange, genderOptions])
+  ), [formValues, date, onDateSelect, handleChange])
 
   // Memoize the personal details section for better performance
   const PersonalDetailsFields = useMemo(() => (
@@ -181,7 +197,7 @@ export default function BasicInfoPersonalSection({
               <SelectValue placeholder="Select marital status" />
             </SelectTrigger>
             <SelectContent>
-              {maritalStatusOptions.map((option) => (
+              {MARITAL_STATUS_OPTIONS.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
@@ -201,7 +217,7 @@ export default function BasicInfoPersonalSection({
               <SelectValue placeholder="Select blood group" />
             </SelectTrigger>
             <SelectContent>
-              {bloodGroups.map((group) => (
+              {BLOOD_GROUPS.map((group) => (
                 <SelectItem key={group} value={group}>
                   {group}
                 </SelectItem>
@@ -239,7 +255,7 @@ export default function BasicInfoPersonalSection({
         />
       </div>
     </div>
-  ), [formValues, handleChange, maritalStatusOptions, bloodGroups])
+  ), [formValues, handleChange, MARITAL_STATUS_OPTIONS, BLOOD_GROUPS])
 
   // Memoize the save button for better performance
   const SaveButton = useMemo(() => (
