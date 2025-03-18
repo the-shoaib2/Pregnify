@@ -2,7 +2,7 @@ import CryptoJS from 'crypto-js'
 import { memoize } from 'lodash'
 
 // Cache configuration
-const CACHE_DURATION = 15 * 24 * 60 * 1000 // 15 minutes
+const CACHE_DURATION = 15 * 24 * 60 * 1000 // 15 days
 const AUTH_CACHE_KEY = 'auth_cache'
 const MIN_REFRESH_INTERVAL = 2000 // 2 seconds between refreshes
 // Encryption configuration

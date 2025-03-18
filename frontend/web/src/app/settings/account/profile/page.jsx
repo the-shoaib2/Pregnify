@@ -13,6 +13,8 @@ const ProfileHeader = lazy(() => import("@/app/settings/account/profile/componen
   .then(module => ({ default: module.ProfileHeader }))
 )
 
+const StatsOverview = lazy(() => import("@/app/settings/account/profile/components/statistics-overview/page"))
+
 const ProfileCompletionCard = lazy(() => import("./tabs/personal/components/profile-completion/page"))
 
 // Preload tab components with improved error handling
@@ -26,6 +28,7 @@ const preloadComponents = () => {
   // Preload all components in parallel
   const preloads = [
     import("@/app/settings/account/profile/components/profile-header/page"),
+    import("@/app/settings/account/profile/components/statistics-overview/page"),
     import("./tabs/personal/components/profile-completion/page"),
     import("./tabs/personal/page"),
     import("./tabs/account/page"),
@@ -197,6 +200,19 @@ export default function ProfilePage() {
                 />
               </Suspense>
             </ErrorBoundary>
+            {/* Stats Overview and Profile Completion Cards */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <ErrorBoundary>
+                <Suspense fallback={<CardSkeleton />}>
+                  <StatsOverview user={user} isLoading={isLoading} />
+                </Suspense>
+              </ErrorBoundary>
+            </div>
+
+            {/* PhotosTab  */}
+
+
+            
 
             <Tabs 
               defaultValue="personal" 
@@ -296,8 +312,11 @@ export default function ProfilePage() {
               </TabsContent>
             </Tabs>
 
-            <ErrorBoundary>
-              <Suspense fallback={<CardSkeleton />}>
+           
+
+
+              <ErrorBoundary>
+                <Suspense fallback={<CardSkeleton />}>
                 {hasProfileData ? (
                   <ProfileCompletionCard 
                     profile={profileData} 
@@ -306,9 +325,9 @@ export default function ProfilePage() {
                 ) : (
                   <CardSkeleton />
                 )}
-              </Suspense>
-            </ErrorBoundary>
-          </div>
+                </Suspense>
+              </ErrorBoundary>
+            </div>
         )}
       </div>
     </ErrorBoundary>
