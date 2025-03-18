@@ -1,5 +1,4 @@
 import api from '../api'
-import { memoize, debounce } from 'lodash'
 
 // Export the constants
 export const FileType = {
@@ -18,7 +17,6 @@ export const FileCategory = {
   EVENT: 'EVENT',
   STORY: 'STORY',
   MESSAGE: 'MESSAGE',
-  NOTIFICATION: 'NOTIFICATION',
   NOTIFICATION: 'NOTIFICATION'
 }
 
@@ -48,7 +46,41 @@ export const ReactionType = {
   SUPPORT: 'SUPPORT'
 }
 
+const handleApiError = (error, defaultMessage) => {
+  console.error(defaultMessage, error)
+  const errorMessage = error.response?.data?.message || defaultMessage
+  throw new Error(errorMessage)
+}
+
 export const MediaService = {
+  getFiles:async () => {
+    try {
+      const response = await api.get('/media/files')
+      console.log("API :",response)
+      return { data: response.data?.data || [] }
+    } catch (error) {
+      handleApiError(error, 'Failed to fetch files')
+    }
+  },
+
+  getFilesByType: async (fileType) => {
+    try {
+      const response = await api.get(`/media/files/type/${fileType}`)
+      return { data: response.data?.data || [] }
+    } catch (error) {
+      handleApiError(error, 'Failed to fetch files')
+    }
+  },
+
+  getFilesByCategory: async (category) => {
+    try {
+      const response = await api.get(`/media/files/category/${category}`)
+      return { data: response.data?.data || [] }
+    } catch (error) {
+      handleApiError(error, 'Failed to fetch files')
+    }
+  },
+
   fileUpload: async (file, options = {}) => {
     try {
       if (!file) {
@@ -56,46 +88,31 @@ export const MediaService = {
       }
 
       const formData = new FormData()
-
-      // Add file
       formData.append('file', file)
-
-      // Required fields - use encodeURIComponent for values
-      formData.append('fileType', encodeURIComponent('IMAGE'))
-      formData.append('fileCategory', encodeURIComponent(options.fileCategory))
-      formData.append('visibility', encodeURIComponent('PUBLIC'))
-      formData.append('title', encodeURIComponent(' '))
-
-      // Optional fields
-      formData.append('description', encodeURIComponent(options.description || ''))
-      formData.append('allowComments', encodeURIComponent('true'))
-      formData.append('allowSharing', encodeURIComponent('true'))
-      formData.append('allowDownload', encodeURIComponent('true'))
-      formData.append('customAudience', encodeURIComponent('""'))
-
-      // Log the request
-      const requestData = {}
-      formData.forEach((value, key) => {
-        requestData[key] = value instanceof File ? `File: ${value.name}` : value
-      })
-      console.log('Request data:', requestData)
-
-      const response = await api.post('/media/upload/image', formData, {
+      
+      // Required fields
+      formData.append('type', FileType.IMAGE)
+      formData.append('category', options.fileCategory || FileCategory.POST)
+      
+      const response = await api.post('/media/upload', formData, {
         headers: {
-          'Content-Type': 'multipart/form-data; boundary=----WebKitFormBoundary' + Math.random().toString(36).substring(2),
+          'Content-Type': 'multipart/form-data'
         },
-        transformRequest: [(data) => data],
         onUploadProgress: options.onProgress
       })
 
       return response
     } catch (error) {
-      if (error.response?.data) {
-        const match = error.response.data.match(/Error: ([^<]+)/)
-        const message = match ? match[1].trim() : 'Upload failed'
-        throw new Error(message)
-      }
-      throw error
+      handleApiError(error, 'Failed to upload file')
+    }
+  },
+
+  deleteImage: async (imageId) => {
+    try {
+      const response = await api.delete(`/media/files/${imageId}`)
+      return response
+    } catch (error) {
+      handleApiError(error, 'Failed to delete image')
     }
   },
 
@@ -103,7 +120,6 @@ export const MediaService = {
   getAllImages: () => api.get('/media/images'),
   getImageById: (imageId) => api.get(`/media/files/${imageId}`),
   updateImage: (imageId, updateData) => api.put(`/media/files/${imageId}`, updateData),
-  deleteImage: (imageId) => api.delete(`/media/files/${imageId}`),
   addReaction: (imageId, type) => api.post(`/media/files/react/${imageId}`, { type }),
   addComment: (imageId, content) => api.post(`/media/files/comment/${imageId}`, { content }),
   
@@ -139,4 +155,4 @@ export const MediaService = {
   deleteMedia: (mediaId) => api.delete(`/media/${mediaId}`),
 }
 
-export default MediaService 
+export default MediaService

@@ -141,7 +141,6 @@ const validateUsername = (username) => {
   if (!username) return { valid: false, message: "Username is required" };
   if (username.length < 3) return { valid: false, message: "Username must be at least 3 characters" };
   if (username.length > 20) return { valid: false, message: "Username must be less than 20 characters" };
-  if (!/^[a-zA-Z0-9_]+$/.test(username)) return { valid: false, message: "Username can only contain letters, numbers, and underscores" };
   return { valid: true, message: "Username is valid" };
 };
 
