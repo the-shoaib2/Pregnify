@@ -126,43 +126,6 @@ export const MediaService = {
     }
   },
 
-  deleteImage: async (imageId) => {
-    try {
-      const response = await api.delete(`/media/files/${imageId}`)
-      return response
-    } catch (error) {
-      handleApiError(error, 'Failed to delete image')
-    }
-  },
-
-  // API endpoints
-  getAllImages: async () => {
-    try {
-      const response = await api.get('/media/images')
-      return { data: response.data?.data || [] }
-    } catch (error) {
-      handleApiError(error, 'Failed to fetch images')
-    }
-  },
-
-  getImageById: async (imageId) => {
-    try {
-      const response = await api.get(`/media/files/${imageId}`)
-      return { data: response.data?.data || null }
-    } catch (error) {
-      handleApiError(error, 'Failed to fetch image')
-    }
-  },
-
-  updateImage: async (imageId, updateData) => {
-    try {
-      const response = await api.put(`/media/files/${imageId}`, updateData)
-      return { data: response.data?.data || null }
-    } catch (error) {
-      handleApiError(error, 'Failed to update image')
-    }
-  },
-
   addReaction: async (imageId, type) => {
     try {
       const response = await api.post(`/media/files/react/${imageId}`, { type })

@@ -48,12 +48,12 @@ export function ProfileTabs({
         >
           Personal
         </TabsTrigger>
-        <TabsTrigger 
+        {/* <TabsTrigger 
           value="images"
           className="w-full"
         >
           Images
-        </TabsTrigger>
+        </TabsTrigger> */}
         <TabsTrigger 
           value="account"
           className="w-full"

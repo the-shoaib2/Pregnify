@@ -254,7 +254,9 @@ export default function ProfilePage() {
 
   return (
     <ErrorBoundary FallbackComponent={ComponentErrorFallback}>
-      <div className="container mx-auto py-6 space-y-8">
+      {/* //Dont chage this */}
+      <div className="container mx-auto p-0 space-y-0">   
+        {/* Profile Skeleton */}
         {isLoading ? (
           <ProfileSkeleton />
         ) : (

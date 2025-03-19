@@ -67,15 +67,7 @@ export const ImageView = ({ image, onClose, onUpdate }) => {
   }
 
   if (loading) {
-    return (
-      <Card className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
-        <div className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-4xl translate-x-[-50%] translate-y-[-50%] gap-3 border bg-background p-4 shadow-lg duration-200 sm:rounded-lg">
-          <div className="flex items-center justify-center h-[400px]">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        </div>
-      </Card>
-    )
+    return 
   }
 
   return (

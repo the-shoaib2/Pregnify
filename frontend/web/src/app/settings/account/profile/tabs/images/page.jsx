@@ -22,7 +22,6 @@ export const PhotoGallery = () => {
   const [images, setImages] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedImage, setSelectedImage] = useState(null)
-  const [showImageDialog, setShowImageDialog] = useState(false)
   const [activeTab, setActiveTab] = useState("all")
   const [isHeaderVisible, setIsHeaderVisible] = useState(true)
   const [refreshKey, setRefreshKey] = useState(0)
@@ -113,9 +112,11 @@ export const PhotoGallery = () => {
   }, [])
 
   // Handle image viewing
+  // Replace showImageDialog with open for consistency with Dialog component
+  const [open, setOpen] = useState(false)
   const handleView = useCallback((image) => {
     setSelectedImage(image)
-    setShowImageDialog(true)
+    setOpen(true)
   }, [])
 
   return (
@@ -172,20 +173,19 @@ export const PhotoGallery = () => {
         <Suspense fallback={<div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <Skeleton className="w-[400px] h-[300px] rounded-lg" />
         </div>}>
-          {showImageDialog && (
-            <LazyImageView
-              image={selectedImage}
-              onClose={() => setShowImageDialog(false)}
-              onUpdate={(updatedImage) => {
-                setImages(prevImages =>
-                  prevImages.map(img =>
-                    img.id === updatedImage.id ? updatedImage : img
-                  )
+          <LazyImageView
+            image={selectedImage}
+            onClose={() => setOpen(false)}
+            onUpdate={(updatedImage) => {
+              setImages(prevImages =>
+                prevImages.map(img =>
+                  img.id === updatedImage.id ? updatedImage : img
                 )
-                setSelectedImage(updatedImage)
-              }}
-            />
-          )}
+              )
+              setSelectedImage(updatedImage)
+            }}
+            open={open}
+          />
         </Suspense>
       </ErrorBoundary>
     </Card>
