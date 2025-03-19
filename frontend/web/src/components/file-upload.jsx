@@ -1,7 +1,7 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, lazy, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Upload, Loader2, X, Share2, Download, MessageSquare, Globe, Lock, Users, Settings } from "lucide-react"
-import ReactCrop from 'react-image-crop'
+const ReactCrop = lazy(() => import('react-image-crop'))
 import { useDropzone } from 'react-dropzone'
 import { Switch } from "@/components/ui/switch"
 import {
@@ -268,13 +268,14 @@ export function FileUpload({
                 )}
                 <AspectRatio ratio={aspect}>
                   <div className="h-full max-h-[350px] overflow-auto">
-                    <ReactCrop
-                      crop={crop}
-                      onChange={c => setCrop(c)}
-                      aspect={aspect}
-                      circularCrop={circular}
-                      className="relative"
-                    >
+                    <Suspense fallback={<div className="h-[350px] w-full animate-pulse rounded-lg bg-muted" />}>
+                      <ReactCrop
+                        crop={crop}
+                        onChange={c => setCrop(c)}
+                        aspect={aspect}
+                        circularCrop={circular}
+                        className="relative"
+                      >
                       <img
                         src={imgSrc}
                         alt="Crop me"
@@ -283,6 +284,7 @@ export function FileUpload({
                         onLoad={handleImageLoad}
                       />
                     </ReactCrop>
+                    </Suspense>
                   </div>
                 </AspectRatio>
                 <div className="absolute left-4 top-4 rounded-md bg-background/80 px-2 py-1 text-xs backdrop-blur-sm">
@@ -497,4 +499,4 @@ export function FileUpload({
       />
     </>
   )
-} 
+}

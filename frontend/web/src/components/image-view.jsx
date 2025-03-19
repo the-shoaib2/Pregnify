@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, lazy, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -27,7 +27,8 @@ import {
   Maximize2,
   Pencil
 } from "lucide-react"
-import { handleImageDownload, handleImageShare } from "@/lib/image-utils"
+const handleImageDownload = lazy(() => import("@/lib/image-utils").then(module => ({ default: module.handleImageDownload })))
+const handleImageShare = lazy(() => import("@/lib/image-utils").then(module => ({ default: module.handleImageShare })))
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -90,12 +91,26 @@ export function ImageDialog({
   const quickActions = [
     {
       icon: Download,
-      onClick: () => handleImageDownload(image, title),
+      onClick: () => {
+        const LoadedComponent = handleImageDownload
+        return (
+          <Suspense fallback={null}>
+            <LoadedComponent image={image} title={title} />
+          </Suspense>
+        )
+      },
       disabled: loading
     },
     {
       icon: Share2,
-      onClick: () => handleImageShare(image, title),
+      onClick: () => {
+        const LoadedComponent = handleImageShare
+        return (
+          <Suspense fallback={null}>
+            <LoadedComponent image={image} title={title} />
+          </Suspense>
+        )
+      },
       disabled: loading
     },
     {
@@ -263,4 +278,4 @@ function PrivacyMenu({ privacy, setPrivacy, disabled }) {
       </DropdownMenuContent>
     </DropdownMenu>
   )
-} 
+}

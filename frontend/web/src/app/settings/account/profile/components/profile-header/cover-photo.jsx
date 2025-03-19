@@ -60,7 +60,9 @@ const CoverPhotoUpload = memo(({ user, onUpload, loading, onClick }) => {
                   e.target.onerror = null
                   setImageLoaded(true)
                 }}
-                loading="lazy"
+                loading="eager"
+                fetchpriority="high"
+                decoding="sync"
               />
               <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/20 group-hover:opacity-100">
                 <Eye className="h-6 w-6 text-white" />

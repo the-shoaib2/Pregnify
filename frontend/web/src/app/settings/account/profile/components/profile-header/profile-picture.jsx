@@ -55,8 +55,10 @@ const ProfilePicture = memo(({ user, onUpload, loading, onClick }) => {
                 showStatus={false}
                 onLoad={() => setImageLoaded(true)}
                 onError={() => setImageLoaded(true)}
-                useThumb={false}
+                useThumb={true}
                 priority={true}
+                loading="eager"
+                fetchPriority="high"
               />
             </div>
             
