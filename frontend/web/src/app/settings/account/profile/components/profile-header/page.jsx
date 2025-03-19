@@ -23,7 +23,15 @@ const ProfileHeader = memo(({
   // Use the profile data passed from parent component
   const userData = useMemo(() => {
     // Ensure we have a valid data object to work with
-    return parentProfileData || profile?.data || user || {}
+    const data = parentProfileData || profile?.data || user || {}
+    return {
+      ...data,
+      basicInfo: {
+        ...data.basicInfo,
+        ...data.personalInfo, // Merge personalInfo into basicInfo for consistency
+        name: data.basicInfo?.name || data.personalInfo?.name || {}
+      }
+    }
   }, [parentProfileData, profile?.data, user])
 
   const handleAvatarUpload = async (file) => {

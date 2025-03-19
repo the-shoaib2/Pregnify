@@ -14,7 +14,17 @@ const ProfilePicture = memo(({ user, onUpload, loading, onClick }) => {
   const [showView, setShowView] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
   
-  const userData = useMemo(() => user?.data || user, [user])
+  const userData = useMemo(() => {
+    const data = user?.data || user || {}
+    return {
+      ...data,
+      basicInfo: {
+        ...data.basicInfo,
+        ...data.personalInfo,
+        avatar: data.basicInfo?.avatar || data.personalInfo?.avatar
+      }
+    }
+  }, [user])
 
   // Handle click event with optional callback
   const handleClick = (e) => {
@@ -46,6 +56,7 @@ const ProfilePicture = memo(({ user, onUpload, loading, onClick }) => {
                 onLoad={() => setImageLoaded(true)}
                 onError={() => setImageLoaded(true)}
                 useThumb={false}
+                priority={true}
               />
             </div>
             

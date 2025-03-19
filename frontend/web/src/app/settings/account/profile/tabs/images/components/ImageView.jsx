@@ -2,10 +2,8 @@ import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { AspectRatio } from "@/components/ui/aspect-ratio"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Pencil, Save, X } from "lucide-react"
+import { Pencil, Save, X, Heart, Share2, Download, ThumbsUp } from "lucide-react"
 import { toast } from "react-hot-toast"
 import { MediaService } from "@/services/media"
 import CommentBox from "./comments/CommentBox"
@@ -14,10 +12,14 @@ export const ImageView = ({ image, onClose, onUpdate }) => {
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(true)
   const [imageData, setImageData] = useState(null)
+  const [reactions, setReactions] = useState({
+    likes: 0,
+    loves: 0,
+    shares: 0,
+    downloads: 0
+  })
   const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    category: ""
+    description: ""
   })
 
   useEffect(() => {
@@ -96,6 +98,40 @@ export const ImageView = ({ image, onClose, onUpdate }) => {
                 className="object-contain w-full h-full rounded-md"
               />
             </AspectRatio>
+            <div className="absolute bottom-0 left-0 right-0 flex justify-center gap-3 p-3 bg-gradient-to-t from-black/50 to-transparent">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-white hover:text-primary hover:bg-white/20 group"
+              >
+                <ThumbsUp className="h-4 w-4 mr-1" />
+                <span className="text-xs">{reactions.likes}</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-white hover:text-red-500 hover:bg-white/20 group"
+              >
+                <Heart className="h-4 w-4 mr-1" />
+                <span className="text-xs">{reactions.loves}</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-white hover:text-blue-500 hover:bg-white/20 group"
+              >
+                <Share2 className="h-4 w-4 mr-1" />
+                <span className="text-xs">{reactions.shares}</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-white hover:text-green-500 hover:bg-white/20 group"
+              >
+                <Download className="h-4 w-4 mr-1" />
+                <span className="text-xs">{reactions.downloads}</span>
+              </Button>
+            </div>
           </div>
 
           {/* Right side - Information */}
@@ -120,16 +156,7 @@ export const ImageView = ({ image, onClose, onUpdate }) => {
             <div className="space-y-2.5">
               {isEditing ? (
                 <>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Title</label>
-                    <Input
-                      name="title"
-                      value={formData.title}
-                      onChange={handleInputChange}
-                      placeholder="Enter image title"
-                      className="h-8"
-                    />
-                  </div>
+                  
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium">Description</label>
                     <Textarea
@@ -155,18 +182,8 @@ export const ImageView = ({ image, onClose, onUpdate }) => {
               ) : (
                 <>
                   <div>
-                    <span className="text-xs text-muted-foreground">Title</span>
-                    <p className="text-sm font-medium mt-0.5">{image.title || "Untitled"}</p>
-                  </div>
-                  <div>
                     <span className="text-xs text-muted-foreground">Description</span>
                     <p className="text-sm mt-0.5">{image.description || "No description"}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs text-muted-foreground">Category</span>
-                    <Badge variant="outline" className="mt-1 text-xs">
-                      {image.category || "Uncategorized"}
-                    </Badge>
                   </div>
                   <div>
                     <span className="text-xs text-muted-foreground">Upload Date</span>

@@ -12,7 +12,17 @@ const CoverPhotoUpload = memo(({ user, onUpload, loading, onClick }) => {
   const [showView, setShowView] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
   
-  const userData = useMemo(() => user?.data || user, [user])
+  const userData = useMemo(() => {
+    const data = user?.data || user || {}
+    return {
+      ...data,
+      basicInfo: {
+        ...data.basicInfo,
+        ...data.personalInfo,
+        cover: data.basicInfo?.cover || data.personalInfo?.cover
+      }
+    }
+  }, [user])
   
   const coverPhotoUrl = useMemo(() => 
     userData?.basicInfo?.cover,

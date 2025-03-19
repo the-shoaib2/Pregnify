@@ -26,6 +26,23 @@ export const PhotoGallery = () => {
   const [activeTab, setActiveTab] = useState("all")
   const [isHeaderVisible, setIsHeaderVisible] = useState(true)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [mediaEnums, setMediaEnums] = useState(null)
+
+  // Fetch media enums when component mounts and mediaEnums is null
+  useEffect(() => {
+    const fetchMediaEnums = async () => {
+      if (mediaEnums === null) {
+        try {
+          const response = await MediaService.getMediaEnums()
+          setMediaEnums(response.data)
+        } catch (error) {
+          console.error("Error fetching media enums:", error)
+          toast.error("Failed to load media settings")
+        }
+      }
+    }
+    fetchMediaEnums()
+  }, [mediaEnums])
 
   // Toggle header visibility
   const toggleHeader = () => setIsHeaderVisible(prev => !prev)
@@ -45,6 +62,7 @@ export const PhotoGallery = () => {
       } else {
         // Fetch all images
         response = await MediaService.getFilesByType(FileType.IMAGE)
+        
       }
 
       // Process and normalize the data
