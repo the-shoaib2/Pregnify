@@ -56,8 +56,17 @@ export const MediaService = {
   getFiles:async () => {
     try {
       const response = await api.get('/media/files')
-      console.log("API :",response)
+      console.log("API /media/files :",response)
       return { data: response.data?.data || [] }
+    } catch (error) {
+      handleApiError(error, 'Failed to fetch files')
+    }
+  },
+  getFilesById: async (fileId) => {
+    try {
+      const response = await api.get(`/media/files/${fileId}`)
+      console.log("API /media/files/${fileId}  :",response)
+      return { data: response.data?.data || null }
     } catch (error) {
       handleApiError(error, 'Failed to fetch files')
     }
@@ -117,11 +126,50 @@ export const MediaService = {
   },
 
   // API endpoints
-  getAllImages: () => api.get('/media/images'),
-  getImageById: (imageId) => api.get(`/media/files/${imageId}`),
-  updateImage: (imageId, updateData) => api.put(`/media/files/${imageId}`, updateData),
-  addReaction: (imageId, type) => api.post(`/media/files/react/${imageId}`, { type }),
-  addComment: (imageId, content) => api.post(`/media/files/comment/${imageId}`, { content }),
+  getAllImages: async () => {
+    try {
+      const response = await api.get('/media/images')
+      return { data: response.data?.data || [] }
+    } catch (error) {
+      handleApiError(error, 'Failed to fetch images')
+    }
+  },
+
+  getImageById: async (imageId) => {
+    try {
+      const response = await api.get(`/media/files/${imageId}`)
+      return { data: response.data?.data || null }
+    } catch (error) {
+      handleApiError(error, 'Failed to fetch image')
+    }
+  },
+
+  updateImage: async (imageId, updateData) => {
+    try {
+      const response = await api.put(`/media/files/${imageId}`, updateData)
+      return { data: response.data?.data || null }
+    } catch (error) {
+      handleApiError(error, 'Failed to update image')
+    }
+  },
+
+  addReaction: async (imageId, type) => {
+    try {
+      const response = await api.post(`/media/files/react/${imageId}`, { type })
+      return { data: response.data?.data || null }
+    } catch (error) {
+      handleApiError(error, 'Failed to add reaction')
+    }
+  },
+
+  addComment: async (imageId, content) => {
+    try {
+      const response = await api.post(`/media/files/comment/${imageId}`, { content })
+      return { data: response.data?.data || null }
+    } catch (error) {
+      handleApiError(error, 'Failed to add comment')
+    }
+  },
   
   shareImage: (imageId, shareData) => {
     return api.post(`/media/files/share/${imageId}`, {

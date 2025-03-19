@@ -3,145 +3,19 @@
 import React, { useState, useEffect, useCallback, Suspense } from "react"
 import ErrorBoundary from "@/components/error-boundary"
 import { MediaService, FileType, FileCategory } from "@/services/media"
-import { Button } from "@/components/ui/button"
 import { toast } from "react-hot-toast"
-import {
-  Card,
-  CardFooter,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { AspectRatio } from "@/components/ui/aspect-ratio"
-import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
-import {
-  Image,
-  Trash2,
-  Share2,
-  Eye,
+import { Image } from "lucide-react"
 
-} from "lucide-react"
-
-
-// Image card component for displaying individual images
-const ImageCard = ({ image, onView, onDelete, onShare }) => {
-  const [isHovered, setIsHovered] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-
-  const handleImageLoad = () => {
-    setIsLoading(false)
-  }
-
-  const handleImageError = (e) => {
-    console.error("Image failed to load:", e)
-    setIsLoading(false)
-    e.target.src = "/avatars/default.jpg"
-  }
-
-  return (
-    <Card
-      className={cn("overflow-hidden transition-all duration-200 aspect-square rounded-none", {
-        isHovered,
-      })}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <div className="relative h-full">
-        <AspectRatio ratio={1 / 1} className="h-full">
-          {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-muted">
-              <Skeleton className="h-full w-full" />
-            </div>
-          )}
-          <img
-            src={image.url}
-            alt={image.title || "Image"}
-            className={cn(
-              "object-cover w-full h-full transition-opacity duration-300",
-              isLoading ? "opacity-0" : "opacity-100"
-            )}
-            onLoad={handleImageLoad}
-            onError={handleImageError}
-          />
-        </AspectRatio>
-        {/*  Image actions overlay */}
-        {isHovered && (
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-2">
-            <Button
-              size="icon"
-              variant="secondary"
-              className="h-8 w-8 rounded-full"
-              onClick={() => onView(image)}
-            >
-              <Eye className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant="secondary"
-              className="h-8 w-8 rounded-full"
-              onClick={() => onShare(image)}
-            >
-              <Share2 className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant="destructive"
-              className="h-8 w-8 rounded-full"
-              onClick={() => onDelete(image)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-      </div>
-      <CardFooter className="p-2 flex justify-between items-center">
-        <div className="truncate text-xs">
-          {image.title || "Untitled"}
-        </div>
-        <Badge variant="outline" className="text-xs">
-          {new Date(image.createdAt || Date.now()).toLocaleDateString()}
-        </Badge>
-      </CardFooter>
-    </Card>
-  )
-}
-
-// Empty state component when no images are available
-const EmptyState = () => (
-  <Card className="w-full p-8 flex flex-col items-center justify-center">
-    <div className="rounded-full bg-muted p-6 mb-4">
-      <Image className="h-12 w-12 text-muted-foreground" />
-    </div>
-    <CardTitle className="mb-2">No photos yet</CardTitle>
-    <CardDescription className="text-center mb-6">
-      Your photo gallery is currently empty
-    </CardDescription>
-  </Card>
-)
-
-// Loading skeleton for the gallery
-const GallerySkeleton = () => (
-  <div className="space-y-6 animate-pulse">
-
-    
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-      {Array(8)
-        .fill(0)
-        .map((_, i) => (
-          <Card key={i} className="overflow-hidden transition-all duration-300 hover:shadow-lg">
-            <AspectRatio ratio={1 / 1}>
-              <Skeleton className="h-full w-full bg-gradient-to-br from-muted/50 via-muted/70 to-muted/50 animate-gradient" />
-            </AspectRatio>
-          </Card>
-        ))}
-    </div>
-  </div>
-)
+// Import separated components
+import ImageCard from "./components/ImageCard"
+import EmptyState from "./components/EmptyState"
+import GallerySkeleton from "./components/GallerySkeleton"
 
 // Lazy loaded components
-const LazyImageDialog = React.lazy(() => import("@/components/image-view").then(mod => ({ default: mod.ImageDialog })))
+const LazyImageView = React.lazy(() => import("./components/ImageView"))
 
 // Main PhotoGallery component
 export const PhotoGallery = () => {
@@ -275,18 +149,25 @@ export const PhotoGallery = () => {
         <EmptyState />
       )}
 
-      {/* Image View Dialog */}
+      {/* Image View Component */}
       <ErrorBoundary>
         <Suspense fallback={<div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <Skeleton className="w-[400px] h-[300px] rounded-lg" />
         </div>}>
-          <LazyImageDialog
-            image={selectedImage}
-            isOpen={showImageDialog}
-            onClose={() => setShowImageDialog(false)}
-            title={selectedImage?.title || "View Image"}
-            description={selectedImage?.description || ""}
-          />
+          {showImageDialog && (
+            <LazyImageView
+              image={selectedImage}
+              onClose={() => setShowImageDialog(false)}
+              onUpdate={(updatedImage) => {
+                setImages(prevImages =>
+                  prevImages.map(img =>
+                    img.id === updatedImage.id ? updatedImage : img
+                  )
+                )
+                setSelectedImage(updatedImage)
+              }}
+            />
+          )}
         </Suspense>
       </ErrorBoundary>
     </Card>
