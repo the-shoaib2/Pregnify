@@ -53,7 +53,7 @@ const StatsOverview = lazy(() =>
 )
 
 const ImageCard = lazy(() => 
-  import("@/app/settings/account/profile/components/images-preview/image-preview").then(module => ({
+  import("@/app/settings/account/profile/components/images-preview/page").then(module => ({
     default: module.ImageCard
   }))
 )
