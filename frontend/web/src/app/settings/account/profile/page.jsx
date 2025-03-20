@@ -12,8 +12,8 @@ import { ProfileHeaderSkeleton } from "./components/profile-header-skeleton"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Camera } from "lucide-react"
-import { ProfileTabs } from "./components/profile-tabs/page"
-import { ImageCard } from "./components/images-preview/image-preview"
+// import { ProfileTabs } from "./components/profile-tabs/page"
+// import { ImageCard } from "./components/images-preview/image-preview"
 
 // Custom error fallback component for lazy-loaded components
 function ComponentErrorFallback({ error, resetErrorBoundary }) {
@@ -43,203 +43,119 @@ function GallerySkeleton() {
   )
 }
 
-// Preload components with improved loading strategy
-const ProfileHeader = lazy(() =>
-  import("./components/profile-header/page")
-    .then(module => ({ default: module.ProfileHeader }))
-    .catch(error => {
-      console.error("Error loading ProfileHeader:", error)
-      toast.error("Failed to load profile header")
-      throw error
-    })
+// Lazy load components properly
+const ProfileHeader = lazy(() => 
+  import("./components/profile-header/page").then(module => ({
+    default: module.ProfileHeader
+  }))
 )
 
-const StatsOverview = lazy(() =>
-  import("./components/statistics-overview/page")
-    .catch(error => {
-      console.error("Error loading StatsOverview:", error)
-      toast.error("Failed to load stats overview")
-      throw error
-    })
+const StatsOverview = lazy(() => 
+  import("./components/statistics-overview/page").then(module => ({
+    default: module.default
+  }))
 )
 
-const PhotoGallery = lazy(() =>
-  import("./tabs/images/page")
-    .then(module => {
-      if (!module.default) {
-        throw new Error('PhotoGallery component not found')
-      }
-      return { default: module.default }
-    })
-    .catch(error => {
-      console.error("Error loading PhotoGallery:", error)
-      toast.error("Failed to load photo gallery")
-      throw error
-    })
+const ImageCard = lazy(() => 
+  import("./components/images-preview/image-preview").then(module => ({
+    default: module.ImageCard
+  }))
 )
 
-const ProfileCompletionCard = lazy(() =>
-  import("./tabs/personal/components/profile-completion/page")
-    .catch(error => {
-      console.error("Error loading ProfileCompletionCard:", error)
-      toast.error("Failed to load profile completion card")
-      throw error
-    })
+const ProfileTabs = lazy(() => 
+  import("./components/profile-tabs/page").then(module => ({
+    default: module.ProfileTabs
+  }))
 )
 
-const PersonalTab = lazy(() => import("./tabs/personal/page"))
-const AccountTab = lazy(() => import("./tabs/account/page"))
-const ContactTab = lazy(() => import("./tabs/contact/page"))
-const ActivityTab = lazy(() => import("./tabs/activity/page"))
+const PhotoGallery = lazy(() => 
+  import("./tabs/images/page").then(module => ({
+    default: module.default
+  }))
+)
+
+// Lazy load tab components
+const TabComponents = {
+  personal: lazy(() => import("./tabs/personal/page")),
+  account: lazy(() => import("./tabs/account/page")),
+  contact: lazy(() => import("./tabs/contact/page")),
+  activity: lazy(() => import("./tabs/activity/page"))
+}
 
 export default function ProfilePage() {
-  const { user, refreshData } = useAuth()
-  const [profile, setProfile] = useState();
-  const { loading: settingsLoading, fetchProfile } = useSettings()
-
-  const [state, setState] = useState({
+  // Memoize initial states
+  const initialState = useMemo(() => ({
     pageLoading: true,
     isUpdating: false,
     uploadingImage: false,
     uploadingCover: false,
     initialized: false,
-    error: null,
-    componentsPreloaded: false,
-    dataFetched: false
-  })
+    error: null
+  }), [])
 
-  const [activeTab, setActiveTab] = useState('personal')
+  const [state, setState] = useState(initialState)
+  const { user } = useAuth()
+  const { loading: settingsLoading, fetchProfile } = useSettings()
+  const [profile, setProfile] = useState()
+  const [activeTab, setActiveTab] = useState("personal")
   const [showPhotoGallery, setShowPhotoGallery] = useState(false)
 
-  // Memoize profile data with better error handling
-  const profileData = useMemo(() => {
+  // Memoize profile data
+  const profileData = useMemo(() => profile?.data || {}, [profile])
+  const hasProfileData = useMemo(() => Object.keys(profileData).length > 0, [profileData])
+
+  // Optimize data fetching
+  const fetchData = useCallback(async () => {
     try {
-      const data = profile?.data || {}
-      return data
+      setState(prev => ({ ...prev, pageLoading: true }))
+      const data = await fetchProfile()
+      setProfile(data)
     } catch (error) {
-      console.error("Error processing profile data:", error)
-      return {}
-    }
-  }, [profile?.data])
-
-  // Check if profile data is available with better null handling
-  const hasProfileData = useMemo(() => {
-    return profileData && Object.keys(profileData).length > 0
-  }, [profileData])
-
-  // Preload components when the app starts
-  useEffect(() => {
-    if (!state.componentsPreloaded) {
-      const preloadComponents = async () => {
-        try {
-          // Preload all components in parallel with better error handling
-          const preloads = [
-            import("./components/profile-header/page"),
-            import("./components/statistics-overview/page"),
-            import("./tabs/images/page"),
-            import("./tabs/personal/components/profile-completion/page"),
-            import("./tabs/personal/page"),
-            import("./tabs/account/page"),
-            import("./tabs/contact/page"),
-            import("./tabs/activity/page")
-          ]
-
-          await Promise.all(preloads.map(p =>
-            p.catch(error => {
-              console.error("Error preloading component:", error)
-              return null // Continue loading other components
-            })
-          ))
-
-          setState(prev => ({ ...prev, componentsPreloaded: true }))
-        } catch (error) {
-          console.error("Error preloading components:", error)
-          setState(prev => ({ ...prev, error: error.message }))
-          toast.error("Failed to load some components. Please refresh the page.")
-        } finally {
-          setState(prev => ({ ...prev, loading: false }))
-        }
-      }
-
-      preloadComponents()
-    }
-  }, [state.componentsPreloaded])
-
-  // Initialize profile data with better error handling and immediate data fetching
-  useEffect(() => {
-    const initializeProfile = async () => {
-      try {
-        // Always fetch profile data on component mount
-        const profileResponse = await fetchProfile(true)
-        setProfile(profileResponse)
-        setState(prev => ({
-          ...prev,
-          initialized: true,
-          pageLoading: false,
-          dataFetched: true
-        }))
-      } catch (error) {
-        console.error("Error initializing profile:", error)
-        setState(prev => ({
-          ...prev,
-          error,
-          pageLoading: false
-        }))
-        toast.error("Failed to load profile data")
-      }
-    }
-
-    // Always fetch data on component mount
-    initializeProfile()
-
-    // Return cleanup function
-    return () => {
-      // Cleanup code if needed
-    }
-  }, [fetchProfile]) // Remove state.initialized dependency to ensure it always runs
-
-  // Handle image upload completion with centralized data refresh
-  const handleUploadComplete = useCallback(async (file, type) => {
-    try {
-      // Use the refreshData function to update all necessary data
-      await refreshData()
-      // Fetch fresh profile data
-      const profileResponse = await fetchProfile(true)
-      console.log("Profile response:", profileResponse)
-      setProfile(profileResponse)
-      toast.success(`${type === 'avatar' ? 'Profile picture' : 'Cover photo'} updated successfully`)
-    } catch (error) {
-      console.error(`Error updating ${type}:`, error)
-      toast.error(`Failed to update ${type === 'avatar' ? 'profile picture' : 'cover photo'}`)
-    }
-  }, [refreshData, fetchProfile])
-
-  // Handle save with better error handling
-  const handleSave = useCallback(async (data) => {
-    try {
-      setState(prev => ({ ...prev, isUpdating: true }))
-      await refreshData(data)
-      // Refresh profile data after save
-      const profileResponse = await fetchProfile(true)
-      setProfile(profileResponse)
-      toast.success("Profile updated successfully")
-    } catch (error) {
-      console.error("Error saving profile:", error)
-      toast.error("Failed to update profile")
+      console.error("Error fetching profile:", error)
+      toast.error("Failed to load profile data")
     } finally {
-      setState(prev => ({ ...prev, isUpdating: false }))
+      setState(prev => ({ 
+        ...prev, 
+        pageLoading: false,
+        initialized: true 
+      }))
     }
-  }, [refreshData, fetchProfile])
+  }, [fetchProfile])
 
-  // Handle tab change
+  // Initialize data with proper cleanup
+  useEffect(() => {
+    let mounted = true
+
+    const init = async () => {
+      if (!state.initialized && mounted) {
+        await fetchData()
+      }
+    }
+
+    init()
+
+    return () => {
+      mounted = false
+    }
+  }, [state.initialized, fetchData])
+
+  // Optimize rendering conditions
+  const isLoading = useMemo(() => {
+    return state.pageLoading || settingsLoading || !state.initialized
+  }, [state.pageLoading, settingsLoading, state.initialized])
+
+  // Memoize handlers
   const handleTabChange = useCallback((value) => {
     setActiveTab(value)
   }, [])
 
-  // Loading state for the entire page
-  const isLoading = useMemo(() => {
-    return state.pageLoading || settingsLoading || !state.initialized
-  }, [state.pageLoading, settingsLoading, state.initialized])
+  const handleUploadComplete = useCallback((type) => {
+    setState(prev => ({
+      ...prev,
+      [`uploading${type}`]: false
+    }))
+    fetchData()
+  }, [fetchData])
 
   return (
     <ErrorBoundary FallbackComponent={ComponentErrorFallback}>
@@ -248,7 +164,6 @@ export default function ProfilePage() {
           <ProfileSkeleton />
         ) : (
           <div className="space-y-6">
-            {/* Profile Header */}
             <ErrorBoundary FallbackComponent={ComponentErrorFallback}>
               <Suspense fallback={<ProfileHeaderSkeleton />}>
                 <ProfileHeader 
@@ -263,69 +178,59 @@ export default function ProfilePage() {
               </Suspense>
             </ErrorBoundary>
 
-            {/* Stats Overview and Image Preview in horizontal layout */}
-            <div className={cn(
-              "grid gap-6",
-              "grid-cols-1 md:grid-cols-[160px,1fr]",
-              "items-start",
-              { "hidden": showPhotoGallery }
-            )}>
-              {/* Image Preview Card */}
-              <div className="w-full md:w-[160px]">
+            {!showPhotoGallery && (
+              <div className={cn(
+                "grid gap-6",
+                "grid-cols-1 md:grid-cols-[160px,1fr]",
+                "items-start"
+              )}>
                 <ErrorBoundary FallbackComponent={ComponentErrorFallback}>
-                  <ImageCard
-                    avatar={profileData?.basicInfo?.avatar}
-                    cover={profileData?.basicInfo?.cover}
-                    onClick={() => setShowPhotoGallery(true)}
-                  />
+                  <Suspense fallback={<CardSkeleton className="h-[160px] w-[160px]" />}>
+                    <div className="w-full md:w-[160px]">
+                      <ImageCard
+                        avatarThumb={profileData?.basicInfo?.avatarThumb}
+                        coverThumb={profileData?.basicInfo?.coverThumb}
+                        onClick={() => setShowPhotoGallery(true)}
+                      />
+                    </div>
+                  </Suspense>
+                </ErrorBoundary>
+
+                <ErrorBoundary FallbackComponent={ComponentErrorFallback}>
+                  <Suspense fallback={<CardSkeleton />}>
+                    <StatsOverview user={user} isLoading={isLoading} />
+                  </Suspense>
                 </ErrorBoundary>
               </div>
+            )}
 
-              {/* Stats Overview */}
-              <ErrorBoundary FallbackComponent={ComponentErrorFallback}>
-                <Suspense fallback={<CardSkeleton />}>
-                  <StatsOverview user={user} isLoading={isLoading} />
-                </Suspense>
-              </ErrorBoundary>
-            </div>
-
-            {/* Photo Gallery */}
             {showPhotoGallery && (
               <ErrorBoundary FallbackComponent={ComponentErrorFallback}>
                 <Suspense fallback={<GallerySkeleton />}>
                   <PhotoGallery 
                     onClose={() => setShowPhotoGallery(false)}
+                    profileData={profileData}
                   />
                 </Suspense>
               </ErrorBoundary>
             )}
 
-            {/* Main Tabs */}
-            <ProfileTabs
-              activeTab={activeTab}
-              onTabChange={handleTabChange}
-              showPhotoGallery={showPhotoGallery}
-              hasProfileData={hasProfileData}
-              profileData={profileData}
-              handleSave={handleSave}
-              isUpdating={state.isUpdating}
-              settingsLoading={settingsLoading}
-              PersonalTab={PersonalTab}
-              AccountTab={AccountTab}
-              ContactTab={ContactTab}
-              ActivityTab={ActivityTab}
-            />
-
             <ErrorBoundary FallbackComponent={ComponentErrorFallback}>
               <Suspense fallback={<CardSkeleton />}>
-                {hasProfileData ? (
-                  <ProfileCompletionCard
-                    profile={profileData}
-                    loading={state.isUpdating || settingsLoading}
-                  />
-                ) : (
-                  <CardSkeleton />
-                )}
+                <ProfileTabs
+                  activeTab={activeTab}
+                  onTabChange={handleTabChange}
+                  showPhotoGallery={showPhotoGallery}
+                  hasProfileData={hasProfileData}
+                  profileData={profileData}
+                  handleSave={handleUploadComplete}
+                  isUpdating={state.isUpdating}
+                  settingsLoading={settingsLoading}
+                  PersonalTab={TabComponents.personal}
+                  AccountTab={TabComponents.account}
+                  ContactTab={TabComponents.contact}
+                  ActivityTab={TabComponents.activity}
+                />
               </Suspense>
             </ErrorBoundary>
           </div>

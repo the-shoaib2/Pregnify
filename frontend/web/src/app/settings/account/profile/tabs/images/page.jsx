@@ -7,7 +7,8 @@ import { toast } from "react-hot-toast"
 import { Card } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Image } from "lucide-react"
+import { Image, X } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 // Import separated components
 import ImageCard from "./components/ImageCard"
@@ -18,7 +19,7 @@ import GallerySkeleton from "./components/GallerySkeleton"
 const LazyImageView = React.lazy(() => import("./components/ImageView"))
 
 // Main PhotoGallery component
-export const PhotoGallery = () => {
+export const PhotoGallery = ({ onClose }) => {
   const [images, setImages] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedImage, setSelectedImage] = useState(null)
@@ -131,6 +132,19 @@ export const PhotoGallery = () => {
             Manage your photos and media files
           </p>
         </div>
+        
+        {/* Close Button - Updated to use onClose prop */}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="rounded-full hover:bg-muted"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onClose) onClose();
+          }}
+        >
+          <X className="h-5 w-5" />
+        </Button>
       </div>
 
       {/* Tabs */}
