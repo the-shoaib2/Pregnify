@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Camera } from "lucide-react"
 import { ProfileTabs } from "./components/profile-tabs/page"
+import { ImageCard } from "./components/images-preview/image-preview"
 
 // Custom error fallback component for lazy-loaded components
 function ComponentErrorFallback({ error, resetErrorBoundary }) {
@@ -43,7 +44,7 @@ function GallerySkeleton() {
 }
 
 // Preload components with improved loading strategy
-const ProfileHeader = lazy(() => 
+const ProfileHeader = lazy(() =>
   import("./components/profile-header/page")
     .then(module => ({ default: module.ProfileHeader }))
     .catch(error => {
@@ -53,7 +54,7 @@ const ProfileHeader = lazy(() =>
     })
 )
 
-const StatsOverview = lazy(() => 
+const StatsOverview = lazy(() =>
   import("./components/statistics-overview/page")
     .catch(error => {
       console.error("Error loading StatsOverview:", error)
@@ -62,7 +63,7 @@ const StatsOverview = lazy(() =>
     })
 )
 
-const PhotoGallery = lazy(() => 
+const PhotoGallery = lazy(() =>
   import("./tabs/images/page")
     .then(module => {
       if (!module.default) {
@@ -77,7 +78,7 @@ const PhotoGallery = lazy(() =>
     })
 )
 
-const ProfileCompletionCard = lazy(() => 
+const ProfileCompletionCard = lazy(() =>
   import("./tabs/personal/components/profile-completion/page")
     .catch(error => {
       console.error("Error loading ProfileCompletionCard:", error)
@@ -95,7 +96,7 @@ export default function ProfilePage() {
   const { user, refreshData } = useAuth()
   const [profile, setProfile] = useState();
   const { loading: settingsLoading, fetchProfile } = useSettings()
-  
+
   const [state, setState] = useState({
     pageLoading: true,
     isUpdating: false,
@@ -143,7 +144,7 @@ export default function ProfilePage() {
             import("./tabs/activity/page")
           ]
 
-          await Promise.all(preloads.map(p => 
+          await Promise.all(preloads.map(p =>
             p.catch(error => {
               console.error("Error preloading component:", error)
               return null // Continue loading other components
@@ -170,7 +171,7 @@ export default function ProfilePage() {
       try {
         // Always fetch profile data on component mount
         const profileResponse = await fetchProfile(true)
-        setProfile(profileResponse) 
+        setProfile(profileResponse)
         setState(prev => ({
           ...prev,
           initialized: true,
@@ -190,26 +191,16 @@ export default function ProfilePage() {
 
     // Always fetch data on component mount
     initializeProfile()
-    
+
     // Return cleanup function
     return () => {
       // Cleanup code if needed
     }
   }, [fetchProfile]) // Remove state.initialized dependency to ensure it always runs
 
-  // Handle image upload state
-  const handleImageUploadState = useCallback((isUploading, type) => {
-    setState(prev => ({
-      ...prev,
-      uploadingImage: type === 'avatar' ? isUploading : prev.uploadingImage,
-      uploadingCover: type === 'cover' ? isUploading : prev.uploadingCover
-    }))
-  }, [])
-
   // Handle image upload completion with centralized data refresh
   const handleUploadComplete = useCallback(async (file, type) => {
     try {
-      handleImageUploadState(true, type)
       // Use the refreshData function to update all necessary data
       await refreshData()
       // Fetch fresh profile data
@@ -220,8 +211,6 @@ export default function ProfilePage() {
     } catch (error) {
       console.error(`Error updating ${type}:`, error)
       toast.error(`Failed to update ${type === 'avatar' ? 'profile picture' : 'cover photo'}`)
-    } finally {
-      handleImageUploadState(false, type)
     }
   }, [refreshData, fetchProfile])
 
@@ -254,14 +243,12 @@ export default function ProfilePage() {
 
   return (
     <ErrorBoundary FallbackComponent={ComponentErrorFallback}>
-      {/* //Dont chage this */}
-      <div className="container mx-auto p-0 space-y-0">   
-        {/* Profile Skeleton */}
+      <div className="container mx-auto p-0 space-y-0">
         {isLoading ? (
           <ProfileSkeleton />
         ) : (
-          <div className="space-y-8">
-            {/* Pass profile data and handlers to ProfileHeader */}
+          <div className="space-y-6">
+            {/* Profile Header */}
             <ErrorBoundary FallbackComponent={ComponentErrorFallback}>
               <Suspense fallback={<ProfileHeaderSkeleton />}>
                 <ProfileHeader 
@@ -271,16 +258,30 @@ export default function ProfilePage() {
                   loading={isLoading} 
                   uploadingImage={state.uploadingImage}
                   uploadingCover={state.uploadingCover}
-                  onAvatarClick={() => handleImageUploadState(true, 'avatar')}
-                  onCoverClick={() => handleImageUploadState(true, 'cover')}
                   onUploadComplete={handleUploadComplete}
                 />
               </Suspense>
             </ErrorBoundary>
-            {/* Stats Overview and Profile Completion Cards */}
-            <div className={cn( {
-              "hidden": showPhotoGallery
-            })}>
+
+            {/* Stats Overview and Image Preview in horizontal layout */}
+            <div className={cn(
+              "grid gap-6",
+              "grid-cols-1 md:grid-cols-[160px,1fr]",
+              "items-start",
+              { "hidden": showPhotoGallery }
+            )}>
+              {/* Image Preview Card */}
+              <div className="w-full md:w-[160px]">
+                <ErrorBoundary FallbackComponent={ComponentErrorFallback}>
+                  <ImageCard
+                    avatar={profileData?.basicInfo?.avatar}
+                    cover={profileData?.basicInfo?.cover}
+                    onClick={() => setShowPhotoGallery(true)}
+                  />
+                </ErrorBoundary>
+              </div>
+
+              {/* Stats Overview */}
               <ErrorBoundary FallbackComponent={ComponentErrorFallback}>
                 <Suspense fallback={<CardSkeleton />}>
                   <StatsOverview user={user} isLoading={isLoading} />
@@ -288,13 +289,16 @@ export default function ProfilePage() {
               </ErrorBoundary>
             </div>
 
-            {showPhotoGallery ? (
+            {/* Photo Gallery */}
+            {showPhotoGallery && (
               <ErrorBoundary FallbackComponent={ComponentErrorFallback}>
                 <Suspense fallback={<GallerySkeleton />}>
-                  <PhotoGallery onClose={() => setShowPhotoGallery(false)} />
+                  <PhotoGallery 
+                    onClose={() => setShowPhotoGallery(false)}
+                  />
                 </Suspense>
               </ErrorBoundary>
-            ) : null}
+            )}
 
             {/* Main Tabs */}
             <ProfileTabs
@@ -314,18 +318,18 @@ export default function ProfilePage() {
 
             <ErrorBoundary FallbackComponent={ComponentErrorFallback}>
               <Suspense fallback={<CardSkeleton />}>
-              {hasProfileData ? (
-                <ProfileCompletionCard 
-                  profile={profileData} 
-                  loading={state.isUpdating || settingsLoading} 
-                />
-              ) : (
-                <CardSkeleton />
-              )}
+                {hasProfileData ? (
+                  <ProfileCompletionCard
+                    profile={profileData}
+                    loading={state.isUpdating || settingsLoading}
+                  />
+                ) : (
+                  <CardSkeleton />
+                )}
               </Suspense>
             </ErrorBoundary>
           </div>
-         )}
+        )}
       </div>
     </ErrorBoundary>
   )

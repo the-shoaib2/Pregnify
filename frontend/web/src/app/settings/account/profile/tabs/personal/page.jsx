@@ -355,7 +355,7 @@ export default function PersonalTab({
         open={expandedSections[section]}
         onOpenChange={() => toggleSection(section)}
       >
-        <div className="absolute right-4 top-4 flex items-center gap-2 z-10">
+        <div className="absolute right-4 top-4 flex items-center gap-2 ">
           <CollapsibleTrigger asChild>
             <Button
               variant="ghost"
