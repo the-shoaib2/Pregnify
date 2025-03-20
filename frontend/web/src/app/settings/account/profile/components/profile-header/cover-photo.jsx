@@ -7,28 +7,15 @@ import { FileCategory, Visibility } from '@/services/media'
 import { cn } from "@/lib/utils"
 import { CoverPhotoSkeleton } from "../profile-header-skeleton"
 
-const CoverPhotoUpload = memo(({ user, onUpload, loading, onClick }) => {
+const CoverPhotoUpload = memo(({ profile, onUpload, loading, onClick }) => {
   const [showUpload, setShowUpload] = useState(false)
   const [showView, setShowView] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
   
-  const userData = useMemo(() => {
-    const data = user?.data || user || {}
-    return {
-      ...data,
-      basicInfo: {
-        ...data.basicInfo,
-        ...data.personalInfo,
-        cover: data.basicInfo?.cover || data.personalInfo?.cover
-      }
-    }
-  }, [user])
-  
-  const coverPhotoUrl = useMemo(() => 
-    userData?.basicInfo?.cover,
-    [userData?.basicInfo?.cover]
-  )
+  const profileData = useMemo(() => profile?.data || profile || {}, [profile]);
 
+  const coverUrl = useMemo(() => profileData?.basicInfo?.cover, [profileData?.basicInfo?.cover])
+  const coverThumbUrl = useMemo(() => profileData?.basicInfo?.coverThumb, [profileData?.basicInfo?.coverThumb])
   // Handle click event with optional callback
   const handleClick = (e) => {
     if (onClick) {
@@ -42,7 +29,7 @@ const CoverPhotoUpload = memo(({ user, onUpload, loading, onClick }) => {
     <>
       <div className="group relative h-40 w-full overflow-hidden rounded-lg bg-gradient-to-r from-blue-100 to-indigo-100 sm:h-48">
         {/* Show actual cover photo when loaded */}
-        {coverPhotoUrl && (
+        {coverUrl && (
           <div className={cn(
             "relative h-full w-full transition-opacity duration-300",
             imageLoaded ? "opacity-100" : "opacity-0"
@@ -52,7 +39,7 @@ const CoverPhotoUpload = memo(({ user, onUpload, loading, onClick }) => {
               onClick={handleClick}
             >
               <img
-                src={coverPhotoUrl}
+                src={coverUrl}
                 alt="Cover"
                 className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                 onLoad={() => setImageLoaded(true)}
@@ -72,7 +59,7 @@ const CoverPhotoUpload = memo(({ user, onUpload, loading, onClick }) => {
         )}
 
         {/* Show skeleton when image is not loaded or there's no cover photo */}
-        {(!imageLoaded || !coverPhotoUrl) && <CoverPhotoSkeleton />}
+        {(!imageLoaded || !coverUrl) && <CoverPhotoSkeleton />}
         
         <div className="absolute right-4 top-4 z-20">
           <Button
@@ -92,7 +79,7 @@ const CoverPhotoUpload = memo(({ user, onUpload, loading, onClick }) => {
 
       {showView && (
         <ImageDialog
-          image={coverPhotoUrl}
+          image={coverUrl}
           title="Cover Photo"
           description="Your profile cover photo"
           isOpen={showView}
@@ -106,7 +93,7 @@ const CoverPhotoUpload = memo(({ user, onUpload, loading, onClick }) => {
 
       {showUpload && (
         <FileUpload
-          user={user}
+          profile={profile}
           title="Update Cover Photo"
           description="Choose a photo for your profile cover"
           onUpload={onUpload}

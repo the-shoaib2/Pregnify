@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, memo } from "react"
 import { Badge } from "@/components/ui/badge"
-import { useAuth } from '@/contexts/auth-context/auth-context'
 import { cn } from "@/lib/utils"
 import { CoverPhotoUpload } from './cover-photo'
 import { ProfilePicture } from './profile-picture'
@@ -33,6 +32,8 @@ const ProfileHeader = memo(({
       }
     }
   }, [parentProfileData, profile?.data, user])
+
+ 
 
   const handleAvatarUpload = async (file) => {
     try {
@@ -68,7 +69,7 @@ const ProfileHeader = memo(({
     )}>
       <div className="relative">
         <CoverPhotoUpload 
-          user={userData}
+          profile={profile}
           onUpload={handleCoverUpload}
           loading={isCoverLoading || uploadingCover}
           onClick={onCoverClick}
@@ -76,7 +77,7 @@ const ProfileHeader = memo(({
         
         <div className="absolute -bottom-2 left-4 z-10">
           <ProfilePicture 
-            user={userData}
+            profile={profile}
             onUpload={handleAvatarUpload}
             loading={isAvatarLoading || uploadingImage}
             onClick={onAvatarClick}

@@ -77,13 +77,13 @@ export default function StatsOverviewCard({ user, isLoading }) {
           <Skeleton className="h-5 w-32" />
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 md:grid-cols-4 sm:gap-4">
             {[1, 2, 3, 4].map((_, index) => (
-              <div key={index} className="flex items-center gap-3 rounded-lg p-4 bg-muted/10">
-                <Skeleton className="h-5 w-5 rounded-full" />
-                <div className="space-y-2">
-                  <Skeleton className="h-6 w-12" />
-                  <Skeleton className="h-4 w-16" />
+              <div key={index} className="flex items-center gap-2 sm:gap-3 rounded-lg p-2 sm:p-4 bg-muted/10">
+                <Skeleton className="h-4 w-4 sm:h-5 sm:w-5 rounded-full" />
+                <div className="space-y-1 sm:space-y-2">
+                  <Skeleton className="h-5 w-10 sm:h-6 sm:w-12" />
+                  <Skeleton className="h-3 w-14 sm:h-4 sm:w-16" />
                 </div>
               </div>
             ))}
@@ -95,12 +95,12 @@ export default function StatsOverviewCard({ user, isLoading }) {
 
   return (
     <>
-      <Card className="h-full">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Statistics Overview</CardTitle>
+      <Card className="p-4 sm:p-4">
+        <CardHeader className="p-0">
+          <CardTitle className="pb-2 text-sm font-medium">Statistics Overview</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <CardContent className="p-0">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 md:grid-cols-4 sm:gap-4">
             {stats.map((stat, index) => {
               const Icon = stat.icon
               const formattedValue = formatNumber(stat.value)
@@ -114,14 +114,14 @@ export default function StatsOverviewCard({ user, isLoading }) {
                     >
                       <div
                         className={cn(
-                          "flex w-full items-center gap-4 rounded-lg p-3 px-4 transition-colors hover:bg-opacity-80",
+                          "flex w-full items-center rounded-lg p-1 px-2 sm:px-3 transition-colors hover:bg-opacity-80",
                           "group relative overflow-hidden",
                           stat.color
                         )}
                       >
-                        <Icon className="h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110" />
-                        <div className="min-w-0 flex-1 space-y-1">
-                          <p className="text-lg font-semibold leading-none tracking-tight truncate" title={stat.value.toString()}>
+                        <Icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 transition-transform group-hover:scale-110" />
+                        <div className="min-w-0 flex-1 space-y-0.5 sm:space-y-1 ml-1 sm:ml-2">
+                          <p className="text-base sm:text-lg font-semibold leading-none tracking-tight truncate" title={stat.value.toString()}>
                             {formattedValue}
                           </p>
                           <p className="text-xs font-medium opacity-70 truncate" title={stat.label}>

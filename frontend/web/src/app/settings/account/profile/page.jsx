@@ -4,16 +4,12 @@ import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from
 import { useAuth } from "@/contexts/auth-context/auth-context"
 import { useSettings } from "@/contexts/settings-context/settings-context"
 import { ProfileSkeleton } from "./components/profile-skeleton"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { toast } from "react-hot-toast"
 import ErrorBoundary from "@/components/error-boundary"
 import { CardSkeleton } from "./tabs/personal/components/skeleton"
 import { ProfileHeaderSkeleton } from "./components/profile-header-skeleton"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { Camera } from "lucide-react"
-// import { ProfileTabs } from "./components/profile-tabs/page"
-// import { ImageCard } from "./components/images-preview/image-preview"
 
 // Custom error fallback component for lazy-loaded components
 function ComponentErrorFallback({ error, resetErrorBoundary }) {
@@ -45,42 +41,59 @@ function GallerySkeleton() {
 
 // Lazy load components properly
 const ProfileHeader = lazy(() => 
-  import("./components/profile-header/page").then(module => ({
+  import("@/app/settings/account/profile/components/profile-header/page").then(module => ({
     default: module.ProfileHeader
   }))
 )
 
 const StatsOverview = lazy(() => 
-  import("./components/statistics-overview/page").then(module => ({
+  import("@/app/settings/account/profile/components/statistics-overview/page").then(module => ({
     default: module.default
   }))
 )
 
 const ImageCard = lazy(() => 
-  import("./components/images-preview/image-preview").then(module => ({
+  import("@/app/settings/account/profile/components/images-preview/image-preview").then(module => ({
     default: module.ImageCard
   }))
 )
 
 const ProfileTabs = lazy(() => 
-  import("./components/profile-tabs/page").then(module => ({
+  import("@/app/settings/account/profile/components/profile-tabs/page").then(module => ({
     default: module.ProfileTabs
   }))
 )
 
 const PhotoGallery = lazy(() => 
-  import("./tabs/images/page").then(module => ({
+  import("@/app/settings/account/profile/tabs/images/page").then(module => ({
     default: module.default
   }))
 )
 
 // Lazy load tab components
 const TabComponents = {
-  personal: lazy(() => import("./tabs/personal/page")),
-  account: lazy(() => import("./tabs/account/page")),
-  contact: lazy(() => import("./tabs/contact/page")),
-  activity: lazy(() => import("./tabs/activity/page"))
+  personal: lazy(() => import("@/app/settings/account/profile/tabs/personal/page")),
+  account: lazy(() => import("@/app/settings/account/profile/tabs/account/page")),
+  contact: lazy(() => import("@/app/settings/account/profile/tabs/contact/page")),
+  activity: lazy(() => import("@/app/settings/account/profile/tabs/activity/page"))
 }
+
+// Add this function to normalize profile data
+const normalizeProfileData = (data) => {
+  if (!data) return {};
+  
+  // Create a copy to avoid mutating the original
+  const normalized = { ...data };
+  
+  // Fix the avatar thumb typo if needed
+  if (normalized.basicInfo) {
+    if (normalized.basicInfo.avaterThumb && !normalized.basicInfo.avatarThumb) {
+      normalized.basicInfo.avatarThumb = normalized.basicInfo.avaterThumb;
+    }
+  }
+  
+  return normalized;
+};
 
 export default function ProfilePage() {
   // Memoize initial states
@@ -101,7 +114,10 @@ export default function ProfilePage() {
   const [showPhotoGallery, setShowPhotoGallery] = useState(false)
 
   // Memoize profile data
-  const profileData = useMemo(() => profile?.data || {}, [profile])
+  const profileData = useMemo(() => normalizeProfileData(profile?.data || {
+
+  }), [profile])
+
   const hasProfileData = useMemo(() => Object.keys(profileData).length > 0, [profileData])
 
   // Optimize data fetching
@@ -188,8 +204,7 @@ export default function ProfilePage() {
                   <Suspense fallback={<CardSkeleton className="h-[160px] w-[160px]" />}>
                     <div className="w-full md:w-[160px]">
                       <ImageCard
-                        avatarThumb={profileData?.basicInfo?.avatarThumb}
-                        coverThumb={profileData?.basicInfo?.coverThumb}
+                        user={profileData}
                         onClick={() => setShowPhotoGallery(true)}
                       />
                     </div>

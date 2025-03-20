@@ -6,7 +6,6 @@ import {
 } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
-import { Eye } from "lucide-react"
 
 // Add UserAvatarSkeleton component
 export function UserAvatarSkeleton({ className }) {
@@ -23,7 +22,8 @@ export function UserAvatar({
   showStatus = false, 
   isLoading, 
   onLoad,
-  useThumb = true
+  useThumb = true,
+  priority = false
 }) {
   const userData = user?.data || user
 
@@ -82,9 +82,7 @@ export function UserAvatar({
     return 'GU'
   }, [userData])
 
-  if (isLoading) {
-    return <UserAvatarSkeleton className={className} />
-  }
+
 
   return (
     <div className="relative">

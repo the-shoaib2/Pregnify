@@ -9,22 +9,15 @@ import { cn } from "@/lib/utils"
 import { UserAvatar } from "@/components/user/user-avatar"
 import { ProfilePictureSkeleton } from "../profile-header-skeleton"
 
-const ProfilePicture = memo(({ user, onUpload, loading, onClick }) => {
+const ProfilePicture = memo(({ profile, onUpload, loading, onClick }) => {
   const [showUpload, setShowUpload] = useState(false)
   const [showView, setShowView] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
   
-  const userData = useMemo(() => {
-    const data = user?.data || user || {}
-    return {
-      ...data,
-      basicInfo: {
-        ...data.basicInfo,
-        ...data.personalInfo,
-        avatar: data.basicInfo?.avatar || data.personalInfo?.avatar
-      }
-    }
-  }, [user])
+  const profileData = useMemo(() => profile?.data || profile || {}, [profile]);
+
+  const avatarUrl = useMemo(() => profileData?.basicInfo?.avatar, [profileData?.basicInfo?.avatar])
+  const avatarThumbUrl = useMemo(() => profileData?.basicInfo?.avatarThumb, [profileData?.basicInfo?.avatarThumb])
 
   // Handle click event with optional callback
   const handleClick = (e) => {
@@ -38,7 +31,7 @@ const ProfilePicture = memo(({ user, onUpload, loading, onClick }) => {
   return (
     <div className="relative">
       <div className="group relative h-24 w-24">
-        {userData?.basicInfo?.avatar && (
+        {avatarThumbUrl && (
           <div 
             className={cn(
               "relative cursor-pointer rounded-full border-4 border-background bg-background",
@@ -49,8 +42,8 @@ const ProfilePicture = memo(({ user, onUpload, loading, onClick }) => {
             onClick={handleClick}
           >
             <div className="transition-transform duration-300 group-hover:scale-105">
-              <UserAvatar 
-                user={userData} 
+              <UserAvatar
+                user={profileData} 
                 className="h-[88px] w-[88px]"
                 showStatus={false}
                 onLoad={() => setImageLoaded(true)}
@@ -84,13 +77,13 @@ const ProfilePicture = memo(({ user, onUpload, loading, onClick }) => {
         )}
 
         {/* Show skeleton when image is not loaded or there's no avatar */}
-        {(!imageLoaded || !userData?.basicInfo?.avatar) && <ProfilePictureSkeleton />}
+        {(!imageLoaded || !avatarThumbUrl) && <ProfilePictureSkeleton />}
 
-        {userData?.status?.activeStatus && (
+        {profileData?.status?.activeStatus && (
           <div className="absolute -right-1 -top-1 rounded-full border-2 border-background z-30">
             <Badge className={cn(
               "h-4 w-4 rounded-full p-0",
-              userData.status.activeStatus === "ONLINE" 
+              profileData.status.activeStatus === "ONLINE" 
                 ? "bg-green-500" 
                 : "bg-red-500"
             )} />
@@ -100,7 +93,7 @@ const ProfilePicture = memo(({ user, onUpload, loading, onClick }) => {
 
       {showView && (
         <ImageDialog
-          image={userData?.basicInfo?.avatar}
+          image={avatarUrl}
           title="Profile Picture"
           description="Your profile picture"
           isOpen={showView}
@@ -114,7 +107,7 @@ const ProfilePicture = memo(({ user, onUpload, loading, onClick }) => {
 
       {showUpload && (
         <FileUpload
-          user={user}
+          profile={profile}
           title="Update Profile Picture"
           description="Choose a photo for your profile"
           onUpload={onUpload}
