@@ -197,12 +197,12 @@ export default function ProfilePage() {
             {!showPhotoGallery && (
               <div className={cn(
                 "grid gap-6",
-                "grid-cols-1 md:grid-cols-[160px,1fr]",
+                "grid-cols-1 md:grid-cols-[120px,1fr]",
                 "items-start"
               )}>
                 <ErrorBoundary FallbackComponent={ComponentErrorFallback}>
-                  <Suspense fallback={<CardSkeleton className="h-[160px] w-[160px]" />}>
-                    <div className="w-full md:w-[160px]">
+                  <Suspense fallback={<CardSkeleton className="h-[120px] w-[120px]" />}>
+                    <div className="w-full md:w-[120px]">
                       <ImageCard
                         user={profileData}
                         onClick={() => setShowPhotoGallery(true)}
