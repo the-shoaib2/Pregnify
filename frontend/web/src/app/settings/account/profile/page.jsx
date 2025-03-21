@@ -9,7 +9,6 @@ import ErrorBoundary from "@/components/error-boundary"
 import { CardSkeleton } from "./tabs/personal/components/skeleton"
 import { ProfileHeaderSkeleton } from "./components/profile-header-skeleton"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
 
 // Custom error fallback component for lazy-loaded components
 function ComponentErrorFallback({ error, resetErrorBoundary }) {
@@ -22,49 +21,33 @@ function ComponentErrorFallback({ error, resetErrorBoundary }) {
   )
 }
 
-// Loading skeleton for the photo gallery
-function GallerySkeleton() {
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <CardSkeleton className="h-8 w-32" />
-        <CardSkeleton className="h-10 w-24" />
-      </div>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {Array(8).fill(0).map((_, i) => (
-          <CardSkeleton key={i} className="aspect-square rounded-lg" />
-        ))}
-      </div>
-    </div>
-  )
-}
 
 // Lazy load components properly
-const ProfileHeader = lazy(() => 
+const ProfileHeader = lazy(() =>
   import("@/app/settings/account/profile/components/profile-header/page").then(module => ({
     default: module.ProfileHeader
   }))
 )
 
-const StatsOverview = lazy(() => 
+const StatsOverview = lazy(() =>
   import("@/app/settings/account/profile/components/statistics-overview/page").then(module => ({
     default: module.default
   }))
 )
 
-const ImageCard = lazy(() => 
+const ImageCard = lazy(() =>
   import("@/app/settings/account/profile/components/images-preview/page").then(module => ({
     default: module.ImageCard
   }))
 )
 
-const ProfileTabs = lazy(() => 
+const ProfileTabs = lazy(() =>
   import("@/app/settings/account/profile/components/profile-tabs/page").then(module => ({
     default: module.ProfileTabs
   }))
 )
 
-const PhotoGallery = lazy(() => 
+const PhotoGallery = lazy(() =>
   import("@/app/settings/account/profile/tabs/images/page").then(module => ({
     default: module.default
   }))
@@ -81,17 +64,17 @@ const TabComponents = {
 // Add this function to normalize profile data
 const normalizeProfileData = (data) => {
   if (!data) return {};
-  
+
   // Create a copy to avoid mutating the original
   const normalized = { ...data };
-  
+
   // Fix the avatar thumb typo if needed
   if (normalized.basicInfo) {
     if (normalized.basicInfo.avaterThumb && !normalized.basicInfo.avatarThumb) {
       normalized.basicInfo.avatarThumb = normalized.basicInfo.avaterThumb;
     }
   }
-  
+
   return normalized;
 };
 
@@ -130,10 +113,10 @@ export default function ProfilePage() {
       console.error("Error fetching profile:", error)
       toast.error("Failed to load profile data")
     } finally {
-      setState(prev => ({ 
-        ...prev, 
+      setState(prev => ({
+        ...prev,
         pageLoading: false,
-        initialized: true 
+        initialized: true
       }))
     }
   }, [fetchProfile])
@@ -182,11 +165,11 @@ export default function ProfilePage() {
           <div className="space-y-6">
             <ErrorBoundary FallbackComponent={ComponentErrorFallback}>
               <Suspense fallback={<ProfileHeaderSkeleton />}>
-                <ProfileHeader 
-                  user={user} 
-                  profile={profile} 
+                <ProfileHeader
+                  user={user}
+                  profile={profile}
                   profileData={profileData}
-                  loading={isLoading} 
+                  loading={isLoading}
                   uploadingImage={state.uploadingImage}
                   uploadingCover={state.uploadingCover}
                   onUploadComplete={handleUploadComplete}
@@ -194,41 +177,36 @@ export default function ProfilePage() {
               </Suspense>
             </ErrorBoundary>
 
-            {!showPhotoGallery && (
-              <div className={cn(
-                "grid gap-6",
-                "grid-cols-1 md:grid-cols-[120px,1fr]",
-                "items-start"
-              )}>
-                <ErrorBoundary FallbackComponent={ComponentErrorFallback}>
-                  <Suspense fallback={<CardSkeleton className="h-[120px] w-[120px]" />}>
-                    <div className="w-full md:w-[120px]">
-                      <ImageCard
-                        user={profileData}
-                        onClick={() => setShowPhotoGallery(true)}
-                      />
-                    </div>
-                  </Suspense>
-                </ErrorBoundary>
+            <div className="flex gap-6 items-start">
+              {!showPhotoGallery && (
+                <div className="flex gap-6 items-start">
 
-                <ErrorBoundary FallbackComponent={ComponentErrorFallback}>
-                  <Suspense fallback={<CardSkeleton />}>
-                    <StatsOverview user={user} isLoading={isLoading} />
-                  </Suspense>
-                </ErrorBoundary>
-              </div>
-            )}
+                  {/* Image Card */}
+                  <ErrorBoundary FallbackComponent={ComponentErrorFallback}>
+                    <Suspense fallback={<CardSkeleton className="h-[120px] w-[120px]" />}>
+                      <div className="w-[120px] flex-shrink-0">
+                        <ImageCard
+                          user={profileData}
+                          onClick={() => setShowPhotoGallery(true)}
+                        />
+                      </div>
+                    </Suspense>
+                  </ErrorBoundary>
 
-            {showPhotoGallery && (
-              <ErrorBoundary FallbackComponent={ComponentErrorFallback}>
-                <Suspense fallback={<GallerySkeleton />}>
-                  <PhotoGallery 
-                    onClose={() => setShowPhotoGallery(false)}
-                    profileData={profileData}
-                  />
-                </Suspense>
-              </ErrorBoundary>
-            )}
+                  {/* Statistics Overview */}
+                  <ErrorBoundary FallbackComponent={ComponentErrorFallback}>
+                    <Suspense fallback={<CardSkeleton className="flex-grow" />}>
+                      <div className="flex-grow">
+                        <StatsOverview user={user} isLoading={isLoading} />
+                      </div>
+                    </Suspense>
+                  </ErrorBoundary>
+
+                </div>
+              )}
+            </div>
+
+
 
             <ErrorBoundary FallbackComponent={ComponentErrorFallback}>
               <Suspense fallback={<CardSkeleton />}>

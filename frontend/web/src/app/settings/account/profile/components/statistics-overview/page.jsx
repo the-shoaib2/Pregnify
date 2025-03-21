@@ -4,7 +4,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { 
+import {
   FileText,
   Users,
   UserPlus,
@@ -95,11 +95,11 @@ export default function StatsOverviewCard({ user, isLoading }) {
 
   return (
     <>
-      <Card className="p-4 sm:p-4">
-        <CardHeader className="p-0">
+      <Card className="p-3 sm:p-4 ">
+        <CardHeader className="p-0 hidden sm:block">
           <CardTitle className="pb-2 text-sm font-medium">Statistics Overview</CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 px-4 sm:px-4 ">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 md:grid-cols-4 sm:gap-4">
             {stats.map((stat, index) => {
               const Icon = stat.icon
@@ -124,14 +124,15 @@ export default function StatsOverviewCard({ user, isLoading }) {
                           <p className="text-base sm:text-lg font-semibold leading-none tracking-tight truncate" title={stat.value.toString()}>
                             {formattedValue}
                           </p>
-                          <p className="text-xs font-medium opacity-70 truncate" title={stat.label}>
+                          <p className="text-xs sm:text-sm font-medium opacity-70 truncate" title={stat.label}>
                             {stat.label}
                           </p>
+
                         </div>
                       </div>
                     </Button>
                   </HoverCardTrigger>
-                  <HoverCardContent 
+                  <HoverCardContent
                     className="w-64 shadow-lg"
                     align="center"
                     sideOffset={8}
@@ -161,11 +162,11 @@ export default function StatsOverviewCard({ user, isLoading }) {
           <DialogHeader>
             <div className="flex items-center gap-2">
               {selectedStat && (
-                <selectedStat.icon 
+                <selectedStat.icon
                   className={cn(
                     "h-5 w-5",
                     selectedStat.color.split(" ")[1]
-                  )} 
+                  )}
                 />
               )}
               <DialogTitle>{selectedStat?.label} Details</DialogTitle>

@@ -32,7 +32,7 @@ const ProfileHeaderSkeleton = memo(() => (
         <ProfilePictureSkeleton />
       </div>
     </div>
-    <div className="mt-12 px-4">
+    <div className="mt-12 px-0 sm:px-4">
       <div className="flex items-start justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-2">

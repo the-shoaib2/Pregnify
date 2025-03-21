@@ -114,7 +114,7 @@ export const ImageCard = memo(({ user, onClose, onClick }) => {
         className={cn(
           "relative flex flex-col items-center justify-center",
           "h-[120px] w-[120px] overflow-hidden rounded-lg",
-          "bg-background border-2 border-border/50",
+          "bg-background border-2  border-border/50",
           "cursor-pointer transition-all duration-300",
           "hover:border-primary/20 hover:shadow-md",
           "group"
