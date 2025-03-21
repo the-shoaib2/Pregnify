@@ -36,7 +36,33 @@ function formatNumber(num) {
   return num.toString()
 }
 
-export default function StatsOverviewCard({ user, isLoading }) {
+// Export the skeleton component for reuse
+export function StatsOverviewSkeleton() {
+  return (
+    <Card className="p-3 sm:p-4">
+      <CardHeader className="p-0 pb-2 hidden sm:block">
+        <Skeleton className="h-5 w-32" />
+      </CardHeader>
+      <CardContent className="p-0 px-2 sm:px-4">
+        <div className="p-2 grid grid-cols-2 gap-2 sm:grid-cols-2 md:grid-cols-4 sm:gap-4">
+          {[1, 2, 3, 4].map((_, index) => (
+            <div key={index} className="flex w-full items-center rounded-lg p-1 px-2 sm:px-3 bg-muted/10">
+              <Skeleton className="h-4 w-4 sm:h-5 sm:w-5 rounded-full" />
+              <div className="min-w-0 flex-1 space-y-0.5 sm:space-y-1 ml-1 sm:ml-2">
+                <Skeleton className="h-5 w-10 sm:w-14" />
+                <Skeleton className="h-3 w-14 sm:w-16" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+
+// Export the main component both as named and default export
+export function StatsOverviewCard({ user, isLoading }) {
   const [selectedStat, setSelectedStat] = useState(null)
 
   const stats = [
@@ -71,35 +97,16 @@ export default function StatsOverviewCard({ user, isLoading }) {
   ]
 
   if (isLoading) {
-    return (
-      <Card className="h-full">
-        <CardHeader className="pb-2">
-          <Skeleton className="h-5 w-32" />
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 md:grid-cols-4 sm:gap-4">
-            {[1, 2, 3, 4].map((_, index) => (
-              <div key={index} className="flex items-center gap-2 sm:gap-3 rounded-lg p-2 sm:p-4 bg-muted/10">
-                <Skeleton className="h-4 w-4 sm:h-5 sm:w-5 rounded-full" />
-                <div className="space-y-1 sm:space-y-2">
-                  <Skeleton className="h-5 w-10 sm:h-6 sm:w-12" />
-                  <Skeleton className="h-3 w-14 sm:h-4 sm:w-16" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    )
+    return <StatsOverviewSkeleton />
   }
 
   return (
     <>
-      <Card className="p-3 sm:p-4 ">
+      <Card className="p-3 sm:p-4">
         <CardHeader className="p-0 hidden sm:block">
           <CardTitle className="pb-2 text-sm font-medium">Statistics Overview</CardTitle>
         </CardHeader>
-        <CardContent className="p-0 px-4 sm:px-4 ">
+        <CardContent className="p-0 px-2 sm:px-4">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 md:grid-cols-4 sm:gap-4">
             {stats.map((stat, index) => {
               const Icon = stat.icon
@@ -127,7 +134,6 @@ export default function StatsOverviewCard({ user, isLoading }) {
                           <p className="text-xs sm:text-sm font-medium opacity-70 truncate" title={stat.label}>
                             {stat.label}
                           </p>
-
                         </div>
                       </div>
                     </Button>
@@ -188,3 +194,6 @@ export default function StatsOverviewCard({ user, isLoading }) {
     </>
   )
 }
+
+// Export the component as default
+export default StatsOverviewCard; 

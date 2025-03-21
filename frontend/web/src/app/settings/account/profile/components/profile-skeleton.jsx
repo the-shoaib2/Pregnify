@@ -1,5 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent } from "@/components/ui/card"
+import { ImageCardSkeleton } from "./images-preview/page"
+import {  StatsOverviewSkeleton } from "./statistics-overview/page"
 
 
 // ProfileSkeleton component
@@ -19,21 +21,14 @@ export const ProfileSkeleton = () => (
         </div>
 
         {/* Image Preview and Statistics Overview Skeleton */}
-        <div className="">
-
-
-
-
+        <div className="flex gap-6 items-start">
+          <ImageCardSkeleton />
+          <StatsOverviewSkeleton />
         </div>
-
-
-
       </div>
-    {/* Tabs Skeleton */}
-    <div className="">
-      
-    </div>
-    
+
+     
+ 
     </CardContent>
   </Card>
 )

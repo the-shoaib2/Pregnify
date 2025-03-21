@@ -8,6 +8,14 @@ import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
+// Export the skeleton component for reuse
+export const ImageCardSkeleton = () => (
+  <Card className="relative flex flex-col items-center justify-center h-[120px] w-[120px] overflow-hidden rounded-lg bg-muted/30 animate-pulse">
+    <div className="w-16 h-16 rounded-full bg-muted/50"></div>
+    <div className="absolute bottom-3 w-16 h-3 bg-muted/50 rounded"></div>
+  </Card>
+);
+
 export const ImageCard = memo(({ user, onClose, onClick }) => {
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -20,8 +28,6 @@ export const ImageCard = memo(({ user, onClose, onClick }) => {
 
     const avatarThumb = user?.basicInfo?.avatarThumb || user?.basicInfo?.avaterThumb;
     const coverThumb = user?.basicInfo?.coverThumb;
-
-    console.log(avatarThumb, coverThumb);
     
     // Get proper initials for fallback
     const firstName = user?.basicInfo?.name?.firstName || '';
@@ -114,7 +120,7 @@ export const ImageCard = memo(({ user, onClose, onClick }) => {
         className={cn(
           "relative flex flex-col items-center justify-center",
           "h-[120px] w-[120px] overflow-hidden rounded-lg",
-          "bg-background border-2  border-border/50",
+          "bg-background border-2 border-border/50",
           "cursor-pointer transition-all duration-300",
           "hover:border-primary/20 hover:shadow-md",
           "group"
@@ -167,15 +173,14 @@ export const ImageCard = memo(({ user, onClose, onClick }) => {
                     />
                   )}
                   
-                    {/* Center title overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0  opacity-100 transition-opacity">
-                      <div className="px-2 py-1.5">
-                        <span className="text-2xl font-semibold uppercase tracking-wide text-primary drop-shadow-lg">
-                          {currentImage?.title?.replace(/\b\w/g, (char) => char.toUpperCase()) || "Untitled"}
-                        </span>
-                      </div>
+                  {/* Center title overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 opacity-100 transition-opacity">
+                    <div className="px-2 py-1.5">
+                      <span className="text-2xl font-semibold uppercase tracking-wide text-primary drop-shadow-lg">
+                        {currentImage?.title?.replace(/\b\w/g, (char) => char.toUpperCase()) || "Untitled"}
+                      </span>
                     </div>
-
+                  </div>
                   
                   {/* Image type indicator */}
                   <div className="absolute bottom-2 left-2 right-2 flex justify-center z-10">
@@ -222,4 +227,7 @@ export const ImageCard = memo(({ user, onClose, onClick }) => {
   );
 });
 
-ImageCard.displayName = 'ImageCard';
+// ImageCard.displayName = 'ImageCard';
+
+// Export ImageCard as default
+export default ImageCard; 

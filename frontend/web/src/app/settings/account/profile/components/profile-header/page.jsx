@@ -68,7 +68,7 @@ const ProfileHeader = memo(({
       loading ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"
     )}>
       <div className="relative">
-        <CoverPhotoUpload 
+        <CoverPhotoUpload  
           profile={profile}
           onUpload={handleCoverUpload}
           loading={isCoverLoading || uploadingCover}
@@ -117,6 +117,9 @@ const ProfileHeader = memo(({
           </div>
         </div>
       </div>
+
+
+      
     </div>
   )
 })
