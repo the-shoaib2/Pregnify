@@ -240,6 +240,7 @@ export default function ProfilePage() {
               </ErrorBoundary>
             )}
 
+            {/* Tabs */}
             <ErrorBoundary FallbackComponent={ComponentErrorFallback}>
               <Suspense fallback={<CardSkeleton />}>
                 {hasProfileData ? (

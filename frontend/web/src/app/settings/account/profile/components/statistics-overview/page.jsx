@@ -39,7 +39,7 @@ function formatNumber(num) {
 // Export the skeleton component for reuse
 export function StatsOverviewSkeleton() {
   return (
-    <Card className="p-3 sm:p-4">
+    <Card className="p-1 sm:p-4">
       <CardHeader className="p-0 pb-2 hidden sm:block">
         <Skeleton className="h-5 w-32" />
       </CardHeader>

@@ -1,5 +1,30 @@
 import React from 'react'
 import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
+
+
+export function TabListSkeleton({ className, count, ...props }) {
+  return (
+    <div
+      className={cn(
+        "inline-flex h-10 items-center justify-center rounded-md bg-muted/30 p-1 w-full",
+        className
+      )}
+      {...props}
+    >
+      <div className="flex gap-1 w-full">
+        {Array.from({ length: count }).map((_, i) => (
+          <div
+            key={i}
+            className="h-8 w-full rounded-sm animate-pulse bg-muted "
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+
 
 export function FormFieldSkeleton() {
   return (
@@ -28,19 +53,30 @@ export function FormSectionSkeleton({ columns = 2 }) {
   )
 }
 
-export function CardSkeleton() {
+export function CardSkeleton({ className, count, ...props }) {
   return (
-    <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-      <div className="p-6 flex flex-col space-y-4">
-        <div className="flex justify-between items-center">
-          <div>
-            <Skeleton className="h-5 w-40 mb-2" />
-            <Skeleton className="h-4 w-64" />
+    <>
+      {Array.from({ length: count }).map((_, i) => (
+        <div 
+          key={i}
+          className={cn(
+            "rounded-lg border bg-card text-card-foreground shadow-sm",
+            className
+          )}
+          {...props}
+        >
+          <div className="p-6 flex flex-col space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <Skeleton className="h-5 w-40 mb-2" />
+                <Skeleton className="h-4 w-64" />
+              </div>
+              <Skeleton className="h-8 w-8 rounded-full" />
+            </div>
+            <FormSectionSkeleton />
           </div>
-          <Skeleton className="h-8 w-8 rounded-full" />
         </div>
-        <FormSectionSkeleton />
-      </div>
-    </div>
+      ))}
+    </>
   )
 }

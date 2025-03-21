@@ -2,15 +2,15 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent } from "@/components/ui/card"
 import { ImageCardSkeleton } from "./images-preview/page"
 import {  StatsOverviewSkeleton } from "./statistics-overview/page"
-
+import { TabListSkeleton , CardSkeleton } from "../tabs/personal/components/skeleton"
 
 // ProfileSkeleton component
 export const ProfileSkeleton = () => (
   <Card className="border-none shadow-none">
     <CardContent className="p-0">
-      <div className="space-y-6">
+      <div className="space-y-6 ">
         <div className="relative">
-          <Skeleton className="h-48 sm:h-40 w-full rounded-lg" />
+          <Skeleton className="h-50 sm:h-40 w-full rounded-lg" />
           <div className="absolute bottom-0 left-4 -mb-6 flex items-center">
             <Skeleton className="h-24 w-24 rounded-full border-4 border-background shadow-lg" />
           </div>
@@ -24,6 +24,14 @@ export const ProfileSkeleton = () => (
         <div className="flex gap-6 items-start">
           <ImageCardSkeleton />
           <StatsOverviewSkeleton />
+        </div>
+
+        {/* Tabs Skeleton */}
+        <div className="space-y-4 ">
+          {/* TabsList Skeleton */}
+          <TabListSkeleton count={4} />
+          {/* TabsContent Skeleton */}
+          <CardSkeleton count={4} />
         </div>
       </div>
 
