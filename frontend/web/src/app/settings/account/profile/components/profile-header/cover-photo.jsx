@@ -1,7 +1,7 @@
 import { useState, useMemo, memo } from "react"
 import { FileUpload } from "@/components/file-upload"
 import { Button } from "@/components/ui/button"
-import { Upload, Eye } from "lucide-react"
+import { Upload, Eye, Image as ImageIcon } from "lucide-react"
 import { ImageDialog } from "@/components/image-view"
 import { FileCategory, Visibility } from '@/services/media'
 import { cn } from "@/lib/utils"
@@ -16,11 +16,13 @@ const CoverPhotoUpload = memo(({ profile, onUpload, loading, onClick }) => {
 
   const coverUrl = useMemo(() => profileData?.basicInfo?.cover, [profileData?.basicInfo?.cover])
   const coverThumbUrl = useMemo(() => profileData?.basicInfo?.coverThumb, [profileData?.basicInfo?.coverThumb])
+  const hasCover = !!coverUrl || !!coverThumbUrl;
+  
   // Handle click event with optional callback
   const handleClick = (e) => {
     if (onClick) {
       onClick(e)
-    } else {
+    } else if (hasCover) {
       setShowView(true)
     }
   }
@@ -58,8 +60,18 @@ const CoverPhotoUpload = memo(({ profile, onUpload, loading, onClick }) => {
           </div>
         )}
 
-        {/* Show skeleton when image is not loaded or there's no cover photo */}
-        {(!imageLoaded || !coverUrl) && <CoverPhotoSkeleton />}
+        {/* Show skeleton when image is loading */}
+        {hasCover && !imageLoaded && <CoverPhotoSkeleton />}
+        
+        {/* Show placeholder when there's no cover */}
+        {!hasCover && (
+          <div className="flex h-full w-full bg-muted border border-transparent flex-col items-center justify-center">
+            <div className="flex flex-col items-center justify-center gap-2 text-center">
+              <ImageIcon className="h-6 w-6 text-muted-foreground/80" />
+              <p className="text-sm font-medium text-muted-foreground/80">No cover photo</p>
+            </div>
+          </div>
+        )}
         
         <div className="absolute right-4 top-4 z-20">
           <Button
@@ -77,7 +89,7 @@ const CoverPhotoUpload = memo(({ profile, onUpload, loading, onClick }) => {
         </div>
       </div>
 
-      {showView && (
+      {showView && hasCover && (
         <ImageDialog
           image={coverUrl}
           title="Cover Photo"
