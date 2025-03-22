@@ -24,6 +24,7 @@ import {
 import { Loader, Eye, EyeOff } from "lucide-react"
 import React, { useCallback } from "react"
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
+import { AuthService } from "@/services/auth"
 
 // Add this toast configuration near the top of the file, after imports
 const toastConfig = {
@@ -84,34 +85,14 @@ const VALIDATION_RULES = {
   },
 }
 
+
 export function RegisterForm({ className, ...props }) {
   const navigate = useNavigate()
-  const { register, login } = useAuth()
+  const { login } = useAuth()
   const [loading, setLoading] = useState(false)
   
   // Form state management
   const [formData, setFormData] = useState(() => {
-    const savedData = localStorage.getItem('auth_cache')
-    if (savedData) {
-      const cache = decryptData(savedData)
-      return cache.registerFormData || {
-        role: '',
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: '',
-        dateOfBirth: {
-          day: '',
-          month: '',
-          year: ''
-        },
-        gender: '',
-        password: '',
-        confirmPassword: '',
-        description: '',
-        termsAccepted: false
-      }
-    }
     return {
       role: '',
       firstName: '',
@@ -130,13 +111,6 @@ export function RegisterForm({ className, ...props }) {
       termsAccepted: false
     }
   })
-
-  // Save form data to localStorage whenever it changes
-  React.useEffect(() => {
-    const cache = getCache()
-    cache.registerFormData = formData
-    localStorage.setItem('auth_cache', encryptData(cache))
-  }, [formData])
 
   // Add state for password visibility
   const [showPassword, setShowPassword] = useState(false)
@@ -180,13 +154,6 @@ export function RegisterForm({ className, ...props }) {
     }))
   }
 
-  // Clear form data
-  const clearFormData = useCallback(() => {
-    const cache = getCache()
-    delete cache.registerFormData
-    localStorage.setItem('auth_cache', encryptData(cache))
-  }, [])
-
   async function onSubmit(event) {
     event.preventDefault()
     setLoading(true)
@@ -200,28 +167,59 @@ export function RegisterForm({ className, ...props }) {
     }
 
     try {
+      // Format the data according to the API requirements
       const dataToSubmit = {
-        ...formData,
+        role: formData.role,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phoneNumber: formData.phone, // Changed from phone to phoneNumber for API compatibility
+        dateOfBirth: formData.dateOfBirth,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+        gender: formData.gender,
+        termsAccepted: formData.termsAccepted,
         description: formData.description || undefined
       }
 
-      const response = await register(dataToSubmit)
+      // Use AuthService directly instead of register from context
+      const response = await AuthService.register(dataToSubmit)
       
-      toast.success('Registration successful')
-      clearFormData()
-
-      
-      navigate('/')
-
-      setTimeout(() => {
-        toast.success('Welcome! Your account has been created.', toastConfig)
-      }, 3000)
-      setTimeout(() => {
-        toast.success('Please verify your email to continue!')
-      }, 4000)
-
+      // Only proceed with login if registration was successful (201 Created)
+      if (response.status === 201) {
+        toast.success('Registration successful')
+        
+        // Auto-login after successful registration
+        try {
+          await login({
+            email: formData.email,
+            password: formData.password
+          })
+          
+          // Navigate first, then show toasts
+          navigate('/')
+          
+          // Stagger toasts for better UX
+          setTimeout(() => {
+            toast.success('Please verify your email to continue!')
+          }, 1500)
+        } catch (loginError) {
+          console.error('Auto-login failed:', loginError)
+          navigate('/login')
+          setTimeout(() => {
+            toast.success('Please log in with your new account', toastConfig)
+          }, 800)
+        }
+      } else {
+        // Handle unexpected response
+        toast.success('Account created, please log in')
+        navigate('/login')
+      }
     } catch (error) {
-      if (error.errors) {
+      // Enhanced error handling
+      if (error.response?.status === 409) {
+        toast.error('An account with this email already exists. Please try logging in instead.')
+      } else if (error.errors) {
         error.errors.forEach(err => {
           if (err.field === 'description' && err.message.includes('empty')) {
             return

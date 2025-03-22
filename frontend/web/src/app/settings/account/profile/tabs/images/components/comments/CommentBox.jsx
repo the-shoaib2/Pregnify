@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/auth-context/auth-context"
 import { MediaService } from "@/services/media"
 import { toast } from "react-hot-toast"
 import ReactionComponent from "./ReactionComponent"
+import { Card } from "@/components/ui/card"
 
 const CommentBox = ({ imageId }) => {
   const { user } = useAuth()
@@ -155,8 +156,8 @@ const CommentBox = ({ imageId }) => {
   }
 
   return (
-    <div className="space-y-4">
-      <ScrollArea className="h-[300px] pr-4 relative">
+    <Card className="p-2">
+      <ScrollArea className="h-[200px] pr-4 relative">
         <div className="space-y-4">
           {comments.length === 0 ? (
             <div className="flex items-center justify-center h-[200px]">
@@ -234,22 +235,22 @@ const CommentBox = ({ imageId }) => {
         </div>
       </ScrollArea>
       
-      <div className="flex gap-2">
+      <div className="flex gap-2 p-2">
         <Textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           placeholder="Write a comment..."
-          className="min-h-[45px] resize-none text-sm"
+          className="min-h-[40px] resize-none text-sm"
         />
         <Button
           onClick={editingCommentId ? handleUpdate : handleSubmit}
           disabled={!comment.trim()}
-          className="self-end h-[45px] px-3 transition-all duration-200 hover:scale-105"
+          className="self-end h-[40px] px-3 transition-all duration-200 hover:scale-105"
         >
           <Send className="h-3.5 w-3.5" />
         </Button>
       </div>
-    </div>
+    </Card>
   )
 }
 

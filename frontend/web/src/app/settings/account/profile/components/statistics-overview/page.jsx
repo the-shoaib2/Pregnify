@@ -22,6 +22,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
@@ -177,6 +178,9 @@ export function StatsOverviewCard({ user, isLoading }) {
               )}
               <DialogTitle>{selectedStat?.label} Details</DialogTitle>
             </div>
+            <DialogDescription>
+              Detailed information about your {selectedStat?.label.toLowerCase()}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
