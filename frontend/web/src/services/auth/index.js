@@ -55,14 +55,19 @@ export const AuthService = {
     }
   },
 
+  
+
   logout: async () => {
     try {
       const response = await api.post('/auth/logout')
       CacheManager.clear(CACHE_KEY)
       return response
     } catch (error) {
+      console.error('Error calling logout API:', error)
+      // Still clear cache even if API call fails
       CacheManager.clear(CACHE_KEY)
-      throw error
+      // Don't throw the error to ensure UI logout still works
+      return { success: false, error }
     }
   },
 

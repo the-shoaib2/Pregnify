@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef, us
 import axios from 'axios'
 import { toast } from 'react-hot-toast'
 import { ProfileService } from '@/services/settings'
+import { AuthService } from '@/services/auth'
 import { encryptData, decryptData, CONSTANTS } from '@/utils/security'
 
 const AuthContext = createContext({})
@@ -159,13 +160,84 @@ export function AuthProvider({ children }) {
     }
   }, [setAuthToken, checkAuth, user, tokens])
 
-  const handleLogout = useCallback(() => {
-    updateAuthCache({ user: null, profile: null })
-    lastFetchTime.current = 0
-    delete axios.defaults.headers.common['Authorization']
-    localStorage.removeItem(CONSTANTS.AUTH_CACHE_KEY)
-  }, [updateAuthCache])
 
+  const handleLogin = useCallback(async (credentials) => {
+    try {
+      setIsLoadingUser(true)
+      // First, perform login
+      const response = await axios.post(`${API_URL}/auth/login`, credentials)
+      const { tokens } = response.data
+      
+      if (!tokens?.accessToken) {
+        throw new Error('No access token received')
+      }
+
+      // Set the token immediately
+      setAuthToken(tokens.accessToken)
+      
+      // Add a small delay before fetching user data to ensure token is properly set
+      // await new Promise(resolve => setTimeout(resolve, CONSTANTS.MIN_REFRESH_INTERVAL));
+      
+      // Retry user data fetch with exponential backoff
+      let userData = null;
+      let retryCount = 0;
+      const MAX_LOGIN_RETRIES = 3;
+      
+      while (!userData && retryCount < MAX_LOGIN_RETRIES) {
+        try {
+          userData = await fetchUserData(true);
+          if (!userData && retryCount === MAX_LOGIN_RETRIES - 1) {
+            toast.error('Failed to fetch user data. Please try again.');
+            throw new Error('Failed to fetch user data after multiple attempts');
+          }
+        } catch (error) {
+          retryCount++;
+          if (retryCount < MAX_LOGIN_RETRIES) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+          } else {
+            throw error;
+          }
+        }
+      }
+
+      // Update cache with both token and user data
+      updateAuthCache({
+        user: userData,
+        profile: null,
+        tokens: {
+          accessToken: tokens.accessToken,
+          timestamp: Date.now()
+        }
+      })
+
+      return response.data
+    } catch (error) {
+      toast.error(error.message || 'Login failed. Please try again.');
+      throw error;
+    } finally {
+      setIsLoadingUser(false)
+    }
+  }, [fetchUserData, setAuthToken, updateAuthCache]);
+
+  const handleLogout = useCallback(async () => {
+    try {
+      // Call the logout API through the service
+      await AuthService.logout();
+    } catch (error) {
+      console.error('Error during logout:', error);
+      // Continue with local logout even if API call fails
+    } finally {
+      // Clear local state
+      updateAuthCache({ user: null, profile: null });
+      lastFetchTime.current = 0;
+      delete axios.defaults.headers.common['Authorization'];
+      localStorage.removeItem(CONSTANTS.AUTH_CACHE_KEY);
+    }
+  }, [updateAuthCache]);
+
+
+
+  
   const refreshData = useCallback(async () => {
     const now = Date.now()
     if (now - lastRefreshTime.current < CONSTANTS.MIN_REFRESH_INTERVAL) {
@@ -184,68 +256,12 @@ export function AuthProvider({ children }) {
     profile,
     loading,
     isLoadingUser,
-    login: async (credentials) => {
-      try {
-        setIsLoadingUser(true)
-        // First, perform login
-        const response = await axios.post(`${API_URL}/auth/login`, credentials)
-        const { tokens } = response.data
-        
-        if (!tokens?.accessToken) {
-          throw new Error('No access token received')
-        }
-
-        // Set the token immediately
-        setAuthToken(tokens.accessToken)
-        
-        // Add a small delay before fetching user data to ensure token is properly set
-        // await new Promise(resolve => setTimeout(resolve, CONSTANTS.MIN_REFRESH_INTERVAL));
-        
-        // Retry user data fetch with exponential backoff
-        let userData = null;
-        let retryCount = 0;
-        const MAX_LOGIN_RETRIES = 3;
-        
-        while (!userData && retryCount < MAX_LOGIN_RETRIES) {
-          try {
-            userData = await fetchUserData(true);
-            if (!userData && retryCount === MAX_LOGIN_RETRIES - 1) {
-              toast.error('Failed to fetch user data. Please try again.');
-              throw new Error('Failed to fetch user data after multiple attempts');
-            }
-          } catch (error) {
-            retryCount++;
-            if (retryCount < MAX_LOGIN_RETRIES) {
-              await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
-            } else {
-              throw error;
-            }
-          }
-        }
-
-        // Update cache with both token and user data
-        updateAuthCache({
-          user: userData,
-          profile: null,
-          tokens: {
-            accessToken: tokens.accessToken,
-            timestamp: Date.now()
-          }
-        })
-
-        return response.data
-      } catch (error) {
-        toast.error(error.message || 'Login failed. Please try again.');
-        throw error;
-      } finally {
-        setIsLoadingUser(false)
-      }
-    },
+    login: handleLogin,
     logout: handleLogout,
     fetchUserData,
     refreshData,
     checkAuth
-  }), [user, profile, loading, isLoadingUser, handleLogout, fetchUserData, refreshData, checkAuth, setAuthToken, updateAuthCache])
+  }), [user, profile, loading, isLoadingUser, handleLogin, handleLogout, fetchUserData, refreshData, checkAuth, setAuthToken, updateAuthCache])
 
   return (
     <AuthContext.Provider value={contextValue}>
