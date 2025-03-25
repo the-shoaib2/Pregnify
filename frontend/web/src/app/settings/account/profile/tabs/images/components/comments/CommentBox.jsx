@@ -8,7 +8,6 @@ import { useAuth } from "@/contexts/auth-context/auth-context"
 import { MediaService } from "@/services/media"
 import { toast } from "react-hot-toast"
 import ReactionComponent from "./ReactionComponent"
-import { Card } from "@/components/ui/card"
 
 const CommentBox = ({ imageId }) => {
   const { user } = useAuth()
@@ -18,23 +17,29 @@ const CommentBox = ({ imageId }) => {
   const [editingCommentId, setEditingCommentId] = useState(null)
   const commentsEndRef = useRef(null)
 
-  const scrollToTop = () => {
-    commentsEndRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+  const scrollToBottom = () => {
+    commentsEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
   }
 
   useEffect(() => {
-    if (comments.length > 0) {
-      scrollToTop()
+    if (comments.length > 0 && !loading) {
+      scrollToBottom()
     }
-  }, [comments.length])
+  }, [comments.length, loading])
 
   const fetchComments = async () => {
     try {
       const response = await MediaService.getFilesById(imageId)
-      setComments((response?.data?.comments || []).map(comment => ({
-        ...comment,
-        status: "delivered"
-      })))
+      if (response?.data?.comments) {
+        // Sort comments by creation date (newest at the bottom)
+        const sortedComments = [...response.data.comments]
+          .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+          .map(comment => ({
+            ...comment,
+            status: "delivered"
+          }))
+        setComments(sortedComments)
+      }
     } catch (error) {
       if (error?.response?.status === 429) {
         // Handle rate limiting with exponential backoff
@@ -56,11 +61,6 @@ const CommentBox = ({ imageId }) => {
       fetchComments()
     }
   }, [imageId])
-
-  // Remove the direct fetchComments call
-  // if (imageId) {
-  //   fetchComments()
-  // }
   
   const handleSubmit = async () => {
     if (!comment.trim()) return
@@ -73,51 +73,53 @@ const CommentBox = ({ imageId }) => {
       createdAt: new Date().toISOString(),
       user: {
         id: user?.id,
-        username: user?.username,
-        firstName: user?.firstName,
-        lastName: user?.lastName,
-        avatarThumb: user?.avatarThumb,
-        avatar: user?.avatar
+        firstName: user?.firstName || user?.username?.split(' ')[0] || 'User',
+        lastName: user?.lastName || '',
+        avatarThumb: user?.avatar || user?.avatarThumb
       }
     }
     
-    // Add comment to the list immediately for optimistic UI
+    // Add the new comment to the list
     setComments(prev => [...prev, newComment])
-    setComment("") // Clear input
+    setComment("")
+    
+    // Scroll to the bottom to show the new comment
+    setTimeout(scrollToBottom, 100)
     
     try {
-      // Make the actual API call
-      const response = await MediaService.addComment(imageId, comment.trim())
+      const response = await MediaService.addComment(imageId, newComment.content)
       
-      // Update comment status to delivered with server response
-      const updatedComment = {
-        ...newComment,
-        id: response.data.id,
-        status: "delivered",
-        createdAt: response.data.createdAt,
-        user: response.data.user
-      }
-      
-      setComments(prev =>
-        prev.map(c => c.id === newComment.id ? updatedComment : c)
-      )
-      
-      // No need to call onSubmit as we're managing comments internally
-    } catch (error) {
-      console.error("Failed to add comment:", error)
-      toast.error("Failed to add comment. Please try again.")
-      
-      // Update comment status to failed
-      setComments(prev =>
-        prev.map(c =>
-          c.id === newComment.id
-            ? { ...c, status: "failed" }
+      // Update the comment with the server response
+      setComments(prev => 
+        prev.map(c => 
+          c.id === newComment.id 
+            ? { 
+                ...response.data, 
+                status: "delivered",
+                user: response.data.user || newComment.user
+              } 
             : c
         )
       )
+      
+      // Scroll to the bottom again after the comment is updated
+      setTimeout(scrollToBottom, 100)
+    } catch (error) {
+      console.error("Failed to add comment:", error)
+      
+      // Mark the comment as failed
+      setComments(prev => 
+        prev.map(c => 
+          c.id === newComment.id 
+            ? { ...c, status: "failed" } 
+            : c
+        )
+      )
+      
+      toast.error("Failed to add comment")
     }
   }
-  
+
   const handleEdit = (commentId, content) => {
     setEditingCommentId(commentId)
     setComment(content)
@@ -156,10 +158,14 @@ const CommentBox = ({ imageId }) => {
   }
 
   return (
-    <Card className="p-2">
-      <ScrollArea className="h-[200px] pr-4 relative">
+    <div className="space-y-4">
+      <ScrollArea className="h-[300px] pr-4 relative">
         <div className="space-y-4">
-          {comments.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center h-[200px]">
+              <p className="text-sm text-muted-foreground animate-pulse">Loading comments...</p>
+            </div>
+          ) : comments.length === 0 ? (
             <div className="flex items-center justify-center h-[200px]">
               <p className="text-sm text-muted-foreground">No comments yet</p>
             </div>
@@ -235,22 +241,32 @@ const CommentBox = ({ imageId }) => {
         </div>
       </ScrollArea>
       
-      <div className="flex gap-2 p-2">
+      <div className="flex gap-2">
         <Textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           placeholder="Write a comment..."
-          className="min-h-[40px] resize-none text-sm"
+          className="min-h-[45px] resize-none text-sm"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              if (editingCommentId) {
+                handleUpdate();
+              } else {
+                handleSubmit();
+              }
+            }
+          }}
         />
         <Button
           onClick={editingCommentId ? handleUpdate : handleSubmit}
           disabled={!comment.trim()}
-          className="self-end h-[40px] px-3 transition-all duration-200 hover:scale-105"
+          className="self-end h-[45px] px-3 transition-all duration-200 hover:scale-105"
         >
           <Send className="h-3.5 w-3.5" />
         </Button>
       </div>
-    </Card>
+    </div>
   )
 }
 

@@ -38,25 +38,25 @@ const reactionIcons = {
   CELEBRATE: () => "🎉" // Use emoji for this one
 };
 
-// Map reaction types to colors
+// Map reaction types to colors - updated with more subtle Apple-like colors
 const reactionColors = {
-  LIKE: "text-blue-500",
-  LOVE: "text-red-500",
-  HAHA: "text-yellow-500",
-  CRY: "text-blue-400",
-  CARE: "text-yellow-400",
-  WOW: "text-yellow-500",
-  SAD: "text-blue-400",
-  ANGRY: "text-orange-500",
-  THUMBS_UP: "text-blue-500",
-  THUMBS_DOWN: "text-gray-500",
-  LAUGH: "text-yellow-500",
-  SUPPORT: "text-purple-500",
-  THANK: "text-green-500",
-  PRAY: "text-purple-400",
-  HOPE: "text-green-400",
-  JOY: "text-yellow-400",
-  CELEBRATE: "text-pink-500"
+  LIKE: "text-blue-400",
+  LOVE: "text-rose-400",
+  HAHA: "text-amber-400",
+  CRY: "text-sky-400",
+  CARE: "text-amber-300",
+  WOW: "text-amber-400",
+  SAD: "text-sky-400",
+  ANGRY: "text-orange-400",
+  THUMBS_UP: "text-blue-400",
+  THUMBS_DOWN: "text-zinc-400",
+  LAUGH: "text-amber-400",
+  SUPPORT: "text-violet-400",
+  THANK: "text-emerald-400",
+  PRAY: "text-violet-300",
+  HOPE: "text-emerald-300",
+  JOY: "text-amber-300",
+  CELEBRATE: "text-pink-400"
 };
 
 const ReactionComponent = ({ commentId, initialReactions = { likes: 0, loves: 0, dislikes: 0 } }) => {
@@ -146,7 +146,7 @@ const ReactionComponent = ({ commentId, initialReactions = { likes: 0, loves: 0,
             variant="ghost"
             size="sm"
             className={cn(
-              "h-5 px-1.5 text-xs flex items-center gap-1 hover:bg-muted rounded-full",
+              "h-5 px-1.5 text-xs flex items-center gap-1 hover:bg-muted/60 rounded-full transition-colors",
               userReaction && currentColor
             )}
           >
@@ -154,7 +154,7 @@ const ReactionComponent = ({ commentId, initialReactions = { likes: 0, loves: 0,
             <span className="text-xs">{totalReactions > 0 ? totalReactions : ""}</span>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="p-1 w-auto">
+        <PopoverContent className="p-1 w-auto shadow-lg rounded-xl border-none">
           <div className="flex gap-1 p-1">
             {availableReactions.slice(0, 7).map((type) => {
               const ReactionIcon = reactionIcons[type] || ThumbsUp
@@ -168,7 +168,7 @@ const ReactionComponent = ({ commentId, initialReactions = { likes: 0, loves: 0,
                         variant="ghost"
                         size="icon"
                         className={cn(
-                          "h-6 w-6 rounded-full hover:bg-muted",
+                          "h-7 w-7 rounded-full hover:bg-muted/80 transition-all duration-200",
                           reactionColors[type]
                         )}
                         onClick={() => handleReaction(type)}
@@ -177,13 +177,13 @@ const ReactionComponent = ({ commentId, initialReactions = { likes: 0, loves: 0,
                           <span className="text-sm">{ReactionIcon()}</span>
                         ) : (
                           <ReactionIcon className={cn(
-                            "h-3 w-3 transition-transform",
+                            "h-3.5 w-3.5 transition-transform",
                             isAnimating && userReaction === type && "animate-bounce"
                           )} />
                         )}
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="py-1 px-2">
+                    <TooltipContent side="top" className="py-1 px-2 text-xs rounded-lg">
                       <p className="text-xs">{type.charAt(0) + type.slice(1).toLowerCase().replace('_', ' ')}</p>
                     </TooltipContent>
                   </Tooltip>
@@ -204,7 +204,7 @@ const ReactionComponent = ({ commentId, initialReactions = { likes: 0, loves: 0,
               <div 
                 key={type} 
                 className={cn(
-                  "h-4 w-4 rounded-full bg-muted flex items-center justify-center",
+                  "h-4 w-4 rounded-full bg-background border border-muted/30 shadow-sm flex items-center justify-center",
                   reactionColors[type]
                 )}
               >

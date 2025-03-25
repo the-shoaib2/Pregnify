@@ -143,9 +143,6 @@ export const PhotoGallery = ({ onClose }) => {
 
   // Handle image deletion
   const handleDelete = useCallback(async (image) => {
-    if (!window.confirm("Are you sure you want to delete this image?")) {
-      return;
-    }
 
     try {
       await MediaService.deleteImage(image.id);
@@ -191,26 +188,28 @@ export const PhotoGallery = ({ onClose }) => {
           onClick={toggleHeader}
         >
           <div>
-            <h2 className="font-semibold tracking-tight flex items-center gap-2 text-xl"><Image className="h-5 w-5" /> Image Gallery</h2>
+            <h2 className="font-semibold tracking-tight flex items-center gap-2 text-xl">
+              <Image className="h-5 w-5" /> Image Gallery
+            </h2>
             <p className="text-sm text-muted-foreground">
               Manage your photos and media files
             </p>
           </div>
           
-          {/* Close Button - Updated to use onClose prop */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="rounded-full hover:bg-muted"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onClose) onClose();
-            }}
-          >
-            <X className="h-5 w-5" />
-
-            
-          </Button>
+          {/* Only render close button if onClose prop exists */}
+          {onClose && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 rounded-full hover:bg-muted/80"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
 
         {/* Tabs */}
@@ -220,11 +219,11 @@ export const PhotoGallery = ({ onClose }) => {
             onValueChange={setActiveTab}
             className="w-full sm:w-auto"
           >
-            <TabsList>
-              <TabsTrigger value="all">All Photos</TabsTrigger>
-              <TabsTrigger value="profile">Profile</TabsTrigger>
-              <TabsTrigger value="cover">Cover</TabsTrigger>
-              <TabsTrigger value="post">Post</TabsTrigger>
+            <TabsList className="w-full sm:w-auto">
+              <TabsTrigger value="all" className="flex-1 sm:flex-none">All Photos</TabsTrigger>
+              <TabsTrigger value="profile" className="flex-1 sm:flex-none">Profile</TabsTrigger>
+              <TabsTrigger value="cover" className="flex-1 sm:flex-none">Cover</TabsTrigger>
+              <TabsTrigger value="post" className="flex-1 sm:flex-none">Post</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -250,9 +249,13 @@ export const PhotoGallery = ({ onClose }) => {
 
         {/* Image View Component */}
         <ErrorBoundary>
-          <Suspense fallback={<div className="fixed inset-0 flex items-center justify-center ">
-            <Skeleton className="w-[400px] h-[300px] rounded-lg" />
-          </div>}>
+          <Suspense fallback={
+            <div className="fixed inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+              <Skeleton className="w-[400px] h-[300px] rounded-lg" />
+            </div>
+          }>
+
+            
             {/* Only render LazyImageView when needed */}
             {open && mediaEnums && (
               <LazyImageView
@@ -271,6 +274,8 @@ export const PhotoGallery = ({ onClose }) => {
                 reactions={reactions}
               />
             )}
+
+
           </Suspense>
         </ErrorBoundary>
       </Card>

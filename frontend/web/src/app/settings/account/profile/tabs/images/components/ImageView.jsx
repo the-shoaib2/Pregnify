@@ -60,23 +60,23 @@ export const ImageView = ({ image, onClose, onUpdate }) => {
 
   // Map reaction types to colors
   const reactionColors = {
-    LIKE: "text-blue-500",
-    LOVE: "text-red-500",
-    HAHA: "text-yellow-500",
-    CRY: "text-blue-400",
-    CARE: "text-yellow-400",
-    WOW: "text-yellow-500",
-    SAD: "text-blue-400",
-    ANGRY: "text-orange-500",
-    THUMBS_UP: "text-blue-500",
-    THUMBS_DOWN: "text-gray-500",
-    LAUGH: "text-yellow-500",
-    SUPPORT: "text-purple-500",
-    THANK: "text-green-500",
-    PRAY: "text-purple-400",
-    HOPE: "text-green-400",
-    JOY: "text-yellow-400",
-    CELEBRATE: "text-pink-500"
+    LIKE: "text-blue-400",
+    LOVE: "text-rose-400",
+    HAHA: "text-amber-400",
+    CRY: "text-sky-400",
+    CARE: "text-amber-300",
+    WOW: "text-amber-400",
+    SAD: "text-sky-400",
+    ANGRY: "text-orange-400",
+    THUMBS_UP: "text-blue-400",
+    THUMBS_DOWN: "text-zinc-400",
+    LAUGH: "text-amber-400",
+    SUPPORT: "text-violet-400",
+    THANK: "text-emerald-400",
+    PRAY: "text-violet-300",
+    HOPE: "text-emerald-300",
+    JOY: "text-amber-300",
+    CELEBRATE: "text-pink-400"
   };
 
   useEffect(() => {
@@ -206,18 +206,16 @@ export const ImageView = ({ image, onClose, onUpdate }) => {
 
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl p-0 border-none">
-        <div className="grid w-full gap-3 bg-background p-4 sm:rounded-lg">
+      <DialogContent className="max-w-4xl  border-none rounded-xl shadow-xl bg-background/95 backdrop-blur-md">
+        <div className="grid w-full gap-3 bg-background/95 p-3 sm:p-4 sm:rounded-xl">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-base font-semibold">Image Details</DialogTitle>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
+           
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
             {/* Left side - Image */}
-            <div className="relative">
+            <div className="relative rounded-xl overflow-hidden shadow-sm">
               <AspectRatio ratio={1}>
                 <img
                   src={image.url}
@@ -227,7 +225,7 @@ export const ImageView = ({ image, onClose, onUpdate }) => {
               </AspectRatio>
               
               {/* Facebook-style reaction bar */}
-              <div className="absolute bottom-0 left-0 right-0 flex justify-between items-center p-2 bg-gradient-to-t from-black/60 to-transparent">
+              <div className="absolute bottom-0 left-0 right-0 flex justify-between items-center p-2 bg-gradient-to-t from-black/70 to-transparent backdrop-blur-[2px]">
                 <div className="flex gap-1 items-center">
                   <Popover open={showReactionPicker} onOpenChange={setShowReactionPicker}>
                     <PopoverTrigger asChild>
@@ -235,7 +233,7 @@ export const ImageView = ({ image, onClose, onUpdate }) => {
                         variant="ghost"
                         size="sm"
                         className={cn(
-                          "h-7 px-2 text-xs flex items-center gap-1 hover:bg-white/20 text-white rounded-full",
+                          "h-7 px-2 text-xs flex items-center gap-1 hover:bg-white/20 text-white rounded-full transition-colors",
                           userReaction && reactionColors[userReaction]
                         )}
                       >
@@ -247,17 +245,17 @@ export const ImageView = ({ image, onClose, onUpdate }) => {
                             ) : (
                               <CurrentReactionIcon className="h-3.5 w-3.5 mr-1" />
                             )}
-                            <span className="text-xs capitalize">{userReaction.toLowerCase().replace('_', ' ')}</span>
+                            <span className="text-xs capitalize hidden sm:inline">{userReaction.toLowerCase().replace('_', ' ')}</span>
                           </>
                         ) : (
                           <>
                             <ThumbsUp className="h-3.5 w-3.5 mr-1" />
-                            <span className="text-xs">Like</span>
+                            <span className="text-xs hidden sm:inline">Like</span>
                           </>
                         )}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="p-1 w-auto">
+                    <PopoverContent className="p-1 w-auto border-none shadow-lg rounded-xl">
                       <div className="flex flex-wrap gap-1 p-1 max-w-[220px]">
                         {availableReactions.slice(0, 12).map((type) => {
                           const ReactionIcon = reactionIcons[type];
@@ -271,7 +269,7 @@ export const ImageView = ({ image, onClose, onUpdate }) => {
                                     variant="ghost"
                                     size="icon"
                                     className={cn(
-                                      "h-8 w-8 rounded-full hover:bg-muted",
+                                      "h-8 w-8 rounded-full hover:bg-muted/80 transition-all duration-200",
                                       reactionColors[type]
                                     )}
                                     onClick={() => handleReaction(type)}
@@ -286,7 +284,7 @@ export const ImageView = ({ image, onClose, onUpdate }) => {
                                     )}
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent side="top" className="py-1 px-2">
+                                <TooltipContent side="top" className="py-1 px-2 rounded-lg">
                                   <p className="text-xs">{type.charAt(0) + type.slice(1).toLowerCase().replace('_', ' ')}</p>
                                 </TooltipContent>
                               </Tooltip>
@@ -309,7 +307,7 @@ export const ImageView = ({ image, onClose, onUpdate }) => {
                               <div 
                                 key={type} 
                                 className={cn(
-                                  "h-5 w-5 rounded-full bg-white/20 flex items-center justify-center",
+                                  "h-5 w-5 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-sm",
                                   reactionColors[type]
                                 )}
                               >
@@ -334,16 +332,16 @@ export const ImageView = ({ image, onClose, onUpdate }) => {
                     size="sm"
                     className="h-7 px-2 text-xs flex items-center gap-1 hover:bg-white/20 text-white rounded-full"
                   >
-                    <Share2 className="h-3.5 w-3.5 mr-1" />
-                    <span className="text-xs">Share</span>
+                    <Share2 className="h-3.5 w-3.5 sm:mr-1" />
+                    <span className="text-xs hidden sm:inline">Share</span>
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     className="h-7 px-2 text-xs flex items-center gap-1 hover:bg-white/20 text-white rounded-full"
                   >
-                    <Download className="h-3.5 w-3.5 mr-1" />
-                    <span className="text-xs">Download</span>
+                    <Download className="h-3.5 w-3.5 sm:mr-1" />
+                    <span className="text-xs hidden sm:inline">Download</span>
                   </Button>
                 </div>
               </div>
@@ -356,7 +354,7 @@ export const ImageView = ({ image, onClose, onUpdate }) => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-7"
+                  className="h-7 rounded-full"
                   onClick={() => setIsEditing(!isEditing)}
                 >
                   {isEditing ? (
@@ -378,19 +376,19 @@ export const ImageView = ({ image, onClose, onUpdate }) => {
                         value={formData.description}
                         onChange={handleInputChange}
                         placeholder="Enter image description"
-                        className="min-h-[80px]"
+                        className="min-h-[80px] rounded-xl border-muted/50 focus-visible:ring-offset-0 focus-visible:ring-blue-400/20"
                       />
                     </div>
                     <div className="flex justify-end gap-2 pt-1">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-7"
+                        className="h-7 rounded-full"
                         onClick={() => setIsEditing(false)}
                       >
                         Cancel
                       </Button>
-                      <Button size="sm" className="h-7" onClick={handleSubmit}>Save Changes</Button>
+                      <Button size="sm" className="h-7 rounded-full" onClick={handleSubmit}>Save Changes</Button>
                     </div>
                   </>
                 ) : (
