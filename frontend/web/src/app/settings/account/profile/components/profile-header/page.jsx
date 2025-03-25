@@ -69,13 +69,13 @@ const ProfileHeader = memo(({
     )}>
 
       {/* Remove mt-20 */}
-      <div className="relative mt-20">
-        {/* <CoverPhotoUpload  
+      <div className="relative">
+        <CoverPhotoUpload  
           profile={profile}
           onUpload={handleCoverUpload}
           loading={isCoverLoading || uploadingCover}
           onClick={onCoverClick}
-        /> */}
+        />
         
         <div className="absolute -bottom-2 left-4 z-10">
           <ProfilePicture 

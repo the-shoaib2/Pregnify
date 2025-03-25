@@ -15,6 +15,32 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubTrigger,
+  ContextMenuSubContent,
+  ContextMenuSeparator,
+  ContextMenuCheckboxItem,
+  ContextMenuRadioGroup,
+  ContextMenuRadioItem,
+  ContextMenuLabel,
+} from "@/components/ui/context-menu"
+import {
+  Command,
+  CommandDialog,
+  CommandInput,
+  CommandList,
+  CommandItem,
+  CommandSeparator,
+} from "@/components/ui/command"
+
+import { Separator } from "@/components/ui/separator"
+
 import ErrorBoundary from "@/components/error-boundary"
 import toast from "react-hot-toast"
 import { FormSectionSkeleton, CardSkeleton } from "./components/skeleton"
@@ -341,7 +367,45 @@ export default function PersonalTab({
     }
   }, [])
 
-  // Memoized card header component
+  // Function to handle reload action
+  const handleReload = () => {
+    console.log("Reloading personal data...");
+    // Implement your reload logic here
+  };
+
+  // Function to handle back action
+  const handleBack = () => {
+    console.log("Going back...");
+    // Implement your back navigation logic here
+  };
+
+  // Function to handle forward action
+  const handleForward = () => {
+    console.log("Going forward...");
+    // Implement your forward navigation logic here
+  };
+
+  // Function to handle expand all action
+  const handleExpandAll = () => {
+    setExpandedSections({
+      basicPersonal: true,
+      documents: true,
+      education: true,
+      medical: true
+    });
+  };
+
+  // Function to handle collapse all action
+  const handleCollapseAll = () => {
+    setExpandedSections({
+      basicPersonal: false,
+      documents: false,
+      education: false,
+      medical: false
+    });
+  };
+
+  // Memoized card header component with command menu
   const CardWithCollapse = useMemo(() => ({ 
     section, 
     title, 
@@ -350,42 +414,93 @@ export default function PersonalTab({
     isLoading,
     icon: Icon = User
   }) => (
-    <Card className="relative">
-      <Collapsible
-        open={expandedSections[section]}
-        onOpenChange={() => toggleSection(section)}
-      >
-        <div className="absolute right-4 top-4 flex items-center gap-2 ">
-          <CollapsibleTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0"
-            >
-              {expandedSections[section] ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </Button>
-          </CollapsibleTrigger>
-        </div>
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <Card className="relative">
+          <Collapsible
+            open={expandedSections[section]}
+            onOpenChange={() => toggleSection(section)}
+          >
+            <div className="absolute right-4 top-4 flex items-center gap-2 ">
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                >
+                  {expandedSections[section] ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+            </div>
 
-        <CardHeader className="space-y-1">
-          <CardTitle className="flex items-center gap-2 text-xl">
-            <Icon className="h-5 w-5 text-primary" />
-            {title}
-          </CardTitle>
-          {description && <CardDescription>{description}</CardDescription>}
-        </CardHeader>
+            <CardHeader className="space-y-1">
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <Icon className="h-5 w-5 text-primary" />
+                {title}
+              </CardTitle>
+              {description && <CardDescription>{description}</CardDescription>}
+            </CardHeader>
 
-        <CollapsibleContent>
-          <CardContent className="pt-0">
-            {isLoading ? <FormSectionSkeleton /> : children}
-          </CardContent>
-        </CollapsibleContent>
-      </Collapsible>
-    </Card>
+            <CollapsibleContent>
+              <CardContent className="pt-0">
+                {isLoading ? <FormSectionSkeleton /> : children}
+              </CardContent>
+            </CollapsibleContent>
+          </Collapsible>
+        </Card>
+      </ContextMenuTrigger>
+      <ContextMenuContent className="w-64">
+
+      <ContextMenuItem inset onClick={handleReload}>
+          Reload
+          <ContextMenuShortcut>⌘R</ContextMenuShortcut>
+        </ContextMenuItem>
+        <ContextMenuItem inset onClick={handleBack}>
+          Backward
+          <ContextMenuShortcut>⌘[</ContextMenuShortcut>
+        </ContextMenuItem>
+        <ContextMenuItem inset onClick={handleForward}>
+          Forward
+          <ContextMenuShortcut>⌘]</ContextMenuShortcut>
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem inset onClick={() => toggleSection(section)}>
+          {expandedSections[section] ? "Collapse" : "Expand"} {title}
+          <ContextMenuShortcut>⌘[</ContextMenuShortcut>
+        </ContextMenuItem>
+        <ContextMenuItem inset onClick={handleExpandAll}>
+          Expand All
+          <ContextMenuShortcut>⌘E</ContextMenuShortcut>
+        </ContextMenuItem>
+        <ContextMenuItem inset onClick={handleCollapseAll}>
+          Collapse All
+          <ContextMenuShortcut>⌘C</ContextMenuShortcut>
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuSub>
+          <ContextMenuSubTrigger inset>More Tools</ContextMenuSubTrigger>
+          <ContextMenuSubContent className="w-48">
+            <ContextMenuItem>
+              Save Page As...
+              <ContextMenuShortcut>⇧⌘S</ContextMenuShortcut>
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem>Developer Tools
+               <ContextMenuShortcut>⌘I</ContextMenuShortcut>
+            </ContextMenuItem>
+          </ContextMenuSubContent>
+        </ContextMenuSub>
+        <ContextMenuSeparator />
+        <ContextMenuCheckboxItem checked={true} onCheckedChange={() => {}}>
+          Show Bookmarks Bar
+          <ContextMenuShortcut>⌘⇧B</ContextMenuShortcut>
+        </ContextMenuCheckboxItem>
+      </ContextMenuContent>
+    </ContextMenu>
   ), [expandedSections, toggleSection])
 
   // Render sections with Suspense and ErrorBoundary

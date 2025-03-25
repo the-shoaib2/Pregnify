@@ -9,10 +9,7 @@ const CACHE_KEY = CONSTANTS.AUTH_CACHE_KEY
 
 // Profile constants
 const PROFILE_ENDPOINTS = {
-  HEALTH_CHECK: '/health',
-  UPDATE_PROFILE: '/account/profile/update',
-  UPLOAD_AVATAR: '/account/profile/avatar',
-  UPLOAD_COVER: '/account/profile/cover'
+  HEALTH_CHECK: '/health'
 }
 
 // Track ongoing profile requests

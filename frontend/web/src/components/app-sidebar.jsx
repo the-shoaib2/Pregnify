@@ -360,8 +360,6 @@ export function AppSidebar({ ...props }) {
     getNavItems(userRole || 'GUEST'), [userRole]
   )
 
-  console.log("User role:", user?.basicInfo?.avatar)
-
   const getInitials = (user) => {
     if (!user || !user?.basicInfo?.name?.firstName || !user?.basicInfo?.name?.lastName) return 'GU'
     return `${user.basicInfo?.name?.firstName.charAt(0)}${user.basicInfo?.name?.lastName.charAt(0)}`.toUpperCase()

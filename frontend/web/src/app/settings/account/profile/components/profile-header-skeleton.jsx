@@ -28,8 +28,8 @@ const ProfileHeaderSkeleton = memo(() => (
   <div className="space-y-4 animate-in fade-in duration-300">
 
     {/* Remove mt-20 */}
-    <div className="relative mt-20 ">
-      {/* <CoverPhotoSkeleton /> */}
+    <div className="relative">
+      <CoverPhotoSkeleton />
       <div className="absolute -bottom-2 left-4 z-10">
         <ProfilePictureSkeleton />
       </div>
