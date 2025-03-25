@@ -353,11 +353,14 @@ export function AppSidebar({ ...props }) {
   const { user } = useAuth()
   
   // Log the full user object to debug
-  console.log("Full user data:", user)
+
+  const  userRole = user?.basicInfo?.role
   
   const navMainItems = React.useMemo(() => 
-    getNavItems(user?.basicInfo?.role || 'GUEST'), [user?.basicInfo?.role]
+    getNavItems(userRole || 'GUEST'), [userRole]
   )
+
+  console.log("User role:", user?.basicInfo?.avatar)
 
   const getInitials = (user) => {
     if (!user || !user?.basicInfo?.name?.firstName || !user?.basicInfo?.name?.lastName) return 'GU'
@@ -368,7 +371,7 @@ export function AppSidebar({ ...props }) {
     user: {
       name: user ? `${user?.basicInfo?.name?.firstName} ${user?.basicInfo?.name?.lastName}` : 'Guest User',
       email: user?.basicInfo?.email,
-      avatar: user?.basicInfo?.avatar ,
+      avatar: user?.basicInfo?.avatarThumb || user?.basicInfo?.avatar || null,
       initials: getInitials(user)
     },
     navMain: navMainItems,
@@ -399,7 +402,7 @@ export function AppSidebar({ ...props }) {
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">Pregnify</span>
-                  <span className="truncate text-xs">{user?.basicInfo?.role}</span>
+                  <span className="truncate text-xs">{userRole}</span>
                 </div>
               </Link>
             </SidebarMenuButton>
