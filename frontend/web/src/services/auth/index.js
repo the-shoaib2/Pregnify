@@ -18,44 +18,42 @@ export const AuthService = {
     try {
       console.time('Total Login Flow')
       
-      // Single login request that returns all needed data
-      const loginResponse = await api.post('/auth/login', credentials, {
-        include: 'user,preferences',
-        headers: {
-          'Priority': 'high'
-        }
-      })
-
-      if (!loginResponse.data?.tokens?.accessToken) {
+      // Perform login request
+      const response = await api.post('/auth/login', credentials)
+      const { tokens } = response.data
+      
+      if (!tokens?.accessToken) {
         throw new Error('No access token received')
       }
 
-      // Batch process all data in memory
-      const { tokens, user } = loginResponse.data
-
       // Set token for future requests
       api.defaults.headers.common['Authorization'] = `Bearer ${tokens.accessToken}`
+      
+      // Use existing getCurrentUser method instead of duplicating logic
+      const userData = await AuthService.getCurrentUser()
+      
+      if (!userData) {
+        throw new Error('Failed to fetch user data')
+      }
 
-      // Prepare and cache all data at once
+      // Prepare and cache all data
       const cacheData = {
         tokens,
-        user,
+        user: userData,
         lastRefresh: Date.now(),
         timestamp: Date.now()
       }
 
-      // Single cache update
+      // Update cache
       CacheManager.set(CACHE_KEY, cacheData)
 
       console.timeEnd('Total Login Flow')
-      return loginResponse.data
+      return { tokens, user:userData }
     } catch (error) {
       CacheManager.clear(CACHE_KEY)
       throw error
     }
   },
-
-  
 
   logout: async () => {
     try {
@@ -116,7 +114,7 @@ export const AuthService = {
 
   getCurrentUser: memoize(
     async () => {
-      const cacheKey = 'currentUser'
+      const cacheKey = 'user'
       try {
         // Check request cache first to prevent duplicate in-flight requests
         if (requestCache.has(cacheKey)) {
@@ -126,17 +124,18 @@ export const AuthService = {
         const cache = CacheManager.get(CACHE_KEY)
         
         // Use cached user if valid
-        if (cache.user && Date.now() - cache.timestamp < CACHE_DURATION) {
+        if (cache?.user && Date.now() - cache.timestamp < CACHE_DURATION) {
           return cache.user
         }
 
         // Store promise in request cache
         const promise = api.get('/auth/user')
           .then(response => {
-            const user = response.data
+            const { user } = response.data // Extract user from response.data
             
-            // Update cache
+            // Update cache with the complete user object
             CacheManager.set(CACHE_KEY, {
+              ...cache,
               user,
               lastRefresh: Date.now()
             })
@@ -144,7 +143,6 @@ export const AuthService = {
             return user
           })
           .finally(() => {
-            // Clear request cache after 1 second
             setTimeout(() => requestCache.delete(cacheKey), 1000)
           })
 
@@ -165,7 +163,6 @@ export const AuthService = {
         throw error
       }
     },
-    // Cache key based on timestamp (cache for 30 seconds)
     () => Math.floor(Date.now() / 30000)
   ),
   

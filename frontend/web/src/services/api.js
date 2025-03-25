@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { CacheManager } from '../utils/security'
+import { CacheManager, CONSTANTS } from '../utils/security'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -35,14 +35,21 @@ const api = axios.create({
 const requestQueue = new Map()
 const queueTimeout = 50 // Reduce queue timeout
 
+// Add token management helper
+const getAuthToken = () => {
+  const cache = CacheManager.get(CONSTANTS.AUTH_CACHE_KEY)
+  return cache?.tokens?.accessToken ? `Bearer ${cache.tokens.accessToken}` : null
+}
+
 // Request interceptor
 api.interceptors.request.use(
   async (config) => {
     performanceLog.requests.set(config, Date.now())
-    
-    const token = CacheManager.getToken()
+
+    // Get fresh token for each request
+    const token = getAuthToken()
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+      config.headers.Authorization = token
     }
 
     // Queue similar requests with shorter timeout
@@ -60,7 +67,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// Response interceptor with timing and safe caching
+// Response interceptor with improved token refresh
 api.interceptors.response.use(
   (response) => {
     // Calculate and log request duration
@@ -111,35 +118,37 @@ api.interceptors.response.use(
       originalRequest._retry = true
 
       try {
-        const cache = CacheManager.get()
-        const refreshToken = cache.tokens?.refreshToken
-        
+        const cache = CacheManager.get(CONSTANTS.AUTH_CACHE_KEY)
+        const refreshToken = cache?.tokens?.refreshToken
+
         if (!refreshToken) {
-          throw new Error('No refresh token')
+          // Clear invalid cache and throw auth error
+          CacheManager.clear(CONSTANTS.AUTH_CACHE_KEY)
+          throw new Error('Authentication required')
         }
 
-        console.time('Token Refresh')
         const response = await axios.post(`${API_URL}/auth/refresh-token`, {
           refreshToken
         })
-        console.timeEnd('Token Refresh')
 
         const { accessToken } = response.data
-        
+
         // Update token in cache
-        CacheManager.set({
+        CacheManager.set(CONSTANTS.AUTH_CACHE_KEY, {
+          ...cache,
           tokens: {
             ...cache.tokens,
-            accessToken
+            accessToken,
+            timestamp: Date.now()
           }
         })
-        
+
         // Update the current request's authorization header
         originalRequest.headers.Authorization = `Bearer ${accessToken}`
         return api(originalRequest)
       } catch (refreshError) {
-        CacheManager.clear()
-        return Promise.reject(refreshError)
+        CacheManager.clear(CONSTANTS.AUTH_CACHE_KEY)
+        throw new Error('Authentication required')
       }
     }
 

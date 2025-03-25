@@ -3,20 +3,20 @@ import { SettingsService } from '@/services'
 import { useAuth } from '@/contexts/auth-context/auth-context'
 import { toast } from 'react-hot-toast'
 import { ProfileService } from '@/services/settings'
-import { CacheManager } from '@/utils/security'
-import { CONSTANTS } from '@/utils/security'
+import { CacheManager,CONSTANTS} from '@/utils/security'
 
 const SettingsContext = createContext({})
 
 const API_URL = import.meta.env.VITE_API_URL
 
 export function SettingsProvider({ children }) {
-  const { user: authUser } = useAuth()
+  const { user: authUser, login } = useAuth()
   const [state, setState] = useState({
     settings: null,
     profile: null,
     loading: false,
-    isInitialized: false
+    isInitialized: false,
+    error: null
   })
   
   // Add refs to track ongoing requests
@@ -24,9 +24,12 @@ export function SettingsProvider({ children }) {
   const settingsFetchInProgress = useRef(false)
   const lastProfileFetchTime = useRef(0)
 
-  // Improved profile fetching with proper error handling and request deduplication
+  // Improved profile fetching with better error handling
   const fetchProfile = useCallback(async (forceRefresh = false) => {
-    if (!authUser) return null
+    if (!authUser) {
+      setState(prev => ({ ...prev, error: 'Authentication required' }))
+      return null
+    }
     
     // Prevent duplicate requests within cooldown period
     const now = Date.now()
@@ -39,25 +42,39 @@ export function SettingsProvider({ children }) {
     profileFetchInProgress.current = true
     
     try {
-      setState(prev => ({ ...prev, loading: true }))
+      setState(prev => ({ ...prev, loading: true, error: null }))
       
-      // Use cached profile if available
+      // Use cached profile if available and not forcing refresh
       if (!forceRefresh && state.profile) {
         return state.profile
       }
       
       const profile = await ProfileService.getProfile({ forceRefresh })
       
-      // Update state only if profile changed
-      if (JSON.stringify(profile) !== JSON.stringify(state.profile)) {
-        setState(prev => ({ ...prev, profile }))
+      if (profile) {
+        setState(prev => ({ ...prev, profile, error: null }))
+        lastProfileFetchTime.current = now
       }
       
-      lastProfileFetchTime.current = Date.now()
       return profile
     } catch (error) {
       console.error('Failed to fetch profile:', error)
-      toast.error('Failed to load profile data')
+      
+      // Handle authentication errors
+      if (error.message === 'Authentication required') {
+        setState(prev => ({ 
+          ...prev, 
+          error: 'Please log in to view your profile',
+          profile: null 
+        }))
+        // Optionally redirect to login or show login modal
+      } else {
+        setState(prev => ({ 
+          ...prev, 
+          error: 'Failed to load profile data'
+        }))
+        toast.error('Failed to load profile data')
+      }
       return null
     } finally {
       setState(prev => ({ ...prev, loading: false }))
@@ -131,7 +148,8 @@ export function SettingsProvider({ children }) {
     ...state,
     loadSettings,
     updateSettings,
-    fetchProfile
+    fetchProfile,
+    error: state.error
   }), [state, loadSettings, updateSettings, fetchProfile])
 
   // Add cleanup for refs

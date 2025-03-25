@@ -23,11 +23,11 @@ const MIN_FETCH_INTERVAL = 1000; // 1 second minimum between fetches
 // Add request cache for deduplication
 const requestCache = new Map()
 
-// Profile loader with improved error handling and request deduplication
+// Profile loader with improved error handling
 export const loadProfile = async (refresh = false) => {
   const now = Date.now();
-  const cache = CacheManager.get(CACHE_KEY);
-  const token = CacheManager.getToken(CACHE_KEY);
+  const cache = CacheManager.get(CONSTANTS.AUTH_CACHE_KEY);
+  const token = cache?.tokens?.accessToken;
   const cacheKey = 'profile';
 
   // If a request is already in progress, return that promise
@@ -35,35 +35,29 @@ export const loadProfile = async (refresh = false) => {
     return requestCache.get(cacheKey);
   }
 
-  // Check cache first if not forcing refresh and not within minimum fetch interval
+  // Check cache first if not forcing refresh
   if (!refresh && 
       cache.profile && 
-      now - lastProfileFetchTime > MIN_FETCH_INTERVAL &&
+      now - lastProfileFetchTime < MIN_FETCH_INTERVAL &&
       now - cache.timestamp < CACHE_DURATION) {
     return cache.profile;
   }
 
-  // Ensure we have a token
+  // Ensure we have a valid token
   if (!token) {
-    try {
-      // Try to refresh the token
-      await AuthService.refreshToken();
-    } catch (error) {
-      console.error('Authentication required for profile loading:', error);
-      throw new Error('Authentication required');
-    }
+    throw new Error('Authentication required');
   }
 
   try {
     // Create a new request promise
     profileRequestPromise = (async () => {
-      // Use the API instance which will automatically include the token
       const response = await api.get(PROFILE_ENDPOINTS.GET_PROFILE);
       
       const profile = response.data;
       
-      // Update cache
-      CacheManager.set(CACHE_KEY, {
+      // Update cache with new profile data
+      CacheManager.set(CONSTANTS.AUTH_CACHE_KEY, {
+        ...cache,
         profile,
         lastRefresh: now
       });
@@ -78,16 +72,14 @@ export const loadProfile = async (refresh = false) => {
     const result = await profileRequestPromise;
     return result;
   } catch (error) {
-    if (error.response?.status === 401) {
-      CacheManager.clear(CACHE_KEY);
+    if (error.response?.status === 401 || error.message === 'Authentication required') {
+      CacheManager.clear(CONSTANTS.AUTH_CACHE_KEY);
       throw new Error('Authentication required');
     }
     const errorMessage = handleApiError(error);
     throw new Error(errorMessage);
   } finally {
-    // Clear the promise reference after completion
     profileRequestPromise = null;
-    // Clear request cache after delay
     setTimeout(() => requestCache.delete(cacheKey), 2000);
   }
 }

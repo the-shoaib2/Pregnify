@@ -342,8 +342,6 @@ const getNavItems = (role) => {
     }
   ]
 
- 
-
   const items = role === 'GUEST' 
     ? [...baseItems, ...(roleBasedItems[role] || [])]
     : [...baseItems, ...(roleBasedItems[role] || []), ...commonItems]
@@ -353,6 +351,9 @@ const getNavItems = (role) => {
 
 export function AppSidebar({ ...props }) {
   const { user } = useAuth()
+  
+  // Log the full user object to debug
+  console.log("Full user data:", user)
   
   const navMainItems = React.useMemo(() => 
     getNavItems(user?.basicInfo?.role || 'GUEST'), [user?.basicInfo?.role]

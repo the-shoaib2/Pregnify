@@ -39,14 +39,6 @@ export function AuthProvider({ children }) {
     localStorage.setItem(CONSTANTS.AUTH_CACHE_KEY, encryptedState)
   }, [])
 
-  const fetchProfile = useCallback(async () => {
-    const profileData = await ProfileService.getProfile()
-    if (profileData) {
-      updateAuthCache({ ...authState, profile: profileData })
-    }
-    return profileData
-  }, [authState, updateAuthCache])
-
   // Optimize token handling
   const setAuthToken = useCallback((token) => {
     if (token) {
@@ -63,56 +55,17 @@ export function AuthProvider({ children }) {
   }, [authState])
 
   const fetchUserData = useCallback(async (force = false) => {
-    const MAX_RETRIES = 3
-    let retryCount = 0
-
-    while (retryCount < MAX_RETRIES) {
-      try {
-        // Don't fetch if already in progress
-        if (refreshInProgress.current) return null
-        
-        const now = Date.now()
-        const timeSinceLastRefresh = now - lastRefreshTime.current
-
-        // Return cached data if within cache duration and not forced
-        if (!force && user && timeSinceLastRefresh < CONSTANTS.CACHE_DURATION) {
-          return user
-        }
-
-        // Prevent refresh spam
-        if (timeSinceLastRefresh < MIN_REFRESH_INTERVAL) {
-          return user
-        }
-
-        refreshInProgress.current = true
-        
-        try {
-          const response = await axios.get(`${API_URL}/auth/user`)
-          const userData = response.data.user
-          updateAuthCache({ ...authState, user: userData })
-          lastRefreshTime.current = now
-          return userData
-        } catch (error) {
-          console.error('Failed to fetch user data:', error)
-          // Don't return null immediately on first login attempt
-          if (force && retryCount < MAX_RETRIES - 1) {
-            throw error; // Propagate error to trigger retry
-          }
-          return null
-        } finally {
-          refreshInProgress.current = false
-        }
-      } catch (error) {
-        retryCount++
-        if (retryCount === MAX_RETRIES) {
-          console.error('Failed to fetch user data after retries:', error)
-          throw error
-        }
-        // Exponential backoff for retries
-        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount - 1)))
+    try {
+      const userData = await AuthService.fetchUserData(force)
+      if (userData) {
+        updateAuthCache({ ...authState, user: userData })
       }
+      return userData
+    } catch (error) {
+      console.error('Failed to fetch user data:', error)
+      return null
     }
-  }, [user, authState, updateAuthCache])
+  }, [authState, updateAuthCache])
 
   const checkAuth = useCallback(async () => {
     if (authCheckInProgress.current) return
@@ -164,60 +117,26 @@ export function AuthProvider({ children }) {
   const handleLogin = useCallback(async (credentials) => {
     try {
       setIsLoadingUser(true)
-      // First, perform login
-      const response = await axios.post(`${API_URL}/auth/login`, credentials)
-      const { tokens } = response.data
       
-      if (!tokens?.accessToken) {
-        throw new Error('No access token received')
-      }
-
-      // Set the token immediately
-      setAuthToken(tokens.accessToken)
+      const { user, tokens } = await AuthService.login(credentials)
       
-      // Add a small delay before fetching user data to ensure token is properly set
-      // await new Promise(resolve => setTimeout(resolve, CONSTANTS.MIN_REFRESH_INTERVAL));
-      
-      // Retry user data fetch with exponential backoff
-      let userData = null;
-      let retryCount = 0;
-      const MAX_LOGIN_RETRIES = 3;
-      
-      while (!userData && retryCount < MAX_LOGIN_RETRIES) {
-        try {
-          userData = await fetchUserData(true);
-          if (!userData && retryCount === MAX_LOGIN_RETRIES - 1) {
-            toast.error('Failed to fetch user data. Please try again.');
-            throw new Error('Failed to fetch user data after multiple attempts');
-          }
-        } catch (error) {
-          retryCount++;
-          if (retryCount < MAX_LOGIN_RETRIES) {
-            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
-          } else {
-            throw error;
-          }
-        }
-      }
-
-      // Update cache with both token and user data
+      // Update local state with user data from login response
       updateAuthCache({
-        user: userData,
-        profile: null,
+        user,
         tokens: {
           accessToken: tokens.accessToken,
           timestamp: Date.now()
         }
       })
 
-      return response.data
+      return { user, tokens }
     } catch (error) {
-      toast.error(error.message || 'Login failed. Please try again.');
-      throw error;
+      toast.error(error.message || 'Login failed. Please try again.')
+      throw error
     } finally {
       setIsLoadingUser(false)
     }
-  }, [fetchUserData, setAuthToken, updateAuthCache]);
+  }, [updateAuthCache])
 
   const handleLogout = useCallback(async () => {
     try {
@@ -246,14 +165,13 @@ export function AuthProvider({ children }) {
 
     lastRefreshTime.current = now
     const userData = await fetchUserData(true)
-    const profileData = await fetchProfile()
+    // const profileData = await fetchProfile()
     
     return { userData, profileData }
-  }, [fetchUserData, fetchProfile, user, profile])
+  }, [fetchUserData, user])
 
   const contextValue = useMemo(() => ({
     user,
-    profile,
     loading,
     isLoadingUser,
     login: handleLogin,
@@ -261,7 +179,7 @@ export function AuthProvider({ children }) {
     fetchUserData,
     refreshData,
     checkAuth
-  }), [user, profile, loading, isLoadingUser, handleLogin, handleLogout, fetchUserData, refreshData, checkAuth, setAuthToken, updateAuthCache])
+  }), [user, loading, isLoadingUser, handleLogin, handleLogout, fetchUserData, refreshData, checkAuth, setAuthToken, updateAuthCache])
 
   return (
     <AuthContext.Provider value={contextValue}>

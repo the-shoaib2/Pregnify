@@ -55,7 +55,7 @@ const handleApiError = (error, defaultMessage) => {
 export const MediaService = {
   getMediaEnums:async () => {
     try {
-      const response = await api.get('/media/enums')
+      const response = await api.get('system/enums')
       // console.log("API /media/enums :",response)
       return { data: response.data?.data || [] }
     } catch (error) {
