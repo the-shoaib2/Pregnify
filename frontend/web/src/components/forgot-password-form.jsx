@@ -12,10 +12,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { FindUserForm } from "./forgot-password/find-user"
-import { VerifyCodeForm } from "./forgot-password/verify-code"
-import { ResetPasswordForm } from "./forgot-password/reset-password"
-import { SelectRecoveryMethod } from "./forgot-password/select-recovery"
+import { FindUserForm } from "../app/forgot-password/components/find-user"
+import { VerifyCodeForm } from "../app/forgot-password/components/verify-code"
+import { ResetPasswordForm } from "../app/forgot-password/components/reset-password"
+import { SelectRecoveryMethod } from "../app/forgot-password/components/select-recovery"
 import { cn } from "@/lib/utils"
 
 const STEPS = {

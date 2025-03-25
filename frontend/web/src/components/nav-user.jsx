@@ -41,7 +41,7 @@ import { useAuth } from "@/contexts/auth-context/auth-context"
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
 import { NavUserSkeleton } from "@/components/nav-user-skeleton"
-import { UserAvatarWithInfo } from "@/components/user/user-avatar"
+import { UserAvatarWithInfo } from "@/components/user-avatar"
 
 const NavUser = () => {
   const { user } = useAuth()

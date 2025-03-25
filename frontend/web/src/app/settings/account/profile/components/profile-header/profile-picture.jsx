@@ -6,7 +6,7 @@ import { ImageDialog } from "@/components/image-view"
 import { FileCategory, Visibility } from '@/services/media'
 import { Upload, Eye } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { UserAvatar } from "@/components/user/user-avatar"
+import { UserAvatar } from "@/components/user-avatar"
 import { ProfilePictureSkeleton } from "../profile-header-skeleton"
 
 const ProfilePicture = memo(({ profile, onUpload, loading, onClick }) => {
