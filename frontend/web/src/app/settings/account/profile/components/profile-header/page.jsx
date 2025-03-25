@@ -67,13 +67,15 @@ const ProfileHeader = memo(({
       "space-y-4 transition-all duration-300",
       loading ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"
     )}>
-      <div className="relative">
-        <CoverPhotoUpload  
+
+      {/* Remove mt-20 */}
+      <div className="relative mt-20">
+        {/* <CoverPhotoUpload  
           profile={profile}
           onUpload={handleCoverUpload}
           loading={isCoverLoading || uploadingCover}
           onClick={onCoverClick}
-        />
+        /> */}
         
         <div className="absolute -bottom-2 left-4 z-10">
           <ProfilePicture 
@@ -85,7 +87,7 @@ const ProfileHeader = memo(({
         </div>
       </div>
 
-      <div className="mt-12 px-0 sm:px-4">
+      <div className="pt-4 px-0 sm:px-4">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2">

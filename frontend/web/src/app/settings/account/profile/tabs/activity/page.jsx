@@ -23,10 +23,11 @@ import {
   ChevronUp,
   Maximize2,
   Minimize2,
-  Info
+  Info,
+  Calendar
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { formatDistance, format } from "date-fns"
+import { formatDistance, format, isAfter, isBefore, isEqual, parseISO } from "date-fns"
 import { toast } from "react-hot-toast"
 import {
   DropdownMenu,
@@ -41,6 +42,9 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 
 // Activity type icons mapping
 const ACTIVITY_ICONS = {
@@ -56,6 +60,7 @@ const ACTIVITY_ICONS = {
 // Activity type colors mapping
 const ACTIVITY_COLORS = {
   LOGIN: "text-green-500 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-800",
+  LOGOUT: "text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800",
   REGISTER: "text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800",
   SETTINGS_UPDATE: "text-orange-500 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 border-orange-100 dark:border-orange-800",
   EMAIL_VERIFY: "text-purple-500 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 border-purple-100 dark:border-purple-800",
@@ -77,7 +82,7 @@ const groupActivitiesByDate = (activities) => {
 };
 
 function ActivityItem({ activity }) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const IconComponent = ACTIVITY_ICONS[activity.type] || ACTIVITY_ICONS.DEFAULT;
   const colorClass = ACTIVITY_COLORS[activity.type] || ACTIVITY_COLORS.DEFAULT;
   
@@ -221,29 +226,31 @@ function ActivityTimeline({ activities }) {
   const groupedActivities = groupActivitiesByDate(activities);
 
   return (
-    <div className="space-y-6">
-      {Object.entries(groupedActivities).map(([date, dateActivities]) => (
-        <div key={date} className="space-y-3">
-          <div className="sticky top-0 z-10 flex items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-2">
-            <div className="h-2 w-2 rounded-full bg-primary"></div>
-            <h3 className="text-sm font-medium">
-              {format(new Date(date), 'EEEE, MMMM d, yyyy')}
-            </h3>
-            <div className="ml-auto">
-              <Badge variant="outline" className="text-xs">
-                {dateActivities.length} activities
-              </Badge>
+    <ScrollArea className="h-[400px] pr-4">
+      <div className="space-y-6">
+        {Object.entries(groupedActivities).map(([date, dateActivities]) => (
+          <div key={date} className="space-y-3">
+            <div className="sticky top-0 z-10 flex items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-2">
+              <div className="h-2 w-2 rounded-full bg-primary"></div>
+              <h3 className="text-sm font-medium">
+                {format(new Date(date), 'EEEE, MMMM d, yyyy')}
+              </h3>
+              <div className="ml-auto">
+                <Badge variant="outline" className="text-xs">
+                  {dateActivities.length} activities
+                </Badge>
+              </div>
+            </div>
+            
+            <div className="space-y-3 pl-4 border-l">
+              {dateActivities.map((activity) => (
+                <ActivityItem key={activity.id} activity={activity} />
+              ))}
             </div>
           </div>
-          
-          <div className="space-y-3 pl-4 border-l">
-            {dateActivities.map((activity) => (
-              <ActivityItem key={activity.id} activity={activity} />
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+    </ScrollArea>
   )
 }
 
@@ -304,11 +311,91 @@ function ActivityFilterDropdown({ filter, setFilter }) {
   );
 }
 
+function DateRangeSelector({ dateRange, setDateRange }) {
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  
+  const handleSelect = (date) => {
+    if (!dateRange.from) {
+      setDateRange({ from: date, to: undefined });
+    } else if (dateRange.from && !dateRange.to) {
+      if (isBefore(date, dateRange.from)) {
+        setDateRange({ from: date, to: dateRange.from });
+      } else {
+        setDateRange({ from: dateRange.from, to: date });
+      }
+      setIsCalendarOpen(false);
+    } else {
+      setDateRange({ from: date, to: undefined });
+    }
+  };
+  
+  const clearDateRange = () => {
+    setDateRange({ from: undefined, to: undefined });
+    setIsCalendarOpen(false);
+  };
+  
+  const formatDateRange = () => {
+    if (!dateRange.from && !dateRange.to) return "All Dates";
+    if (dateRange.from && !dateRange.to) return format(dateRange.from, "MMM d, yyyy");
+    if (dateRange.from && dateRange.to) {
+      if (isEqual(dateRange.from, dateRange.to)) return format(dateRange.from, "MMM d, yyyy");
+      return `${format(dateRange.from, "MMM d, yyyy")} - ${format(dateRange.to, "MMM d, yyyy")}`;
+    }
+  };
+  
+  return (
+    <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+      <PopoverTrigger asChild>
+        <Button 
+          variant="outline" 
+          className="gap-2"
+          size="sm"
+        >
+          <Calendar className="h-4 w-4" />
+          {formatDateRange()}
+          <ChevronDown className="h-4 w-4 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <div className="p-3 border-b">
+          <div className="flex items-center justify-between">
+            <h4 className="font-medium text-sm">Select Date Range</h4>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={clearDateRange}
+              className="h-8 px-2 text-xs"
+            >
+              Clear
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            {!dateRange.from && "Select start date"}
+            {dateRange.from && !dateRange.to && "Select end date"}
+            {dateRange.from && dateRange.to && "Date range selected"}
+          </p>
+        </div>
+        <CalendarComponent
+          mode="range"
+          selected={{
+            from: dateRange.from,
+            to: dateRange.to,
+          }}
+          onSelect={(range) => setDateRange(range || { from: undefined, to: undefined })}
+          initialFocus
+          numberOfMonths={1}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export default function ActivityTab({ profile }) {
   const [activities, setActivities] = useState(profile?.activity?.recent || []);
   const [isLoading, setIsLoading] = useState(false);
   const [filter, setFilter] = useState('all');
   const [isExpanded, setIsExpanded] = useState(true);
+  const [dateRange, setDateRange] = useState({ from: undefined, to: undefined });
 
   useEffect(() => {
     console.log('Activity Tab Data:', {
@@ -339,9 +426,43 @@ export default function ActivityTab({ profile }) {
   }, []);
 
   const filteredActivities = useMemo(() => {
-    if (filter === 'all') return activities;
-    return activities.filter(activity => activity.type === filter);
-  }, [activities, filter]);
+    let filtered = activities;
+    
+    // Filter by activity type
+    if (filter !== 'all') {
+      filtered = filtered.filter(activity => activity.type === filter);
+    }
+    
+    // Filter by date range
+    if (dateRange.from || dateRange.to) {
+      filtered = filtered.filter(activity => {
+        const activityDate = parseISO(activity.timestamp);
+        
+        if (dateRange.from && dateRange.to) {
+          return (
+            (isAfter(activityDate, dateRange.from) || isEqual(activityDate, dateRange.from)) && 
+            (isBefore(activityDate, dateRange.to) || isEqual(activityDate, dateRange.to))
+          );
+        }
+        
+        if (dateRange.from && !dateRange.to) {
+          const endOfDay = new Date(dateRange.from);
+          endOfDay.setHours(23, 59, 59, 999);
+          return (
+            isAfter(activityDate, dateRange.from) || 
+            isEqual(activityDate, dateRange.from)
+          ) && (
+            isBefore(activityDate, endOfDay) || 
+            isEqual(activityDate, endOfDay)
+          );
+        }
+        
+        return true;
+      });
+    }
+    
+    return filtered;
+  }, [activities, filter, dateRange]);
 
   return (
     <Card className="animate-in fade-in duration-300 relative transition-all">
@@ -400,14 +521,17 @@ export default function ActivityTab({ profile }) {
         <CollapsibleContent className="transition-all duration-300 ease-in-out">
           <CardContent className="space-y-6">
             {/* Activity Filters */}
-            <div className="flex items-center justify-between">
-              <ActivityFilterDropdown filter={filter} setFilter={setFilter} />
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <ActivityFilterDropdown filter={filter} setFilter={setFilter} />
+                <DateRangeSelector dateRange={dateRange} setDateRange={setDateRange} />
+              </div>
               <div className="text-sm text-muted-foreground">
                 {filteredActivities.length} {filter === 'all' ? 'total' : filter.toLowerCase()} activities
               </div>
             </div>
 
-            {/* Activity Timeline */}
+            {/* Activity Timeline with ScrollArea */}
             <div className="relative">
               <ActivityTimeline activities={filteredActivities} />
             </div>
