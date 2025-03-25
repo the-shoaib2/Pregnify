@@ -9,7 +9,7 @@ const CACHE_KEY = CONSTANTS.AUTH_CACHE_KEY
 
 // Profile constants
 const PROFILE_ENDPOINTS = {
-  GET_PROFILE: '/account/profile',
+  HEALTH_CHECK: '/health',
   UPDATE_PROFILE: '/account/profile/update',
   UPLOAD_AVATAR: '/account/profile/avatar',
   UPLOAD_COVER: '/account/profile/cover'
@@ -24,7 +24,7 @@ const MIN_FETCH_INTERVAL = 1000; // 1 second minimum between fetches
 const requestCache = new Map()
 
 // Profile loader with improved error handling and request deduplication
-export const loadProfile = async (refresh = false) => {
+export const loadSystemStatus= async (refresh = false) => {
   const now = Date.now();
   const cache = CacheManager.get(CACHE_KEY);
   const token = CacheManager.getToken(CACHE_KEY);
@@ -58,7 +58,7 @@ export const loadProfile = async (refresh = false) => {
     // Create a new request promise
     profileRequestPromise = (async () => {
       // Use the API instance which will automatically include the token
-      const response = await api.get(PROFILE_ENDPOINTS.GET_PROFILE);
+      const response = await api.get(PROFILE_ENDPOINTS.HEALTH_CHECK);
       
       const profile = response.data;
       
@@ -101,7 +101,7 @@ export const ProfileService = {
       const { refresh = false } = opts;
       
       try {
-        return await loadProfile(refresh);
+        return await loadSystemStatus(refresh);
       } catch (error) {
         console.error('Profile fetch error:', error);
         throw error;
@@ -351,6 +351,6 @@ export const SettingsService = {
   },
 
   // Profile Image - using the ProfileService methods for consistency
-  uploadProfileImage: (file) => ProfileService.uploadAvatar(file),
+  uploadSmage: (file) => ProfileService.uploadAvatar(file),
   uploadCoverImage: (file) => ProfileService.uploadCoverPhoto(file)
 }
