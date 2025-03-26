@@ -7,9 +7,9 @@ import {
   CardTitle,
   CardFooter
 } from "@/components/ui/card"
-import {  } from "@/components/ui/progress"
+import { } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
-import { 
+import {
   AlertCircle,
   UserCircle,
   GraduationCap,
@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/collapsible"
 
 // Skeleton loader component
-function ProfileCompletionSkeleton() {
+export function ProfileCompletionSkeleton() {
   return (
     <Card className="h-full">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -143,8 +143,8 @@ export default function ProfileCompletionCard({ profile, isLoading }) {
   // Enhanced icon animations
   const iconVariants = {
     initial: { scale: 0.8, opacity: 0 },
-    animate: { 
-      scale: 1, 
+    animate: {
+      scale: 1,
       opacity: 1,
       transition: { duration: 0.3, ease: "backOut" }
     }
@@ -154,7 +154,7 @@ export default function ProfileCompletionCard({ profile, isLoading }) {
   const sectionVariants = {
     initial: { opacity: 0, y: 10 },
     animate: { opacity: 1, y: 0 },
-    hover: { 
+    hover: {
       scale: 1.01,
       transition: { duration: 0.2 }
     }
@@ -162,31 +162,31 @@ export default function ProfileCompletionCard({ profile, isLoading }) {
 
   // Update section icons to include progress colors
   const sectionIcons = {
-    basicInfo: { 
-      icon: UserCircle, 
+    basicInfo: {
+      icon: UserCircle,
       color: "text-blue-500",
-      progressColor: "bg-blue-500", 
+      progressColor: "bg-blue-500",
       bg: "bg-blue-50/80",
       label: "Basic"
     },
-    personalInfo: { 
-      icon: Info, 
+    personalInfo: {
+      icon: Info,
       color: "text-purple-500",
-      progressColor: "bg-purple-500", 
+      progressColor: "bg-purple-500",
       bg: "bg-purple-50/80",
       label: "Personal"
     },
-    education: { 
-      icon: GraduationCap, 
+    education: {
+      icon: GraduationCap,
       color: "text-emerald-500",
-      progressColor: "bg-emerald-500", 
+      progressColor: "bg-emerald-500",
       bg: "bg-emerald-50/80",
       label: "Education"
     },
-    verification: { 
-      icon: Shield, 
+    verification: {
+      icon: Shield,
       color: "text-amber-500",
-      progressColor: "bg-amber-500", 
+      progressColor: "bg-amber-500",
       bg: "bg-amber-50/80",
       label: "Verify"
     },
@@ -214,7 +214,7 @@ export default function ProfileCompletionCard({ profile, isLoading }) {
           <div className="relative h-16 w-16 flex items-center justify-center">
             {/* Background circle with border */}
             <div className="absolute inset-0 rounded-full border border-border shadow-sm bg-background"></div>
-            
+
             {/* Track circle */}
             <svg className="absolute inset-0" width="64" height="64" viewBox="0 0 64 64">
               <circle
@@ -226,7 +226,7 @@ export default function ProfileCompletionCard({ profile, isLoading }) {
                 className="stroke-secondary/40"
               />
             </svg>
-            
+
             {/* Colored progress circle */}
             <svg className="absolute inset-0" width="64" height="64" viewBox="0 0 64 64">
               <motion.circle
@@ -237,12 +237,12 @@ export default function ProfileCompletionCard({ profile, isLoading }) {
                 strokeWidth="4"
                 stroke="currentColor"
                 initial={{ strokeDasharray: "0 176" }}
-                animate={{ 
+                animate={{
                   strokeDasharray: `${(score / 100) * 176} 176`,
                   pathLength: score / 100
                 }}
-                transition={{ 
-                  duration: 2, 
+                transition={{
+                  duration: 2,
                   ease: [0.34, 1.56, 0.64, 1], // Custom spring-like easing
                 }}
                 strokeLinecap="round"
@@ -250,13 +250,13 @@ export default function ProfileCompletionCard({ profile, isLoading }) {
                 transform="rotate(-90 32 32)"
               />
             </svg>
-            
+
             {/* Score text */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ 
-                delay: 0.8, 
+              transition={{
+                delay: 0.8,
                 duration: 0.5,
                 type: "spring",
                 stiffness: 400,
@@ -320,7 +320,7 @@ export default function ProfileCompletionCard({ profile, isLoading }) {
         <CollapsibleContent>
           <CardContent className="space-y-4 pt-0">
             {/* Fix Overall Progress */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="space-y-1.5"
@@ -334,7 +334,7 @@ export default function ProfileCompletionCard({ profile, isLoading }) {
                   className={`absolute left-0 top-0 h-full ${getScoreColor(score).bg}`}
                 />
               </div>
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
@@ -353,7 +353,7 @@ export default function ProfileCompletionCard({ profile, isLoading }) {
                 {sections.map((section, index) => {
                   const sectionConfig = sectionIcons[section.section]
                   const { icon: Icon, color, progressColor, bg, label } = sectionConfig
-                  
+
                   return (
                     <motion.div
                       variants={sectionVariants}
@@ -367,7 +367,7 @@ export default function ProfileCompletionCard({ profile, isLoading }) {
                       onClick={() => setActiveSection(section.section)}
                     >
                       <div className="flex items-center gap-2 mb-2">
-                        <motion.div 
+                        <motion.div
                           variants={iconVariants}
                           className={`p-1.5 rounded-full ${bg}`}
                         >
@@ -395,7 +395,7 @@ export default function ProfileCompletionCard({ profile, isLoading }) {
                             className={`absolute left-0 top-0 h-full ${progressColor}`}
                           />
                         </div>
-                        <motion.p 
+                        <motion.p
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           transition={{ delay: 0.3 }}
@@ -417,7 +417,7 @@ export default function ProfileCompletionCard({ profile, isLoading }) {
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-2"
               >
-                <motion.h4 
+                <motion.h4
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   className="text-xs font-medium flex items-center gap-1.5"
@@ -458,8 +458,8 @@ export default function ProfileCompletionCard({ profile, isLoading }) {
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.95 }}
                         >
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="icon"
                             className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
                           >
@@ -475,7 +475,7 @@ export default function ProfileCompletionCard({ profile, isLoading }) {
 
             {/* Enhanced Last Updated */}
             {lastUpdated && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.6 }}
@@ -490,7 +490,7 @@ export default function ProfileCompletionCard({ profile, isLoading }) {
           </CardContent>
         </CollapsibleContent>
       </Collapsible>
-      
+
       {/* Complete Profile Button */}
       <CardFooter className="pt-2">
         <motion.div
@@ -501,11 +501,11 @@ export default function ProfileCompletionCard({ profile, isLoading }) {
         >
 
           <p className="text-xs text-muted-foreground text-center">
-            Complete your profile to unlock features 
+            Complete your profile to unlock features
           </p>
 
         </motion.div>
       </CardFooter>
     </Card>
   )
-} 
+}

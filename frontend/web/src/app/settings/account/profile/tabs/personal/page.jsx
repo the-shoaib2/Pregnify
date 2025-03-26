@@ -30,21 +30,13 @@ import {
   ContextMenuRadioItem,
   ContextMenuLabel,
 } from "@/components/ui/context-menu"
-import {
-  Command,
-  CommandDialog,
-  CommandInput,
-  CommandList,
-  CommandItem,
-  CommandSeparator,
-} from "@/components/ui/command"
 
-import { Separator } from "@/components/ui/separator"
+
 
 import ErrorBoundary from "@/components/error-boundary"
 import toast from "react-hot-toast"
 import { FormSectionSkeleton, CardSkeleton } from "./components/skeleton"
-
+import { ProfileCompletionSkeleton } from "./components/profile-completion/page"
 // Preload section components to avoid initial render issues
 const BasicInfoPersonalSection = lazy(() => {
   // Preload the component
@@ -64,6 +56,11 @@ const EducationSection = lazy(() => {
 const MedicalSection = lazy(() => {
   // Preload the component
   return import("./components/sections/medical")
+})
+
+const ProfileCompletionCard = lazy(() => {
+  // Preload the component
+  return import("./components/profile-completion/page")
 })
 
 // Preload all section components when the component mounts
@@ -583,6 +580,15 @@ export default function PersonalTab({
           </CardWithCollapse>
         </Suspense>
       </ErrorBoundary>
+
+
+      {/* Profile Completion Card */}
+      <ErrorBoundary>
+        <Suspense fallback={<ProfileCompletionSkeleton />}>
+          <ProfileCompletionCard profile={profile} isLoading={settingsLoading} />
+        </Suspense>
+      </ErrorBoundary>
+
     </div>
   )
 }

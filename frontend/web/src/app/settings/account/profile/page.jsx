@@ -12,8 +12,7 @@ import { Button } from "@/components/ui/button"
 
 // Import skeletons directly (not lazy loaded)
 import { ImageCardSkeleton } from "./components/images-preview/page"
-import { StatsOverviewCard, StatsOverviewSkeleton } from "./components/statistics-overview/page"
-
+import { StatsOverviewSkeleton } from "./components/statistics-overview/page"
 // Custom error fallback component for lazy-loaded components
 function ComponentErrorFallback({ error, resetErrorBoundary }) {
   return (
@@ -28,17 +27,17 @@ function ComponentErrorFallback({ error, resetErrorBoundary }) {
 // Add this function to normalize profile data
 const normalizeProfileData = (data) => {
   if (!data) return {};
-  
+
   // Create a copy to avoid mutating the original
   const normalized = { ...data };
-  
+
   // Fix the avatar thumb typo if needed
   if (normalized.basicInfo) {
     if (normalized.basicInfo.avaterThumb && !normalized.basicInfo.avatarThumb) {
       normalized.basicInfo.avatarThumb = normalized.basicInfo.avaterThumb;
     }
   }
-  
+
   return normalized;
 };
 
@@ -52,31 +51,31 @@ const hasValidData = (data) => {
 }
 
 // Lazy load components properly
-const ProfileHeader = lazy(() => 
+const ProfileHeader = lazy(() =>
   import("@/app/settings/account/profile/components/profile-header/page").then(module => ({
     default: module.ProfileHeader
   }))
 )
 
-const StatsOverview = lazy(() => 
+const StatsOverview = lazy(() =>
   import("@/app/settings/account/profile/components/statistics-overview/page").then(module => ({
     default: module.StatsOverviewCard
   }))
 )
 
-const ImageCard = lazy(() => 
+const ImageCard = lazy(() =>
   import("@/app/settings/account/profile/components/images-preview/page").then(module => ({
     default: module.ImageCard
   }))
 )
 
-const ProfileTabs = lazy(() => 
+const ProfileTabs = lazy(() =>
   import("@/app/settings/account/profile/components/profile-tabs/page").then(module => ({
     default: module.ProfileTabs
   }))
 )
 
-const PhotoGallery = lazy(() => 
+const PhotoGallery = lazy(() =>
   import("@/app/settings/account/profile/tabs/images/page").then(module => ({
     default: module.default
   }))
@@ -113,8 +112,8 @@ export default function ProfilePage() {
 
   // Enhanced check for valid profile data
   const hasProfileData = useMemo(() => {
-    return hasValidData(profileData) && 
-           hasValidData(profileData.basicInfo);
+    return hasValidData(profileData) &&
+      hasValidData(profileData.basicInfo);
   }, [profileData]);
 
   // Optimize data fetching
@@ -127,10 +126,10 @@ export default function ProfilePage() {
       console.error("Error fetching profile:", error)
       toast.error("Failed to load profile data")
     } finally {
-      setState(prev => ({ 
-        ...prev, 
+      setState(prev => ({
+        ...prev,
         pageLoading: false,
-        initialized: true 
+        initialized: true
       }))
     }
   }, [fetchProfile])
@@ -154,10 +153,10 @@ export default function ProfilePage() {
 
   // Enhanced loading state check
   const isLoading = useMemo(() => {
-    return state.pageLoading || 
-           settingsLoading || 
-           !state.initialized || 
-           !hasProfileData;
+    return state.pageLoading ||
+      settingsLoading ||
+      !state.initialized ||
+      !hasProfileData;
   }, [state.pageLoading, settingsLoading, state.initialized, hasProfileData]);
 
   // Memoize handlers
@@ -182,11 +181,11 @@ export default function ProfilePage() {
           <div className="space-y-6">
             <ErrorBoundary FallbackComponent={ComponentErrorFallback}>
               <Suspense fallback={<ProfileHeaderSkeleton />}>
-                <ProfileHeader 
-                  user={user} 
-                  profile={profile} 
+                <ProfileHeader
+                  user={user}
+                  profile={profile}
                   profileData={profileData}
-                  loading={isLoading} 
+                  loading={isLoading}
                   uploadingImage={state.uploadingImage}
                   uploadingCover={state.uploadingCover}
                   onUploadComplete={handleUploadComplete}
@@ -232,7 +231,7 @@ export default function ProfilePage() {
             {showPhotoGallery && (
               <ErrorBoundary FallbackComponent={ComponentErrorFallback}>
                 <Suspense fallback={<CardSkeleton className="h-[300px]" />}>
-                  <PhotoGallery 
+                  <PhotoGallery
                     onClose={() => setShowPhotoGallery(false)}
                     profileData={profileData}
                   />
