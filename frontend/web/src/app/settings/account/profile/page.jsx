@@ -10,6 +10,7 @@ import { CardSkeleton } from "./tabs/personal/components/skeleton"
 import { ProfileHeaderSkeleton } from "./components/profile-header-skeleton"
 import { Button } from "@/components/ui/button"
 
+
 // Import skeletons directly (not lazy loaded)
 import { ImageCardSkeleton } from "./components/images-preview/page"
 import { StatsOverviewSkeleton } from "./components/statistics-overview/page"
@@ -49,6 +50,8 @@ const hasValidData = (data) => {
   if (Object.keys(data).length === 0) return false;
   return true;
 }
+
+
 
 // Lazy load components properly
 const ProfileHeader = lazy(() =>

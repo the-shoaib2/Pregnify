@@ -8,8 +8,26 @@ const { CACHE_DURATION } = CONSTANTS
 const CACHE_KEY = CONSTANTS.AUTH_CACHE_KEY
 
 // Profile constants
-const PROFILE_ENDPOINTS = {
-  HEALTH_CHECK: '/health'
+const PERSONAL_ENDPOINTS = {
+  // Profile endpoints
+  GET_PROFILE: '/account/profile/personal',
+  UPDATE_BASIC_INFO: '/account/profile/personal/basic',
+  
+  // Education endpoints
+  GET_EDUCATION: '/account/profile/personal/education',
+  ADD_EDUCATION: '/account/profile/personal/education',
+  UPDATE_EDUCATION: (id) => `/account/profile/personal/education/${id}`,
+  DELETE_EDUCATION: (id) => `/account/profile/personal/education/${id}`,
+  
+  // Medical endpoints
+  GET_MEDICAL: '/account/profile/personal/medical',
+  UPDATE_MEDICAL: '/account/profile/personal/medical',
+  
+  // Medical reports endpoints
+  GET_MEDICAL_REPORTS: '/account/profile/personal/medical/reports',
+  ADD_MEDICAL_REPORT: '/account/profile/personal/medical/reports',
+  UPDATE_MEDICAL_REPORT: (id) => `/account/profile/personal/medical/reports/${id}`,
+  DELETE_MEDICAL_REPORT: (id) => `/account/profile/personal/medical/reports/${id}`
 }
 
 // Track ongoing profile requests
@@ -20,11 +38,11 @@ const MIN_FETCH_INTERVAL = 1000; // 1 second minimum between fetches
 // Add request cache for deduplication
 const requestCache = new Map()
 
-// Profile loader with improved error handling and request deduplication
-export const loadSystemStatus= async (refresh = false) => {
+// Profile loader with improved error handling
+export const loadProfile = async (refresh = false) => {
   const now = Date.now();
-  const cache = CacheManager.get(CACHE_KEY);
-  const token = CacheManager.getToken(CACHE_KEY);
+  const cache = CacheManager.get(CONSTANTS.AUTH_CACHE_KEY);
+  const token = cache?.tokens?.accessToken;
   const cacheKey = 'profile';
 
   // If a request is already in progress, return that promise
@@ -32,35 +50,29 @@ export const loadSystemStatus= async (refresh = false) => {
     return requestCache.get(cacheKey);
   }
 
-  // Check cache first if not forcing refresh and not within minimum fetch interval
+  // Check cache first if not forcing refresh
   if (!refresh && 
       cache.profile && 
-      now - lastProfileFetchTime > MIN_FETCH_INTERVAL &&
+      now - lastProfileFetchTime < MIN_FETCH_INTERVAL &&
       now - cache.timestamp < CACHE_DURATION) {
     return cache.profile;
   }
 
-  // Ensure we have a token
+  // Ensure we have a valid token
   if (!token) {
-    try {
-      // Try to refresh the token
-      await AuthService.refreshToken();
-    } catch (error) {
-      console.error('Authentication required for profile loading:', error);
-      throw new Error('Authentication required');
-    }
+    throw new Error('Authentication required');
   }
 
   try {
     // Create a new request promise
     profileRequestPromise = (async () => {
-      // Use the API instance which will automatically include the token
-      const response = await api.get(PROFILE_ENDPOINTS.HEALTH_CHECK);
+      const response = await api.get(PROFILE_ENDPOINTS.GET_PROFILE);
       
       const profile = response.data;
       
-      // Update cache
-      CacheManager.set(CACHE_KEY, {
+      // Update cache with new profile data
+      CacheManager.set(CONSTANTS.AUTH_CACHE_KEY, {
+        ...cache,
         profile,
         lastRefresh: now
       });
@@ -75,16 +87,14 @@ export const loadSystemStatus= async (refresh = false) => {
     const result = await profileRequestPromise;
     return result;
   } catch (error) {
-    if (error.response?.status === 401) {
-      CacheManager.clear(CACHE_KEY);
+    if (error.response?.status === 401 || error.message === 'Authentication required') {
+      CacheManager.clear(CONSTANTS.AUTH_CACHE_KEY);
       throw new Error('Authentication required');
     }
     const errorMessage = handleApiError(error);
     throw new Error(errorMessage);
   } finally {
-    // Clear the promise reference after completion
     profileRequestPromise = null;
-    // Clear request cache after delay
     setTimeout(() => requestCache.delete(cacheKey), 2000);
   }
 }
@@ -98,7 +108,7 @@ export const ProfileService = {
       const { refresh = false } = opts;
       
       try {
-        return await loadSystemStatus(refresh);
+        return await loadProfile(refresh);
       } catch (error) {
         console.error('Profile fetch error:', error);
         throw error;
@@ -348,6 +358,140 @@ export const SettingsService = {
   },
 
   // Profile Image - using the ProfileService methods for consistency
-  uploadSmage: (file) => ProfileService.uploadAvatar(file),
-  uploadCoverImage: (file) => ProfileService.uploadCoverPhoto(file)
+  uploadProfileImage: (file) => ProfileService.uploadAvatar(file),
+  uploadCoverImage: (file) => ProfileService.uploadCoverPhoto(file),
+
+  // Basic Personal Info Methods
+  getPersonalInfo: async () => {
+    try {
+      const response = await api.get(PERSONAL_ENDPOINTS.GET_PROFILE);
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  },
+
+  updateBasicInfo: async (data) => {
+    try {
+      const response = await api.put(PERSONAL_ENDPOINTS.UPDATE_BASIC_INFO, data);
+      
+      // Update cache
+      const cache = CacheManager.get(CACHE_KEY);
+      if (cache.profile) {
+        CacheManager.set(CACHE_KEY, {
+          profile: { ...cache.profile, personal: { ...cache.profile.personal, ...data } },
+          lastRefresh: Date.now()
+        });
+      }
+      
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  },
+
+  // Education Methods
+  getEducation: async () => {
+    try {
+      const response = await api.get(PERSONAL_ENDPOINTS.GET_EDUCATION);
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  },
+
+  addEducation: async (data) => {
+    try {
+      const response = await api.post(PERSONAL_ENDPOINTS.ADD_EDUCATION, data);
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  },
+
+  updateEducation: async (id, data) => {
+    try {
+      const response = await api.put(PERSONAL_ENDPOINTS.UPDATE_EDUCATION(id), data);
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  },
+
+  deleteEducation: async (id) => {
+    try {
+      const response = await api.delete(PERSONAL_ENDPOINTS.DELETE_EDUCATION(id));
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  },
+
+  // Medical Info Methods
+  getMedicalInfo: async () => {
+    try {
+      const response = await api.get(PERSONAL_ENDPOINTS.GET_MEDICAL);
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  },
+
+  updateMedicalInfo: async (data) => {
+    try {
+      const response = await api.put(PERSONAL_ENDPOINTS.UPDATE_MEDICAL, data);
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  },
+
+  // Medical Reports Methods
+  getMedicalReports: async () => {
+    try {
+      const response = await api.get(PERSONAL_ENDPOINTS.GET_MEDICAL_REPORTS);
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  },
+
+  addMedicalReport: async (data) => {
+    try {
+      const response = await api.post(PERSONAL_ENDPOINTS.ADD_MEDICAL_REPORT, data);
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  },
+
+  updateMedicalReport: async (id, data) => {
+    try {
+      const response = await api.put(PERSONAL_ENDPOINTS.UPDATE_MEDICAL_REPORT(id), data);
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  },
+
+  deleteMedicalReport: async (id) => {
+    try {
+      const response = await api.delete(PERSONAL_ENDPOINTS.DELETE_MEDICAL_REPORT(id));
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
+  }
 }
