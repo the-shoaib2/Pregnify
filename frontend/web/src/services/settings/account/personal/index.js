@@ -1,8 +1,7 @@
-import api from '../api'
+import api from '../../../api'
 import { memoize } from 'lodash'
-import { CacheManager, CONSTANTS } from '../../utils/security'
-import { AuthService } from '../auth'
-import { handleApiError } from '../../utils/errorHandler'
+import { CacheManager, CONSTANTS } from '../../../../utils/security'
+import { handleApiError } from '../../../../utils/errorHandler'
 
 const { CACHE_DURATION } = CONSTANTS
 const CACHE_KEY = CONSTANTS.AUTH_CACHE_KEY

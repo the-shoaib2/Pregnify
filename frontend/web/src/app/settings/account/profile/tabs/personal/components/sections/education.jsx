@@ -270,7 +270,6 @@ export default function EducationSection({
 
   // At the beginning of your component, add this useEffect for debugging
   useEffect(() => {
-    console.log("Education Form Values:", formValues);
     
     // Validate yearOfPassing format
     if (formValues.yearOfPassing) {

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import { InputWithIcon } from "@/components/input-with-icon"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -36,6 +36,10 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import toast from "react-hot-toast"
+import { SettingsService } from '@/services/settings/account/personal'
+import { Switch } from "@/components/ui/switch"
+import { TagInput } from '@/components/ui/tag-input'
+import { debounce } from 'lodash'
 
 // Constants
 const GENDER_OPTIONS = [
@@ -52,58 +56,263 @@ const MARITAL_STATUS_OPTIONS = [
   { value: 'WIDOWED', label: 'Widowed' }
 ]
 
-const BLOOD_GROUPS = [
-  'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'
+const RELIGION_OPTIONS = [
+  { value: 'HINDUISM', label: 'Hinduism' },
+  { value: 'ISLAM', label: 'Islam' },
+  { value: 'CHRISTIANITY', label: 'Christianity' },
+  { value: 'SIKHISM', label: 'Sikhism' },
+  { value: 'BUDDHISM', label: 'Buddhism' },
+  { value: 'JAINISM', label: 'Jainism' },
+  { value: 'JUDAISM', label: 'Judaism' },
+  { value: 'OTHER', label: 'Other' },
+  { value: 'NONE', label: 'None' }
 ]
 
-// Create a reusable TagInput component
-const TagInput = ({ 
-  label, 
-  icon: Icon, 
-  tags, 
-  onAdd, 
-  onRemove, 
-  placeholder 
-}) => (
-  <div className="space-y-1.5 w-full">
-    <label className="text-sm font-medium leading-none flex items-center gap-2">
-      <Icon className="h-4 w-4 text-muted-foreground" />
-      {label}
-    </label>
-    <div className="flex flex-wrap gap-1.5 p-2 border rounded-md min-h-[42px] bg-background hover:border-primary/50 transition-colors">
-      {tags.map((tag, index) => (
-        <div 
-          key={index}
-          className="flex items-center gap-1 bg-primary/5 hover:bg-primary/10 text-primary text-xs px-2 py-1 rounded-md transition-colors group"
-        >
-          <span>{tag}</span>
-          <button
-            type="button"
-            onClick={() => onRemove(index)}
-            className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
-          >
-            <X className="h-3 w-3" />
-          </button>
-        </div>
-      ))}
-      <div className="relative flex-1 min-w-[120px]">
-        <input
-          type="text"
-          className="w-full text-sm bg-transparent outline-none placeholder:text-muted-foreground/60"
-          placeholder={placeholder}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && e.target.value.trim()) {
-              e.preventDefault();
-              onAdd(e.target.value.trim());
-              e.target.value = '';
-            }
-          }}
+// Helper function to initialize form values properly
+const initializeFormValues = (rawFormValues) => {
+  if (!rawFormValues || Object.keys(rawFormValues).length === 0) {
+    return {
+      firstName: '',
+      middleName: '',
+      lastName: '',
+      nickName: '',
+      genderIdentity: '',
+      age: '',
+      isDeceased: false,
+      description: '',
+      placeOfBirth: '',
+      countryOfBirth: '',
+      nationality: '',
+      contactNumber: '',
+      passportNumber: '',
+      passportExpiry: '',
+      maritalStatus: '',
+      citizenship: '',
+      bloodGroup: '',
+      religion: '',
+      address: {},
+      presentAddress: {},
+      permanentAddress: {},
+      occupation: {},
+      hobbies: [],
+      languages: [],
+      skills: [],
+    }
+  }
+
+  // Clone the raw form values
+  const parsedValues = { ...rawFormValues }
+  
+  // Ensure object properties exist
+  parsedValues.address = parsedValues.address || {}
+  parsedValues.presentAddress = parsedValues.presentAddress || {}
+  parsedValues.permanentAddress = parsedValues.permanentAddress || {}
+  parsedValues.occupation = parsedValues.occupation || {}
+  
+  // Handle additional info
+  try {
+    if (typeof parsedValues.additionalInfo === 'string' && parsedValues.additionalInfo) {
+      const additionalInfo = JSON.parse(parsedValues.additionalInfo)
+      parsedValues.languages = additionalInfo.languages || []
+      parsedValues.skills = additionalInfo.skills || []
+    } else if (typeof parsedValues.additionalInfo === 'object' && parsedValues.additionalInfo) {
+      parsedValues.languages = parsedValues.additionalInfo.languages || []
+      parsedValues.skills = parsedValues.additionalInfo.skills || []
+    } else {
+      parsedValues.languages = []
+      parsedValues.skills = []
+    }
+  } catch (error) {
+    console.error("Error parsing additionalInfo:", error)
+    parsedValues.languages = []
+    parsedValues.skills = []
+  }
+  
+  // Handle hobbies
+  if (!Array.isArray(parsedValues.hobbies)) {
+    parsedValues.hobbies = parsedValues.hobbies?.split(',').filter(Boolean) || []
+  }
+  
+  return parsedValues
+}
+
+// Format data for API submission
+const formatDataForAPI = (data, dateValue) => {
+  return {
+    firstName: data.firstName,
+    middleName: data.middleName,
+    lastName: data.lastName,
+    nickName: data.nickName,
+    genderIdentity: data.genderIdentity,
+    dateOfBirth: dateValue ? format(dateValue, "yyyy-MM-dd") : null,
+    age: data.age,
+    isDeceased: data.isDeceased || false,
+    description: data.description,
+    placeOfBirth: data.placeOfBirth,
+    countryOfBirth: data.countryOfBirth,
+    nationality: data.nationality,
+    contactNumber: data.contactNumber,
+    address: {
+      street: data.address?.street || '',
+      city: data.address?.city || '',
+      state: data.address?.state || '',
+      country: data.address?.country || '',
+      zipCode: data.address?.zipCode || ''
+    },
+    presentAddress: {
+      street: data.presentAddress?.street || '',
+      city: data.presentAddress?.city || '',
+      state: data.presentAddress?.state || '',
+      country: data.presentAddress?.country || '',
+      zipCode: data.presentAddress?.zipCode || ''
+    },
+    permanentAddress: {
+      street: data.permanentAddress?.street || '',
+      city: data.permanentAddress?.city || '',
+      state: data.permanentAddress?.state || '',
+      country: data.permanentAddress?.country || '',
+      zipCode: data.permanentAddress?.zipCode || ''
+    },
+    passportNumber: data.passportNumber,
+    passportExpiry: data.passportExpiry,
+    maritalStatus: data.maritalStatus,
+    citizenship: data.citizenship,
+    bloodGroup: data.bloodGroup,
+    occupation: {
+      title: data.occupation?.title || '',
+      company: data.occupation?.company || '',
+      experience: data.occupation?.experience || ''
+    },
+    religion: data.religion,
+    hobbies: Array.isArray(data.hobbies) 
+      ? data.hobbies 
+      : data.hobbies?.split(',').filter(Boolean) || [],
+    additionalInfo: {
+      languages: data.languages || [],
+      skills: data.skills || []
+    }
+  }
+}
+
+// Move this component outside the main component function
+const SkillsAndInterestsSection = ({ localFormValues, handleLocalChange }) => {
+  const getArray = (key) => {
+    // Ensure we're working with arrays for all tag inputs
+    const value = localFormValues[key];
+    if (Array.isArray(value)) return value;
+    if (!value) return [];
+    return value.split(',').map(item => item.trim()).filter(Boolean);
+  }
+
+  const handleAddItem = (key, newItem) => {
+    handleLocalChange(key, [...getArray(key), newItem])
+  }
+
+  const handleRemoveItem = (key, index) => {
+    handleLocalChange(key, getArray(key).filter((_, i) => i !== index))
+  }
+
+  return (
+    <div className="space-y-4">
+      <h4 className="text-sm font-medium flex items-center gap-2">
+        <Bookmark className="h-4 w-4 text-muted-foreground" />
+        Skills & Interests
+      </h4>
+      <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        <TagInput
+          label="Skills"
+          icon={Code}
+          values={getArray('skills')}
+          onAdd={(newSkill) => handleAddItem('skills', newSkill)}
+          onRemove={(index) => handleRemoveItem('skills', index)}
+          placeholder="Add a skill..."
         />
-        <PlusCircle className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
+
+        <TagInput
+          label="Languages"
+          icon={LanguagesIcon}
+          values={getArray('languages')}
+          onAdd={(newLanguage) => handleAddItem('languages', newLanguage)}
+          onRemove={(index) => handleRemoveItem('languages', index)}
+          placeholder="Add a language..."
+        />
+
+        <TagInput
+          label="Hobbies"
+          icon={Heart}
+          values={getArray('hobbies')}
+          onAdd={(newHobby) => handleAddItem('hobbies', newHobby)}
+          onRemove={(index) => handleRemoveItem('hobbies', index)}
+          placeholder="Add a hobby..."
+        />
       </div>
     </div>
-  </div>
-)
+  )
+}
+
+// Add this helper component outside the main component
+const AddressSection = ({ title, addressKey, values, onChange, copyFromPresent }) => {
+  return (
+    <>
+      {copyFromPresent && (
+        <div className="flex items-center justify-between mt-6">
+          <h3 className="text-md font-medium">{title}</h3>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs"
+            onClick={copyFromPresent}
+          >
+            <Copy className="mr-2 h-3 w-3" />
+            Same as Present Address
+          </Button>
+        </div>
+      )}
+      {!copyFromPresent && <h3 className="text-md font-medium mt-4">{title}</h3>}
+      
+      <div className="grid gap-4 md:grid-cols-2">
+        <InputWithIcon
+          icon={FileText}
+          label="Street"
+          value={values?.street || ''}
+          onChange={(e) => onChange(`${addressKey}.street`, e.target.value)}
+          placeholder="Enter street"
+        />
+        <InputWithIcon
+          icon={FileText}
+          label="City"
+          value={values?.city || ''}
+          onChange={(e) => onChange(`${addressKey}.city`, e.target.value)}
+          placeholder="Enter city"
+        />
+      </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <InputWithIcon
+          icon={FileText}
+          label="State"
+          value={values?.state || ''}
+          onChange={(e) => onChange(`${addressKey}.state`, e.target.value)}
+          placeholder="Enter state"
+        />
+        <InputWithIcon
+          icon={FileText}
+          label="Country"
+          value={values?.country || ''}
+          onChange={(e) => onChange(`${addressKey}.country`, e.target.value)}
+          placeholder="Enter country"
+        />
+        <InputWithIcon
+          icon={FileText}
+          label="ZIP Code"
+          value={values?.zipCode || ''}
+          onChange={(e) => onChange(`${addressKey}.zipCode`, e.target.value)}
+          placeholder="Enter ZIP code"
+        />
+      </div>
+    </>
+  );
+};
 
 export default function BasicInfoPersonalSection({
   formValues,
@@ -113,135 +322,105 @@ export default function BasicInfoPersonalSection({
   onDateSelect,
   loading
 }) {
+  // Initialize states with proper values immediately
   const [saving, setSaving] = useState(false)
-  const [localFormValues, setLocalFormValues] = useState(formValues)
-  const [dataInitialized, setDataInitialized] = useState(false)
-
-  // Initialize local form values when props change
-  useEffect(() => {
-    try {
-      if (formValues && Object.keys(formValues).length > 0) {
-        // Parse additionalInfo if it's a string
-        let parsedFormValues = { ...formValues };
+  const [localFormValues, setLocalFormValues] = useState(() => initializeFormValues(formValues))
+  const [autoSave, setAutoSave] = useState(false)
+  
+  // Create a debounced save function - will be recreated only when autoSave changes
+  const debouncedSave = useCallback(
+    debounce(async (data, dateValue) => {
+      try {
+        if (!data.firstName) return
         
-        // Handle languages and skills
-        if (typeof formValues.additionalInfo === 'string') {
-          try {
-            const additionalInfo = JSON.parse(formValues.additionalInfo);
-            parsedFormValues = {
-              ...parsedFormValues,
-              languages: additionalInfo.languages || [],
-              skills: additionalInfo.skills || []
-            };
-          } catch (e) {
-            console.error("Error parsing additionalInfo:", e);
-            parsedFormValues.languages = [];
-            parsedFormValues.skills = [];
-          }
-        } else if (typeof formValues.additionalInfo === 'object') {
-          parsedFormValues = {
-            ...parsedFormValues,
-            languages: formValues.additionalInfo?.languages || [],
-            skills: formValues.additionalInfo?.skills || []
-          };
-        }
-
-        setLocalFormValues(parsedFormValues);
-        setDataInitialized(true);
+        setSaving(true)
+        const formattedData = formatDataForAPI(data, dateValue)
+        await SettingsService.updateBasicInfo(formattedData)
+        toast.success("Changes auto-saved")
+      } catch (error) {
+        console.error("Auto-save error:", error)
+        toast.error("Auto-save failed")
+      } finally {
+        setSaving(false)
       }
-    } catch (error) {
-      console.error("Error initializing form values:", error);
-    }
-  }, [formValues]);
-
-  // Handle local form changes
+    }, 2000),
+    [autoSave]
+  )
+  
+  // Handle local form changes with optimized logic
   const handleLocalChange = useCallback((field, value) => {
     try {
+      let updatedValues
+      
       // Handle nested objects like address
       if (field.includes('.')) {
         const [parent, child] = field.split('.')
-        setLocalFormValues(prev => ({
-          ...prev,
-          [parent]: {
-            ...(prev[parent] || {}),
+        updatedValues = prevValues => {
+          const updatedParent = {
+            ...(prevValues[parent] || {}),
             [child]: value
           }
-        }))
-        
-        // Propagate change to parent component
-        handleChange(field, value)
-        return
+          
+          return {
+            ...prevValues,
+            [parent]: updatedParent
+          }
+        }
+      } else {
+        // Update simple fields
+        updatedValues = prevValues => ({
+          ...prevValues,
+          [field]: value
+        })
       }
       
       // Update local state
-      setLocalFormValues(prev => ({
-        ...prev,
-        [field]: value
-      }))
-      
-      // Propagate change to parent component
-      handleChange(field, value)
+      setLocalFormValues(prevValues => {
+        const newValues = typeof updatedValues === 'function' 
+          ? updatedValues(prevValues) 
+          : { ...prevValues, ...updatedValues }
+          
+        // Propagate change to parent component
+        handleChange(field, value)
+        
+        // Trigger auto-save if enabled
+        if (autoSave && newValues.firstName) {
+          debouncedSave(newValues, date)
+        }
+        
+        return newValues
+      })
     } catch (error) {
       console.error(`Error updating ${field}:`, error)
       toast.error(`Failed to update ${field}`)
     }
-  }, [handleChange])
+  }, [handleChange, autoSave, date, debouncedSave])
 
   // Handle form submission
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault()
     
     try {
-      setSaving(true)
-      
       // Validate required fields
       if (!localFormValues.firstName) {
         toast.error("First name is required")
         return
       }
 
-      // Extract combined fields
-      const combinedData = {
-        // Basic info fields
-        firstName: localFormValues.firstName,
-        middleName: localFormValues.middleName,
-        lastName: localFormValues.lastName,
-        nickName: localFormValues.nickName,
-        dateOfBirth: localFormValues.dateOfBirth,
-        genderIdentity: localFormValues.genderIdentity,
-        description: localFormValues.description || localFormValues.discription,
-        age: localFormValues.age,
-        isDeceased: localFormValues.isDeceased,
-        
-        // Personal details fields
-        maritalStatus: localFormValues.maritalStatus,
-        bloodGroup: localFormValues.bloodGroup,
-        occupation: localFormValues.occupation,
-        religion: localFormValues.religion,
-        hobbies: localFormValues.hobbies,
-        additionalInfo: localFormValues.additionalInfo,
-        
-        // Contact information
-        contactNumber: localFormValues.contactNumber,
-        
-        // Address information
-        address: localFormValues.address || {},
-        presentAddress: localFormValues.presentAddress || {},
-        permanentAddress: localFormValues.permanentAddress || {},
-        
-        // Additional Info fields
-        languages: localFormValues.languages || [],
-        skills: localFormValues.skills || [],
-      }
-
-      await handleSave('basic-personal', combinedData)
+      setSaving(true)
+      
+      // Format and submit the data
+      const formattedData = formatDataForAPI(localFormValues, date)
+      await SettingsService.updateBasicInfo(formattedData)
+      
+      toast.success("Updated successfully")
     } catch (error) {
       console.error("Error saving information:", error)
       toast.error("Failed to save information")
     } finally {
       setSaving(false)
     }
-  }, [localFormValues, handleSave])
+  }, [localFormValues, date])
 
   // Memoize the basic info fields
   const BasicInfoFields = useMemo(() => (
@@ -346,7 +525,7 @@ export default function BasicInfoPersonalSection({
           <input
             id="description"
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            value={localFormValues.description || localFormValues.discription || ''}
+            value={localFormValues.description || ''}
             onChange={(e) => handleLocalChange('description', e.target.value)}
             placeholder="Enter a brief description"
           />
@@ -381,13 +560,27 @@ export default function BasicInfoPersonalSection({
             </SelectContent>
           </Select>
         </div>
-        <InputWithIcon
-          icon={Book}
-          label="Religion"
-          value={localFormValues.religion || ''}
-          onChange={(e) => handleLocalChange('religion', e.target.value)}
-          placeholder="Enter religion"
-        />
+        <div className="grid w-full items-center gap-1.5">
+          <label className="text-sm font-medium leading-none flex items-center gap-2">
+            <Book className="h-4 w-4 text-muted-foreground" />
+            Religion
+          </label>
+          <Select 
+            value={localFormValues.religion || ''} 
+            onValueChange={(value) => handleLocalChange('religion', value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select religion" />
+            </SelectTrigger>
+            <SelectContent>
+              {RELIGION_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Occupation Section */}
@@ -421,317 +614,71 @@ export default function BasicInfoPersonalSection({
         </div>
       </div>
 
-      {/* Skills, Languages, and Hobbies Section */}
-      <div className="space-y-4">
-        <h4 className="text-sm font-medium flex items-center gap-2">
-          <Bookmark className="h-4 w-4 text-muted-foreground" />
-          Skills & Interests
-        </h4>
-        <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          {/* Skills */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium leading-none flex items-center gap-2">
-              <Code className="h-4 w-4 text-muted-foreground" />
-              Skills
-            </label>
-            <div className="flex flex-wrap gap-1.5 p-2 border rounded-md min-h-[42px] bg-background">
-              {(localFormValues.skills || []).map((skill, index) => (
-                <div 
-                  key={index}
-                  className="flex items-center gap-1 bg-primary/5 hover:bg-primary/10 text-primary text-xs px-2 py-1 rounded-md transition-colors group"
-                >
-                  <span>{skill}</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const newSkills = localFormValues.skills.filter((_, i) => i !== index);
-                      handleLocalChange('skills', newSkills);
-                    }}
-                    className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-              <div className="relative flex-1 min-w-[120px]">
-                <input
-                  type="text"
-                  className="w-full text-sm bg-transparent outline-none placeholder:text-muted-foreground/60"
-                  placeholder="Add a skill..."
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && e.target.value.trim()) {
-                      e.preventDefault();
-                      const newSkill = e.target.value.trim();
-                      const currentSkills = localFormValues.skills || [];
-                      if (!currentSkills.includes(newSkill)) {
-                        handleLocalChange('skills', [...currentSkills, newSkill]);
-                      }
-                      e.target.value = '';
-                    }
-                  }}
-                />
-                <PlusCircle className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
-              </div>
-            </div>
-          </div>
-
-          {/* Languages */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium leading-none flex items-center gap-2">
-              <LanguagesIcon className="h-4 w-4 text-muted-foreground" />
-              Languages
-            </label>
-            <div className="flex flex-wrap gap-1.5 p-2 border rounded-md min-h-[42px] bg-background">
-              {(localFormValues.languages || []).map((language, index) => (
-                <div 
-                  key={index}
-                  className="flex items-center gap-1 bg-primary/5 hover:bg-primary/10 text-primary text-xs px-2 py-1 rounded-md transition-colors group"
-                >
-                  <span>{language}</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const newLanguages = localFormValues.languages.filter((_, i) => i !== index);
-                      handleLocalChange('languages', newLanguages);
-                    }}
-                    className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-              <div className="relative flex-1 min-w-[120px]">
-                <input
-                  type="text"
-                  className="w-full text-sm bg-transparent outline-none placeholder:text-muted-foreground/60"
-                  placeholder="Add a language..."
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && e.target.value.trim()) {
-                      e.preventDefault();
-                      const newLanguage = e.target.value.trim();
-                      const currentLanguages = localFormValues.languages || [];
-                      if (!currentLanguages.includes(newLanguage)) {
-                        handleLocalChange('languages', [...currentLanguages, newLanguage]);
-                      }
-                      e.target.value = '';
-                    }
-                  }}
-                />
-                <PlusCircle className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
-              </div>
-            </div>
-          </div>
-
-          {/* Hobbies */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium leading-none flex items-center gap-2">
-              <Heart className="h-4 w-4 text-muted-foreground" />
-              Hobbies
-            </label>
-            <div className="flex flex-wrap gap-1.5 p-2 border rounded-md min-h-[42px] bg-background">
-              {(Array.isArray(localFormValues.hobbies) ? 
-                localFormValues.hobbies : 
-                localFormValues.hobbies?.split(',').filter(Boolean) || []
-              ).map((hobby, index) => (
-                <div 
-                  key={index}
-                  className="flex items-center gap-1 bg-primary/5 hover:bg-primary/10 text-primary text-xs px-2 py-1 rounded-md transition-colors group"
-                >
-                  <span>{hobby}</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const newHobbies = (Array.isArray(localFormValues.hobbies) ? 
-                        localFormValues.hobbies : 
-                        localFormValues.hobbies?.split(',').filter(Boolean) || []
-                      ).filter((_, i) => i !== index);
-                      handleLocalChange('hobbies', newHobbies);
-                    }}
-                    className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-              <div className="relative flex-1 min-w-[120px]">
-                <input
-                  type="text"
-                  className="w-full text-sm bg-transparent outline-none placeholder:text-muted-foreground/60"
-                  placeholder="Add a hobby..."
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && e.target.value.trim()) {
-                      e.preventDefault();
-                      const newHobby = e.target.value.trim();
-                      const currentHobbies = Array.isArray(localFormValues.hobbies) ? 
-                        localFormValues.hobbies : 
-                        localFormValues.hobbies?.split(',').filter(Boolean) || [];
-                      if (!currentHobbies.includes(newHobby)) {
-                        handleLocalChange('hobbies', [...currentHobbies, newHobby]);
-                      }
-                      e.target.value = '';
-                    }
-                  }}
-                />
-                <PlusCircle className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Use the separately defined component */}
+      <SkillsAndInterestsSection 
+        localFormValues={localFormValues}
+        handleLocalChange={handleLocalChange}
+      />
     </div>
   ), [localFormValues, handleLocalChange])
 
   // Memoize the address fields
   const AddressFields = useMemo(() => (
     <div className="space-y-4 mt-6">
-      <h3 className="text-md font-medium">Current Address</h3>
-      <div className="grid gap-4 md:grid-cols-2">
-        <InputWithIcon
-          icon={FileText}
-          label="Street"
-          value={localFormValues.address?.street || ''}
-          onChange={(e) => handleLocalChange('address.street', e.target.value)}
-          placeholder="Enter street"
-        />
-        <InputWithIcon
-          icon={FileText}
-          label="City"
-          value={localFormValues.address?.city || ''}
-          onChange={(e) => handleLocalChange('address.city', e.target.value)}
-          placeholder="Enter city"
-        />
-      </div>
-      <div className="grid gap-4 md:grid-cols-3">
-        <InputWithIcon
-          icon={FileText}
-          label="State"
-          value={localFormValues.address?.state || ''}
-          onChange={(e) => handleLocalChange('address.state', e.target.value)}
-          placeholder="Enter state"
-        />
-        <InputWithIcon
-          icon={FileText}
-          label="Country"
-          value={localFormValues.address?.country || ''}
-          onChange={(e) => handleLocalChange('address.country', e.target.value)}
-          placeholder="Enter country"
-        />
-        <InputWithIcon
-          icon={FileText}
-          label="ZIP Code"
-          value={localFormValues.address?.zipCode || ''}
-          onChange={(e) => handleLocalChange('address.zipCode', e.target.value)}
-          placeholder="Enter ZIP code"
-        />
-      </div>
+      <AddressSection 
+        title="Current Address"
+        addressKey="address"
+        values={localFormValues.address}
+        onChange={handleLocalChange}
+      />
       
-      <h3 className="text-md font-medium mt-4">Present Address</h3>
-      <div className="grid gap-4 md:grid-cols-2">
-        <InputWithIcon
-          icon={FileText}
-          label="Street"
-          value={localFormValues.presentAddress?.street || ''}
-          onChange={(e) => handleLocalChange('presentAddress.street', e.target.value)}
-          placeholder="Enter street"
-        />
-        <InputWithIcon
-          icon={FileText}
-          label="City"
-          value={localFormValues.presentAddress?.city || ''}
-          onChange={(e) => handleLocalChange('presentAddress.city', e.target.value)}
-          placeholder="Enter city"
-        />
-      </div>
-      <div className="grid gap-4 md:grid-cols-3">
-        <InputWithIcon
-          icon={FileText}
-          label="State"
-          value={localFormValues.presentAddress?.state || ''}
-          onChange={(e) => handleLocalChange('presentAddress.state', e.target.value)}
-          placeholder="Enter state"
-        />
-        <InputWithIcon
-          icon={FileText}
-          label="Country"
-          value={localFormValues.presentAddress?.country || ''}
-          onChange={(e) => handleLocalChange('presentAddress.country', e.target.value)}
-          placeholder="Enter country"
-        />
-        <InputWithIcon
-          icon={FileText}
-          label="ZIP Code"
-          value={localFormValues.presentAddress?.zipCode || ''}
-          onChange={(e) => handleLocalChange('presentAddress.zipCode', e.target.value)}
-          placeholder="Enter ZIP code"
-        />
-      </div>
+      <AddressSection 
+        title="Present Address"
+        addressKey="presentAddress"
+        values={localFormValues.presentAddress}
+        onChange={handleLocalChange}
+      />
       
-      <div className="flex items-center justify-between mt-6">
-        <h3 className="text-md font-medium">Permanent Address</h3>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-8 text-xs"
-          onClick={() => {
-            handleLocalChange('permanentAddress', {
-              ...localFormValues.presentAddress
-            })
-          }}
-        >
-          <Copy className="mr-2 h-3 w-3" />
-          Same as Present Address
-        </Button>
-      </div>
-      
-      <div className="grid gap-4 md:grid-cols-2">
-        <InputWithIcon
-          icon={FileText}
-          label="Street"
-          value={localFormValues.permanentAddress?.street || ''}
-          onChange={(e) => handleLocalChange('permanentAddress.street', e.target.value)}
-          placeholder="Enter street"
-        />
-        <InputWithIcon
-          icon={FileText}
-          label="City"
-          value={localFormValues.permanentAddress?.city || ''}
-          onChange={(e) => handleLocalChange('permanentAddress.city', e.target.value)}
-          placeholder="Enter city"
-        />
-      </div>
-      <div className="grid gap-4 md:grid-cols-3">
-        <InputWithIcon
-          icon={FileText}
-          label="State"
-          value={localFormValues.permanentAddress?.state || ''}
-          onChange={(e) => handleLocalChange('permanentAddress.state', e.target.value)}
-          placeholder="Enter state"
-        />
-        <InputWithIcon
-          icon={FileText}
-          label="Country"
-          value={localFormValues.permanentAddress?.country || ''}
-          onChange={(e) => handleLocalChange('permanentAddress.country', e.target.value)}
-          placeholder="Enter country"
-        />
-        <InputWithIcon
-          icon={FileText}
-          label="ZIP Code"
-          value={localFormValues.permanentAddress?.zipCode || ''}
-          onChange={(e) => handleLocalChange('permanentAddress.zipCode', e.target.value)}
-          placeholder="Enter ZIP code"
-        />
-      </div>
+      <AddressSection 
+        title="Permanent Address"
+        addressKey="permanentAddress"
+        values={localFormValues.permanentAddress}
+        onChange={handleLocalChange}
+        copyFromPresent={() => {
+          handleLocalChange('permanentAddress', {
+            ...localFormValues.presentAddress
+          });
+        }}
+      />
     </div>
-  ), [localFormValues, handleLocalChange])
+  ), [localFormValues.address, localFormValues.presentAddress, localFormValues.permanentAddress, handleLocalChange])
 
   // Memoize the save button for better performance
   const SaveButton = useMemo(() => (
-    <div className="flex justify-end mt-6">
+    <div className="flex justify-between items-center mt-6">
+      <div className="flex items-center gap-3">
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="auto-save"
+            checked={autoSave}
+            onCheckedChange={setAutoSave}
+          />
+          <label 
+            htmlFor="auto-save" 
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            Auto-save
+          </label>
+        </div>
+        {autoSave && (
+          <span className="text-xs text-muted-foreground">
+            Changes will auto-save after 2s
+          </span>
+        )}
+      </div>
       <Button 
         type="submit" 
-        disabled={saving || loading || !dataInitialized}
+        disabled={saving || loading || !localFormValues.firstName}
         className="w-fit"
       >
         {(saving || loading) && (
@@ -741,17 +688,12 @@ export default function BasicInfoPersonalSection({
         Save Changes
       </Button>
     </div>
-  ), [saving, loading, dataInitialized])
+  ), [saving, loading, autoSave, localFormValues.firstName])
 
-  // If data is not yet initialized, show a loading message
-  if (!dataInitialized && !localFormValues.firstName) {
-    return <div className="py-4"></div>
+  // If no form values available, show a blank space
+  if (!localFormValues || !localFormValues.firstName) {
+    return <div className="py-4">Loading your profile information...</div>
   }
-
-  // Add this at the beginning of the component
-  useEffect(() => {
-    console.log("Basic Info Form Values:", formValues);
-  }, [formValues]);
 
   return (
     <form onSubmit={handleSubmit} className="max-w-[1200px] mx-auto space-y-8">

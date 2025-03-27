@@ -188,8 +188,6 @@ export default function PersonalTab({
     try {
       const educationData = profile?.education?.[0] || {};
       
-      // For debugging
-      console.log("Raw education data:", educationData);
       
       // Handle yearOfPassing in a more flexible way
       let formattedYearOfPassing = "";
@@ -229,8 +227,6 @@ export default function PersonalTab({
         gpa: educationData?.gpa?.toString() || "",
       };
       
-      // For debugging
-      console.log("Processed education data:", result);
       
       return result;
     } catch (error) {
