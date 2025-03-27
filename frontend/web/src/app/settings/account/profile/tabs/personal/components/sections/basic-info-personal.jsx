@@ -25,6 +25,14 @@ import {
   Activity,
   FileText,
   X,
+  Copy,
+  Building2,
+  Briefcase,
+  Clock,
+  Languages as LanguagesIcon,
+  Code,
+  Bookmark,
+  PlusCircle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import toast from "react-hot-toast"
@@ -47,6 +55,55 @@ const MARITAL_STATUS_OPTIONS = [
 const BLOOD_GROUPS = [
   'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'
 ]
+
+// Create a reusable TagInput component
+const TagInput = ({ 
+  label, 
+  icon: Icon, 
+  tags, 
+  onAdd, 
+  onRemove, 
+  placeholder 
+}) => (
+  <div className="space-y-1.5 w-full">
+    <label className="text-sm font-medium leading-none flex items-center gap-2">
+      <Icon className="h-4 w-4 text-muted-foreground" />
+      {label}
+    </label>
+    <div className="flex flex-wrap gap-1.5 p-2 border rounded-md min-h-[42px] bg-background hover:border-primary/50 transition-colors">
+      {tags.map((tag, index) => (
+        <div 
+          key={index}
+          className="flex items-center gap-1 bg-primary/5 hover:bg-primary/10 text-primary text-xs px-2 py-1 rounded-md transition-colors group"
+        >
+          <span>{tag}</span>
+          <button
+            type="button"
+            onClick={() => onRemove(index)}
+            className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      ))}
+      <div className="relative flex-1 min-w-[120px]">
+        <input
+          type="text"
+          className="w-full text-sm bg-transparent outline-none placeholder:text-muted-foreground/60"
+          placeholder={placeholder}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && e.target.value.trim()) {
+              e.preventDefault();
+              onAdd(e.target.value.trim());
+              e.target.value = '';
+            }
+          }}
+        />
+        <PlusCircle className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
+      </div>
+    </div>
+  </div>
+)
 
 export default function BasicInfoPersonalSection({
   formValues,
@@ -300,10 +357,12 @@ export default function BasicInfoPersonalSection({
 
   // Memoize the personal details fields for better performance
   const PersonalDetailsFields = useMemo(() => (
-    <div className="space-y-4 mt-6">
+    <div className="space-y-6 mt-6">
+      {/* Marital Status and Religion Section */}
       <div className="grid gap-4 md:grid-cols-2">
         <div className="grid w-full items-center gap-1.5">
-          <label htmlFor="marital-status" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+          <label className="text-sm font-medium leading-none flex items-center gap-2">
+            <Heart className="h-4 w-4 text-muted-foreground" />
             Marital Status
           </label>
           <Select 
@@ -323,125 +382,199 @@ export default function BasicInfoPersonalSection({
           </Select>
         </div>
         <InputWithIcon
-          icon={Activity}
-          label="Occupation"
-          value={localFormValues.occupation || ''}
-          onChange={(e) => handleLocalChange('occupation', e.target.value)}
-          placeholder="Enter occupation"
-        />
-      </div>
-      
-      <div className="grid gap-4 md:grid-cols-2">
-        <InputWithIcon
           icon={Book}
           label="Religion"
           value={localFormValues.religion || ''}
           onChange={(e) => handleLocalChange('religion', e.target.value)}
           placeholder="Enter religion"
         />
-        <InputWithIcon
-          icon={Heart}
-          label="Hobbies"
-          value={localFormValues.hobbies || ''}
-          onChange={(e) => handleLocalChange('hobbies', e.target.value)}
-          placeholder="Enter hobbies"
-        />
-      </div>
-      
-      <div className="grid w-full items-center gap-1.5">
-        <label htmlFor="additional-info" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-          Additional Information
-        </label>
-        <textarea
-          id="additional-info"
-          className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          value={localFormValues.additionalInfo || ''}
-          onChange={(e) => handleLocalChange('additionalInfo', e.target.value)}
-          placeholder="Enter any additional information"
-        />
       </div>
 
-      {/* Languages and Skills Section - 2 columns */}
-      <div className="grid md:grid-cols-2 gap-4">
-        {/* Languages Section */}
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium leading-none">Languages</label>
-          <div className="flex flex-wrap gap-1.5 p-1.5 border rounded-md min-h-[42px] bg-background">
-            {(localFormValues.languages || []).map((lang, index) => (
-              <div 
-                key={index}
-                className="flex items-center gap-1 bg-primary/5 hover:bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-md transition-colors"
-              >
-                <span>{lang}</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const newLanguages = localFormValues.languages.filter((_, i) => i !== index);
-                    handleLocalChange('languages', newLanguages);
-                  }}
-                  className="hover:text-destructive ml-1"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-            <input
-              type="text"
-              className="flex-1 min-w-[80px] text-sm bg-transparent outline-none placeholder:text-muted-foreground/60"
-              placeholder="Add language..."
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && e.target.value.trim()) {
-                  e.preventDefault();
-                  const newLanguage = e.target.value.trim();
-                  const currentLanguages = localFormValues.languages || [];
-                  if (!currentLanguages.includes(newLanguage)) {
-                    handleLocalChange('languages', [...currentLanguages, newLanguage]);
-                  }
-                  e.target.value = '';
-                }
-              }}
-            />
-          </div>
+      {/* Occupation Section */}
+      <div className="space-y-4">
+        <h4 className="text-sm font-medium flex items-center gap-2">
+          <Briefcase className="h-4 w-4 text-muted-foreground" />
+          Occupation Details
+        </h4>
+        <div className="grid gap-4 md:grid-cols-3">
+          <InputWithIcon
+            icon={Briefcase}
+            label="Title"
+            value={typeof localFormValues.occupation === 'object' ? localFormValues.occupation.title || '' : ''}
+            onChange={(e) => handleLocalChange('occupation.title', e.target.value)}
+            placeholder="Enter job title"
+          />
+          <InputWithIcon
+            icon={Building2}
+            label="Company"
+            value={typeof localFormValues.occupation === 'object' ? localFormValues.occupation.company || '' : ''}
+            onChange={(e) => handleLocalChange('occupation.company', e.target.value)}
+            placeholder="Enter company name"
+          />
+          <InputWithIcon
+            icon={Clock}
+            label="Experience"
+            value={typeof localFormValues.occupation === 'object' ? localFormValues.occupation.experience || '' : ''}
+            onChange={(e) => handleLocalChange('occupation.experience', e.target.value)}
+            placeholder="Enter years of experience"
+          />
         </div>
+      </div>
 
-        {/* Skills Section */}
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium leading-none">Skills</label>
-          <div className="flex flex-wrap gap-1.5 p-1.5 border rounded-md min-h-[42px] bg-background">
-            {(localFormValues.skills || []).map((skill, index) => (
-              <div 
-                key={index}
-                className="flex items-center gap-1 bg-primary/5 hover:bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-md transition-colors"
-              >
-                <span>{skill}</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const newSkills = localFormValues.skills.filter((_, i) => i !== index);
-                    handleLocalChange('skills', newSkills);
-                  }}
-                  className="hover:text-destructive ml-1"
+      {/* Skills, Languages, and Hobbies Section */}
+      <div className="space-y-4">
+        <h4 className="text-sm font-medium flex items-center gap-2">
+          <Bookmark className="h-4 w-4 text-muted-foreground" />
+          Skills & Interests
+        </h4>
+        <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          {/* Skills */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium leading-none flex items-center gap-2">
+              <Code className="h-4 w-4 text-muted-foreground" />
+              Skills
+            </label>
+            <div className="flex flex-wrap gap-1.5 p-2 border rounded-md min-h-[42px] bg-background">
+              {(localFormValues.skills || []).map((skill, index) => (
+                <div 
+                  key={index}
+                  className="flex items-center gap-1 bg-primary/5 hover:bg-primary/10 text-primary text-xs px-2 py-1 rounded-md transition-colors group"
                 >
-                  <X className="h-3 w-3" />
-                </button>
+                  <span>{skill}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newSkills = localFormValues.skills.filter((_, i) => i !== index);
+                      handleLocalChange('skills', newSkills);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+              <div className="relative flex-1 min-w-[120px]">
+                <input
+                  type="text"
+                  className="w-full text-sm bg-transparent outline-none placeholder:text-muted-foreground/60"
+                  placeholder="Add a skill..."
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.target.value.trim()) {
+                      e.preventDefault();
+                      const newSkill = e.target.value.trim();
+                      const currentSkills = localFormValues.skills || [];
+                      if (!currentSkills.includes(newSkill)) {
+                        handleLocalChange('skills', [...currentSkills, newSkill]);
+                      }
+                      e.target.value = '';
+                    }
+                  }}
+                />
+                <PlusCircle className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
               </div>
-            ))}
-            <input
-              type="text"
-              className="flex-1 min-w-[80px] text-sm bg-transparent outline-none placeholder:text-muted-foreground/60"
-              placeholder="Add skill..."
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && e.target.value.trim()) {
-                  e.preventDefault();
-                  const newSkill = e.target.value.trim();
-                  const currentSkills = localFormValues.skills || [];
-                  if (!currentSkills.includes(newSkill)) {
-                    handleLocalChange('skills', [...currentSkills, newSkill]);
-                  }
-                  e.target.value = '';
-                }
-              }}
-            />
+            </div>
+          </div>
+
+          {/* Languages */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium leading-none flex items-center gap-2">
+              <LanguagesIcon className="h-4 w-4 text-muted-foreground" />
+              Languages
+            </label>
+            <div className="flex flex-wrap gap-1.5 p-2 border rounded-md min-h-[42px] bg-background">
+              {(localFormValues.languages || []).map((language, index) => (
+                <div 
+                  key={index}
+                  className="flex items-center gap-1 bg-primary/5 hover:bg-primary/10 text-primary text-xs px-2 py-1 rounded-md transition-colors group"
+                >
+                  <span>{language}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newLanguages = localFormValues.languages.filter((_, i) => i !== index);
+                      handleLocalChange('languages', newLanguages);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+              <div className="relative flex-1 min-w-[120px]">
+                <input
+                  type="text"
+                  className="w-full text-sm bg-transparent outline-none placeholder:text-muted-foreground/60"
+                  placeholder="Add a language..."
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.target.value.trim()) {
+                      e.preventDefault();
+                      const newLanguage = e.target.value.trim();
+                      const currentLanguages = localFormValues.languages || [];
+                      if (!currentLanguages.includes(newLanguage)) {
+                        handleLocalChange('languages', [...currentLanguages, newLanguage]);
+                      }
+                      e.target.value = '';
+                    }
+                  }}
+                />
+                <PlusCircle className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
+              </div>
+            </div>
+          </div>
+
+          {/* Hobbies */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium leading-none flex items-center gap-2">
+              <Heart className="h-4 w-4 text-muted-foreground" />
+              Hobbies
+            </label>
+            <div className="flex flex-wrap gap-1.5 p-2 border rounded-md min-h-[42px] bg-background">
+              {(Array.isArray(localFormValues.hobbies) ? 
+                localFormValues.hobbies : 
+                localFormValues.hobbies?.split(',').filter(Boolean) || []
+              ).map((hobby, index) => (
+                <div 
+                  key={index}
+                  className="flex items-center gap-1 bg-primary/5 hover:bg-primary/10 text-primary text-xs px-2 py-1 rounded-md transition-colors group"
+                >
+                  <span>{hobby}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newHobbies = (Array.isArray(localFormValues.hobbies) ? 
+                        localFormValues.hobbies : 
+                        localFormValues.hobbies?.split(',').filter(Boolean) || []
+                      ).filter((_, i) => i !== index);
+                      handleLocalChange('hobbies', newHobbies);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+              <div className="relative flex-1 min-w-[120px]">
+                <input
+                  type="text"
+                  className="w-full text-sm bg-transparent outline-none placeholder:text-muted-foreground/60"
+                  placeholder="Add a hobby..."
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.target.value.trim()) {
+                      e.preventDefault();
+                      const newHobby = e.target.value.trim();
+                      const currentHobbies = Array.isArray(localFormValues.hobbies) ? 
+                        localFormValues.hobbies : 
+                        localFormValues.hobbies?.split(',').filter(Boolean) || [];
+                      if (!currentHobbies.includes(newHobby)) {
+                        handleLocalChange('hobbies', [...currentHobbies, newHobby]);
+                      }
+                      e.target.value = '';
+                    }
+                  }}
+                />
+                <PlusCircle className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -533,7 +666,24 @@ export default function BasicInfoPersonalSection({
         />
       </div>
       
-      <h3 className="text-md font-medium mt-4">Permanent Address</h3>
+      <div className="flex items-center justify-between mt-6">
+        <h3 className="text-md font-medium">Permanent Address</h3>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 text-xs"
+          onClick={() => {
+            handleLocalChange('permanentAddress', {
+              ...localFormValues.presentAddress
+            })
+          }}
+        >
+          <Copy className="mr-2 h-3 w-3" />
+          Same as Present Address
+        </Button>
+      </div>
+      
       <div className="grid gap-4 md:grid-cols-2">
         <InputWithIcon
           icon={FileText}
@@ -576,39 +726,6 @@ export default function BasicInfoPersonalSection({
     </div>
   ), [localFormValues, handleLocalChange])
 
-  // Memoize the occupation fields
-  const OccupationFields = useMemo(() => {
-    const occupation = localFormValues.occupation || {};
-    return (
-      <div className="space-y-4 mt-6">
-        <h3 className="text-md font-medium">Occupation Details</h3>
-        <div className="grid gap-4 md:grid-cols-3">
-          <InputWithIcon
-            icon={Activity}
-            label="Title"
-            value={typeof occupation === 'object' ? occupation.title || '' : ''}
-            onChange={(e) => handleLocalChange('occupation.title', e.target.value)}
-            placeholder="Enter job title"
-          />
-          <InputWithIcon
-            icon={Activity}
-            label="Company"
-            value={typeof occupation === 'object' ? occupation.company || '' : ''}
-            onChange={(e) => handleLocalChange('occupation.company', e.target.value)}
-            placeholder="Enter company name"
-          />
-          <InputWithIcon
-            icon={Activity}
-            label="Experience"
-            value={typeof occupation === 'object' ? occupation.experience || '' : ''}
-            onChange={(e) => handleLocalChange('occupation.experience', e.target.value)}
-            placeholder="Enter years of experience"
-          />
-        </div>
-      </div>
-    );
-  }, [localFormValues, handleLocalChange]);
-
   // Memoize the save button for better performance
   const SaveButton = useMemo(() => (
     <div className="flex justify-end mt-6">
@@ -637,14 +754,22 @@ export default function BasicInfoPersonalSection({
   }, [formValues]);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <h3 className="text-md font-medium">Basic Information</h3>
-      {BasicInfoFields}
+    <form onSubmit={handleSubmit} className="max-w-[1200px] mx-auto space-y-8">
+      <div className="space-y-6">
+        <h3 className="text-lg font-medium flex items-center gap-2">
+          <User className="h-5 w-5 text-muted-foreground" />
+          Basic Information
+        </h3>
+        {BasicInfoFields}
+      </div>
       
-      <h3 className="text-md font-medium mt-6">Personal Details</h3>
-      {PersonalDetailsFields}
-      
-      {OccupationFields}
+      <div className="space-y-6">
+        <h3 className="text-lg font-medium flex items-center gap-2">
+          <Heart className="h-5 w-5 text-muted-foreground" />
+          Personal Details
+        </h3>
+        {PersonalDetailsFields}
+      </div>
       
       {AddressFields}
       
