@@ -31,12 +31,12 @@ import {
   ContextMenuLabel,
 } from "@/components/ui/context-menu"
 
-
-
 import ErrorBoundary from "@/components/error-boundary"
 import toast from "react-hot-toast"
 import { FormSectionSkeleton, CardSkeleton } from "./components/skeleton"
 import { ProfileCompletionSkeleton } from "./components/profile-completion/page"
+// import { SettingsService } from "@/services/settings/account/personal"
+
 // Preload section components to avoid initial render issues
 const BasicInfoPersonalSection = lazy(() => {
   // Preload the component
@@ -58,6 +58,11 @@ const MedicalSection = lazy(() => {
   return import("./components/sections/medical")
 })
 
+const MedicalReportsSection = lazy(() => {
+  // Preload the component
+  return import("./components/sections/medical-reports")
+})
+
 const ProfileCompletionCard = lazy(() => {
   // Preload the component
   return import("./components/profile-completion/page")
@@ -70,7 +75,8 @@ const preloadSectionComponents = () => {
     import("./components/sections/basic-info-personal"),
     import("./components/sections/documents"),
     import("./components/sections/education"),
-    import("./components/sections/medical")
+    import("./components/sections/medical"),
+    import("./components/sections/medical-reports")
   ]
   
   // Execute all preloads
@@ -112,16 +118,64 @@ export default function PersonalTab({
   // Memoize personal data extraction with error handling
   const personal = useMemo(() => {
     try {
-      const personalData = profile?.personal?.[0] || {}
+      // Get the personal data from the profile
+      const personalData = profile?.personal || {};
+      
+      // Map the nested structure to a flattened structure
       return {
-        ...personalData,
-        dateOfBirth: personalData?.dateOfBirth ? personalData.dateOfBirth.split('T')[0] : "",
-        passportExpiry: personalData?.passportExpiry ? personalData.passportExpiry.split('T')[0] : "",
-        description: personalData?.description || personalData?.discription || "",
-        emergencyContact: personalData?.emergencyContact || [],
-        addresses: personalData?.addresses || {},
-        identification: personalData?.identification || { passport: {} },
-        emergency: personalData?.emergency || []
+        id: personalData?.id || "",
+        // Name fields
+        firstName: personalData?.name?.firstName || "",
+        middleName: personalData?.name?.middleName || "",
+        lastName: personalData?.name?.lastName || "",
+        nickName: personalData?.name?.nickName || "",
+        
+        // Identity fields
+        dateOfBirth: personalData?.identity?.dateOfBirth ? personalData.identity.dateOfBirth.split('T')[0] : "",
+        genderIdentity: personalData?.identity?.gender || "",
+        age: personalData?.identity?.age || "",
+        isDeceased: personalData?.identity?.isDeceased || false,
+        
+        // Origin fields
+        placeOfBirth: personalData?.origin?.placeOfBirth || "",
+        countryOfBirth: personalData?.origin?.countryOfBirth || "",
+        nationality: personalData?.origin?.nationality || "",
+        
+        // Contact fields
+        contactNumber: personalData?.contact?.phone || "",
+        
+        // Address information - preserve structure but ensure it exists
+        address: personalData?.addresses?.current || {},
+        presentAddress: personalData?.addresses?.current || {},
+        permanentAddress: personalData?.addresses?.permanent || {},
+        
+        // Identification fields
+        passportNumber: personalData?.identification?.passport?.number || "",
+        passportExpiry: personalData?.identification?.passport?.expiry ? 
+          personalData.identification.passport.expiry.split('T')[0] : "",
+        citizenship: personalData?.identification?.citizenship || "",
+        bloodGroup: personalData?.identification?.bloodGroup || "",
+        maritalStatus: personalData?.identification?.maritalStatus || "",
+        
+        // Occupation
+        occupation: personalData?.occupation || {},
+        
+        // Other fields
+        religion: personalData?.religion || "",
+        hobbies: Array.isArray(personalData?.hobbies) ? personalData.hobbies.join(", ") : "",
+        additionalInfo: typeof personalData?.additionalInfo === 'object' ? 
+          JSON.stringify(personalData.additionalInfo) : (personalData?.additionalInfo || ""),
+        
+        // Description
+        description: personalData?.description || "",
+        
+        // Emergency contacts
+        emergencyContact: personalData?.emergencyContacts || [],
+        
+        // System timestamps
+        createdAt: personalData?.timestamps?.created || "",
+        updatedAt: personalData?.timestamps?.updated || "",
+        deletedAt: null,
       }
     } catch (error) {
       console.error("Error processing personal data:", error)
@@ -132,12 +186,77 @@ export default function PersonalTab({
   // Memoize education data extraction with error handling
   const education = useMemo(() => {
     try {
-      return profile?.education || {}
+      const educationData = profile?.education?.[0] || {};
+      
+      // For debugging
+      console.log("Raw education data:", educationData);
+      
+      // Handle yearOfPassing in a more flexible way
+      let formattedYearOfPassing = "";
+      if (educationData?.yearOfPassing) {
+        // Try to handle different possible formats
+        try {
+          // If it's an ISO date string with a T
+          if (typeof educationData.yearOfPassing === 'string' && 
+              educationData.yearOfPassing.includes('T')) {
+            // Extract just the year part
+            const date = new Date(educationData.yearOfPassing);
+            if (!isNaN(date.getTime())) {
+              formattedYearOfPassing = date.getFullYear().toString();
+            }
+          } 
+          // If it's just a year as a number or string number
+          else if (!isNaN(Number(educationData.yearOfPassing))) {
+            formattedYearOfPassing = Number(educationData.yearOfPassing).toString();
+          } 
+          // Otherwise, use as is if it's a string
+          else if (typeof educationData.yearOfPassing === 'string') {
+            formattedYearOfPassing = educationData.yearOfPassing;
+          }
+        } catch (error) {
+          console.error("Error formatting year of passing:", error);
+          formattedYearOfPassing = "";
+        }
+      }
+      
+      const result = {
+        id: educationData?.id || "",
+        degree: educationData?.degree || "",
+        fieldOfStudy: educationData?.fieldOfStudy || "",
+        qualification: educationData?.qualification || "",
+        institution: educationData?.institution || "",
+        yearOfPassing: formattedYearOfPassing,
+        gpa: educationData?.gpa?.toString() || "",
+      };
+      
+      // For debugging
+      console.log("Processed education data:", result);
+      
+      return result;
     } catch (error) {
       console.error("Error processing education data:", error)
       return {}
     }
   }, [profile?.education])
+  
+  // Add this for medical data
+  const medicalData = useMemo(() => {
+    try {
+      const data = profile?.medical || {};
+      return {
+        id: data?.id || "",
+        allergies: data?.currentCare?.allergies || "",
+        medications: data?.currentCare?.medications || "",
+        chronicConditions: Array.isArray(data?.history?.chronicConditions) ? 
+          data.history.chronicConditions.join(", ") : "",
+        medicalNotes: "",
+        medicalReports: data?.reports || []
+      };
+    } catch (error) {
+      console.error("Error processing medical data:", error);
+      return {};
+    }
+  }, [profile?.medical]);
   
   // Memoize form values with error handling
   const [formValues, setFormValues] = useState(() => {
@@ -172,6 +291,14 @@ export default function PersonalTab({
         religion: personal?.religion || "",
         hobbies: personal?.hobbies || "",
         additionalInfo: personal?.additionalInfo || "",
+        
+        // Contact information
+        contactNumber: personal?.contactNumber || "",
+        
+        // Address information
+        address: personal?.address || {},
+        presentAddress: personal?.presentAddress || {},
+        permanentAddress: personal?.permanentAddress || {},
 
         // Education Information
         degree: education?.degree || "",
@@ -182,10 +309,10 @@ export default function PersonalTab({
         gpa: education?.gpa || "",
 
         // Medical Information
-        allergies: personal?.allergies || "",
-        chronicConditions: personal?.chronicConditions || "",
-        medications: personal?.medications || "",
-        medicalNotes: personal?.medicalNotes || "",
+        allergies: medicalData?.allergies || "",
+        chronicConditions: medicalData?.chronicConditions || "",
+        medications: medicalData?.medications || "",
+        medicalNotes: medicalData?.medicalNotes || "",
 
         // System Fields
         createdAt: personal?.createdAt || "",
@@ -201,60 +328,72 @@ export default function PersonalTab({
   // Update form values when personal data changes
   useEffect(() => {
     try {
-      setFormValues({
-        // Basic Information
-        id: personal?.id || "",
-        firstName: personal?.firstName || "",
-        middleName: personal?.middleName || "",
-        lastName: personal?.lastName || "",
-        nickName: personal?.nickName || "",
-        dateOfBirth: personal?.dateOfBirth || "",
-        genderIdentity: personal?.genderIdentity || "",
-        description: personal?.description || "",
-        age: personal?.age || "",
-        isDeceased: personal?.isDeceased || false,
-        
-        // Location Information
-        placeOfBirth: personal?.placeOfBirth || "",
-        countryOfBirth: personal?.countryOfBirth || "",
-        nationality: personal?.nationality || "",
-        
-        // Documents & Identity
-        passportNumber: personal?.passportNumber || "",
-        passportExpiry: personal?.passportExpiry || "",
-        citizenship: personal?.citizenship || "",
-        
-        // Personal Details
-        maritalStatus: personal?.maritalStatus || "",
-        bloodGroup: personal?.bloodGroup || "",
-        occupation: personal?.occupation || "",
-        religion: personal?.religion || "",
-        hobbies: personal?.hobbies || "",
-        additionalInfo: personal?.additionalInfo || "",
+      if (personal || education || medicalData) {
+        setFormValues({
+          // Basic Information
+          id: personal?.id || "",
+          firstName: personal?.firstName || "",
+          middleName: personal?.middleName || "",
+          lastName: personal?.lastName || "",
+          nickName: personal?.nickName || "",
+          dateOfBirth: personal?.dateOfBirth || "",
+          genderIdentity: personal?.genderIdentity || "",
+          description: personal?.description || "",
+          age: personal?.age || "",
+          isDeceased: personal?.isDeceased || false,
+          
+          // Location Information
+          placeOfBirth: personal?.placeOfBirth || "",
+          countryOfBirth: personal?.countryOfBirth || "",
+          nationality: personal?.nationality || "",
+          
+          // Documents & Identity
+          passportNumber: personal?.passportNumber || "",
+          passportExpiry: personal?.passportExpiry || "",
+          citizenship: personal?.citizenship || "",
+          
+          // Personal Details
+          maritalStatus: personal?.maritalStatus || "",
+          bloodGroup: personal?.bloodGroup || "",
+          occupation: personal?.occupation || "",
+          religion: personal?.religion || "",
+          hobbies: personal?.hobbies || "",
+          additionalInfo: personal?.additionalInfo || "",
+          
+          // Contact information
+          contactNumber: personal?.contactNumber || "",
+          
+          // Address information
+          address: personal?.address || {},
+          presentAddress: personal?.presentAddress || {},
+          permanentAddress: personal?.permanentAddress || {},
 
-        // Education Information
-        degree: education?.degree || "",
-        fieldOfStudy: education?.fieldOfStudy || "",
-        qualification: education?.qualification || "",
-        institution: education?.institution || "",
-        yearOfPassing: education?.yearOfPassing || "",
-        gpa: education?.gpa || "",
+          // Education Information
+          degree: education?.degree || "",
+          fieldOfStudy: education?.fieldOfStudy || "",
+          qualification: education?.qualification || "",
+          institution: education?.institution || "",
+          yearOfPassing: education?.yearOfPassing || "",
+          gpa: education?.gpa || "",
 
-        // Medical Information
-        allergies: personal?.allergies || "",
-        chronicConditions: personal?.chronicConditions || "",
-        medications: personal?.medications || "",
-        medicalNotes: personal?.medicalNotes || "",
+          // Medical Information
+          allergies: medicalData?.allergies || "",
+          chronicConditions: medicalData?.chronicConditions || "",
+          medications: medicalData?.medications || "",
+          medicalNotes: medicalData?.medicalNotes || "",
 
-        // System Fields
-        createdAt: personal?.createdAt || "",
-        updatedAt: personal?.updatedAt || "",
-        deletedAt: personal?.deletedAt || null,
-      })
+          // System Fields
+          createdAt: personal?.createdAt || "",
+          updatedAt: personal?.updatedAt || "",
+          deletedAt: personal?.deletedAt || null,
+        });
+        
+        setDataInitialized(true);
+      }
     } catch (error) {
-      console.error("Error updating form values:", error)
+      console.error("Error updating form values:", error);
     }
-  }, [personal, education])
+  }, [personal, education, medicalData]);
   
   // Memoize date state
   const [date, setDate] = useState(() => 
@@ -273,7 +412,8 @@ export default function PersonalTab({
     basicPersonal: false,
     documents: false,
     education: false,
-    medical: false
+    medical: false,
+    medicalReports: false
   })
   
   // Memoize section states
@@ -281,8 +421,23 @@ export default function PersonalTab({
     basicPersonal: true,
     documents: true,
     education: true,
-    medical: true
+    medical: true,
+    medicalReports: true
   })
+
+  // Add state for medical reports
+  const [medicalReports, setMedicalReports] = useState([])
+
+  // Extract medical data from the profile
+  useEffect(() => {
+    try {
+      if (profile?.medical?.reports && profile.medical.reports.length > 0) {
+        setMedicalReports(profile.medical.reports);
+      }
+    } catch (error) {
+      console.error("Error extracting medical reports:", error);
+    }
+  }, [profile?.medical]);
 
   // Memoized handlers with error handling
   const handleLocalChange = useMemo(() => (field, value) => {
@@ -320,22 +475,62 @@ export default function PersonalTab({
       
       if (section === 'education') {
         sectionData = {
-          education: {
+          education: [{
+            ...education,
             ...data
+          }]
+        }
+      } else if (section === 'medical') {
+        sectionData = {
+          medical: {
+            ...profile.medical,
+            currentCare: {
+              allergies: data.allergies || "",
+              medications: data.medications || ""
+            },
+            history: {
+              ...profile.medical?.history,
+              chronicConditions: data.chronicConditions ? data.chronicConditions.split(',').map(item => item.trim()) : []
+            }
           }
         }
       } else {
-        sectionData = {
-          personal: {
-            0: {
-              ...formValues,
-              ...data,
-              emergencyContact: personal.emergencyContact,
-              addresses: personal.addresses,
-              identification: personal.identification,
-              emergency: personal.emergency
-            }
+        // Map flattened structure back to the nested API structure
+        const personalData = {
+          id: personal.id,
+          name: {
+            firstName: data.firstName || personal.firstName,
+            middleName: data.middleName || personal.middleName,
+            lastName: data.lastName || personal.lastName,
+            nickName: data.nickName || personal.nickName
+          },
+          identity: {
+            gender: data.genderIdentity || personal.genderIdentity,
+            dateOfBirth: data.dateOfBirth || personal.dateOfBirth,
+            age: data.age || personal.age,
+            isDeceased: data.isDeceased || personal.isDeceased
+          },
+          contact: {
+            phone: data.contactNumber || personal.contactNumber
+          },
+          addresses: {
+            current: data.address || personal.address,
+            permanent: data.permanentAddress || personal.permanentAddress,
+            other: personal.presentAddress
+          },
+          description: data.description || personal.description,
+          religion: data.religion || personal.religion,
+          hobbies: data.hobbies ? data.hobbies.split(',').map(item => item.trim()) : [],
+          occupation: data.occupation || personal.occupation,
+          identification: {
+            ...personal.identification,
+            bloodGroup: data.bloodGroup || personal.bloodGroup,
+            maritalStatus: data.maritalStatus || personal.maritalStatus
           }
+        };
+        
+        sectionData = {
+          personal: personalData
         }
       }
       
@@ -351,7 +546,7 @@ export default function PersonalTab({
         [section === 'basic-personal' ? 'basicPersonal' : section]: false
       }))
     }
-  }, [formValues, personal, handleSave])
+  }, [formValues, personal, education, profile, handleSave])
 
   const toggleSection = useMemo(() => (section) => {
     try {
@@ -388,7 +583,8 @@ export default function PersonalTab({
       basicPersonal: true,
       documents: true,
       education: true,
-      medical: true
+      medical: true,
+      medicalReports: true
     });
   };
 
@@ -398,9 +594,60 @@ export default function PersonalTab({
       basicPersonal: false,
       documents: false,
       education: false,
-      medical: false
+      medical: false,
+      medicalReports: false
     });
   };
+
+  // Add handlers for medical reports
+  const handleAddMedicalReport = useCallback(async (data) => {
+    try {
+      setSectionLoading(prev => ({ ...prev, medicalReports: true }))
+      // Call your API service to add medical report
+      const response = await SettingsService.addMedicalReport(data)
+      // Update medical reports list
+      setMedicalReports(prev => [...prev, response.data])
+      return response.data
+    } catch (error) {
+      console.error("Error adding medical report:", error)
+      throw error
+    } finally {
+      setSectionLoading(prev => ({ ...prev, medicalReports: false }))
+    }
+  }, [])
+
+  const handleUpdateMedicalReport = useCallback(async (id, data) => {
+    try {
+      setSectionLoading(prev => ({ ...prev, medicalReports: true }))
+      // Call your API service to update medical report
+      const response = await SettingsService.updateMedicalReport(id, data)
+      // Update medical reports list
+      setMedicalReports(prev => prev.map(report => 
+        report.id === id ? { ...report, ...response.data } : report
+      ))
+      return response.data
+    } catch (error) {
+      console.error("Error updating medical report:", error)
+      throw error
+    } finally {
+      setSectionLoading(prev => ({ ...prev, medicalReports: false }))
+    }
+  }, [])
+
+  const handleDeleteMedicalReport = useCallback(async (id) => {
+    try {
+      setSectionLoading(prev => ({ ...prev, medicalReports: true }))
+      // Call your API service to delete medical report
+      await SettingsService.deleteMedicalReport(id)
+      // Update medical reports list
+      setMedicalReports(prev => prev.filter(report => report.id !== id))
+    } catch (error) {
+      console.error("Error deleting medical report:", error)
+      throw error
+    } finally {
+      setSectionLoading(prev => ({ ...prev, medicalReports: false }))
+    }
+  }, [])
 
   // Memoized card header component with command menu
   const CardWithCollapse = useMemo(() => ({ 
@@ -576,11 +823,32 @@ export default function PersonalTab({
               handleChange={handleLocalChange}
               handleSave={handleSectionSave}
               loading={settingsLoading || sectionLoading.medical}
+              profile={profile}
             />
           </CardWithCollapse>
         </Suspense>
       </ErrorBoundary>
 
+      <ErrorBoundary>
+        <Suspense fallback={<CardSkeleton />}>
+          <CardWithCollapse
+            section="medicalReports"
+            title="Medical Reports"
+            description="Your medical reports and test results"
+            isLoading={settingsLoading || sectionLoading.medicalReports}
+            icon={FileText}
+          >
+            <MedicalReportsSection
+              reports={medicalReports}
+              onAddReport={handleAddMedicalReport}
+              onUpdateReport={handleUpdateMedicalReport}
+              onDeleteReport={handleDeleteMedicalReport}
+              loading={settingsLoading || sectionLoading.medicalReports}
+              profile={profile}
+            />
+          </CardWithCollapse>
+        </Suspense>
+      </ErrorBoundary>
 
       {/* Profile Completion Card */}
       <ErrorBoundary>

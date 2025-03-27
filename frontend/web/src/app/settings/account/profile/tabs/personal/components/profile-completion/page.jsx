@@ -95,6 +95,7 @@ export default function ProfileCompletionCard({ profile, isLoading }) {
     return <ProfileCompletionSkeleton />
   }
 
+  // Extract completion stats from profile data
   const stats = profile?.stats?.completion || {}
   const score = stats.score || 0
   const sections = stats.details?.sections || []
@@ -160,21 +161,21 @@ export default function ProfileCompletionCard({ profile, isLoading }) {
     }
   }
 
-  // Update section icons to include progress colors
+  // Update section icons mapping to match API data
   const sectionIcons = {
     basicInfo: {
       icon: UserCircle,
       color: "text-blue-500",
       progressColor: "bg-blue-500",
       bg: "bg-blue-50/80",
-      label: "Basic"
+      label: "Basic Info"
     },
     personalInfo: {
       icon: Info,
       color: "text-purple-500",
       progressColor: "bg-purple-500",
       bg: "bg-purple-50/80",
-      label: "Personal"
+      label: "Personal Info"
     },
     education: {
       icon: GraduationCap,
@@ -188,7 +189,7 @@ export default function ProfileCompletionCard({ profile, isLoading }) {
       color: "text-amber-500",
       progressColor: "bg-amber-500",
       bg: "bg-amber-50/80",
-      label: "Verify"
+      label: "Verification"
     },
   }
 
@@ -401,7 +402,7 @@ export default function ProfileCompletionCard({ profile, isLoading }) {
                           transition={{ delay: 0.3 }}
                           className="text-xs text-muted-foreground"
                         >
-                          {section.completed}/{section.total} Items
+                          {section.completedFields}/{section.totalFields} Items
                         </motion.p>
                       </div>
                     </motion.div>

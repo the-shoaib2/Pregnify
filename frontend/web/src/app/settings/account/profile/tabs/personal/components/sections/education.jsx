@@ -35,9 +35,33 @@ export default function EducationSection({
 }) {
   const [saving, setSaving] = useState(false)
   const [localFormValues, setLocalFormValues] = useState(formValues || {})
-  const [yearOfPassing, setYearOfPassing] = useState(() => 
-    localFormValues.yearOfPassing ? new Date(localFormValues.yearOfPassing, 0) : null
-  )
+  const [yearOfPassing, setYearOfPassing] = useState(() => {
+    try {
+      // Check if yearOfPassing exists and is valid
+      if (localFormValues.yearOfPassing) {
+        // Handle different formats of yearOfPassing
+        if (typeof localFormValues.yearOfPassing === 'number' || 
+            !isNaN(Number(localFormValues.yearOfPassing))) {
+          // If it's a year number or numeric string
+          const year = Number(localFormValues.yearOfPassing);
+          // Make sure it's a reasonable year value
+          if (year >= 1900 && year <= 2100) {
+            return new Date(year, 0, 1); // January 1st of that year
+          }
+        } else if (typeof localFormValues.yearOfPassing === 'string') {
+          // If it's a date string
+          const date = new Date(localFormValues.yearOfPassing);
+          if (!isNaN(date.getTime())) {
+            return date;
+          }
+        }
+      }
+      return null; // Default to null if invalid or missing
+    } catch (error) {
+      console.error("Error setting up yearOfPassing date:", error);
+      return null;
+    }
+  })
   const [dataInitialized, setDataInitialized] = useState(false)
 
   // Initialize local form values when props change
@@ -48,7 +72,34 @@ export default function EducationSection({
         
         // Update year of passing if it exists
         if (formValues.yearOfPassing) {
-          setYearOfPassing(new Date(formValues.yearOfPassing, 0))
+          try {
+            if (typeof formValues.yearOfPassing === 'number' || 
+                !isNaN(Number(formValues.yearOfPassing))) {
+              // If it's a year number or numeric string
+              const year = Number(formValues.yearOfPassing);
+              // Make sure it's a reasonable year value
+              if (year >= 1900 && year <= 2100) {
+                setYearOfPassing(new Date(year, 0, 1)); // January 1st of that year
+              } else {
+                setYearOfPassing(null);
+              }
+            } else if (typeof formValues.yearOfPassing === 'string') {
+              // If it's a date string
+              const date = new Date(formValues.yearOfPassing);
+              if (!isNaN(date.getTime())) {
+                setYearOfPassing(date);
+              } else {
+                setYearOfPassing(null);
+              }
+            } else {
+              setYearOfPassing(null);
+            }
+          } catch (error) {
+            console.error("Error updating yearOfPassing date:", error);
+            setYearOfPassing(null);
+          }
+        } else {
+          setYearOfPassing(null);
         }
         
         setDataInitialized(true)
@@ -146,35 +197,44 @@ export default function EducationSection({
         placeholder="Enter institution name"
       />
       <div className="grid w-full items-center gap-1.5">
-        <label htmlFor="year-of-passing" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-          Year of Passing
-        </label>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant={"outline"}
-              className={cn(
-                "w-full justify-start text-left font-normal",
-                !yearOfPassing && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {yearOfPassing ? format(yearOfPassing, "yyyy") : <span>Select year</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={yearOfPassing}
-              onSelect={handleYearSelect}
-              initialFocus
-              captionLayout="dropdown-buttons"
-              fromYear={1950}
-              toYear={2030}
-              view="year"
-            />
-          </PopoverContent>
-        </Popover>
+        <InputWithIcon
+          icon={CalendarIcon}
+          label="Year of Passing"
+          value={localFormValues.yearOfPassing || ''}
+          onChange={(e) => {
+            // Accept both single year and year range (YYYY-YYYY format)
+            const value = e.target.value;
+            
+            // Allow empty input
+            if (value === '') {
+              handleLocalChange('yearOfPassing', value);
+              return;
+            }
+            
+            // Check if it's a year range (YYYY-YYYY format)
+            if (value.includes('-')) {
+              const [startYear, endYear] = value.split('-');
+              
+              // Validate both parts of the range
+              if (
+                (/^\d{0,4}$/.test(startYear) || startYear === '') && 
+                (/^\d{0,4}$/.test(endYear) || endYear === '') &&
+                (startYear === '' || parseInt(startYear) <= new Date().getFullYear()) &&
+                (endYear === '' || parseInt(endYear) <= new Date().getFullYear()) &&
+                (startYear === '' || endYear === '' || parseInt(startYear) <= parseInt(endYear))
+              ) {
+                handleLocalChange('yearOfPassing', value);
+              }
+              return;
+            }
+            
+            // For single year input
+            if (/^\d{0,4}$/.test(value) && (value === '' || parseInt(value) <= new Date().getFullYear())) {
+              handleLocalChange('yearOfPassing', value);
+            }
+          }}
+          placeholder="YYYY or YYYY-YYYY"
+        />
       </div>
       <InputWithIcon
         icon={Award}
@@ -184,7 +244,7 @@ export default function EducationSection({
         placeholder="Enter GPA or grade"
       />
     </div>
-  ), [localFormValues, yearOfPassing, handleLocalChange, handleYearSelect])
+  ), [localFormValues, handleLocalChange])
 
   // Memoize the save button for better performance
   const SaveButton = useMemo(() => (
@@ -208,10 +268,35 @@ export default function EducationSection({
     return <div className="py-4">Loading education information...</div>
   }
 
+  // At the beginning of your component, add this useEffect for debugging
+  useEffect(() => {
+    console.log("Education Form Values:", formValues);
+    
+    // Validate yearOfPassing format
+    if (formValues.yearOfPassing) {
+      try {
+        // If it's being used in a date picker or date-related component
+        // Make sure it's a valid date string format (YYYY-MM-DD)
+        const yearFormatRegex = /^\d{4}(-\d{2}-\d{2})?$/;
+        if (!yearFormatRegex.test(formValues.yearOfPassing)) {
+          console.warn("yearOfPassing is not in a valid format:", formValues.yearOfPassing);
+          // If it's just a year number, convert it to a valid date format
+          if (!isNaN(formValues.yearOfPassing) && formValues.yearOfPassing.length === 4) {
+            handleChange('yearOfPassing', `${formValues.yearOfPassing}-01-01`);
+          }
+        }
+      } catch (error) {
+        console.error("Error validating yearOfPassing:", error);
+      }
+    }
+  }, [formValues.yearOfPassing]);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <h3 className="text-lg font-medium">Education Information</h3>
-      {EducationFields}
+      <div className="education-fields-container">
+        {EducationFields}
+      </div>
       {SaveButton}
     </form>
   )
