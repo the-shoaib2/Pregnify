@@ -15,12 +15,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { format } from "date-fns"
-import { 
-  User, 
-  CalendarIcon, 
+import {
+  User,
+  CalendarIcon,
   Save,
   Loader,
-  Heart, 
+  Heart,
   Book,
   Activity,
   FileText,
@@ -40,6 +40,8 @@ import { SettingsService } from '@/services/settings/account/personal'
 import { Switch } from "@/components/ui/switch"
 import { TagInput } from '@/components/ui/tag-input'
 import { debounce } from 'lodash'
+import { FormSectionSkeleton } from "../skeleton"
+
 
 // Constants
 const GENDER_OPTIONS = [
@@ -78,22 +80,10 @@ const initializeFormValues = (rawFormValues) => {
       nickName: '',
       genderIdentity: '',
       age: '',
-      isDeceased: false,
-      description: '',
-      placeOfBirth: '',
-      countryOfBirth: '',
-      nationality: '',
       contactNumber: '',
-      passportNumber: '',
-      passportExpiry: '',
       maritalStatus: '',
-      citizenship: '',
       bloodGroup: '',
       religion: '',
-      address: {},
-      presentAddress: {},
-      permanentAddress: {},
-      occupation: {},
       hobbies: [],
       languages: [],
       skills: [],
@@ -102,13 +92,10 @@ const initializeFormValues = (rawFormValues) => {
 
   // Clone the raw form values
   const parsedValues = { ...rawFormValues }
-  
+
   // Ensure object properties exist
-  parsedValues.address = parsedValues.address || {}
-  parsedValues.presentAddress = parsedValues.presentAddress || {}
-  parsedValues.permanentAddress = parsedValues.permanentAddress || {}
   parsedValues.occupation = parsedValues.occupation || {}
-  
+
   // Handle additional info
   try {
     if (typeof parsedValues.additionalInfo === 'string' && parsedValues.additionalInfo) {
@@ -127,12 +114,12 @@ const initializeFormValues = (rawFormValues) => {
     parsedValues.languages = []
     parsedValues.skills = []
   }
-  
+
   // Handle hobbies
   if (!Array.isArray(parsedValues.hobbies)) {
     parsedValues.hobbies = parsedValues.hobbies?.split(',').filter(Boolean) || []
   }
-  
+
   return parsedValues
 }
 
@@ -146,37 +133,9 @@ const formatDataForAPI = (data, dateValue) => {
     genderIdentity: data.genderIdentity,
     dateOfBirth: dateValue ? format(dateValue, "yyyy-MM-dd") : null,
     age: data.age,
-    isDeceased: data.isDeceased || false,
     description: data.description,
-    placeOfBirth: data.placeOfBirth,
-    countryOfBirth: data.countryOfBirth,
-    nationality: data.nationality,
     contactNumber: data.contactNumber,
-    address: {
-      street: data.address?.street || '',
-      city: data.address?.city || '',
-      state: data.address?.state || '',
-      country: data.address?.country || '',
-      zipCode: data.address?.zipCode || ''
-    },
-    presentAddress: {
-      street: data.presentAddress?.street || '',
-      city: data.presentAddress?.city || '',
-      state: data.presentAddress?.state || '',
-      country: data.presentAddress?.country || '',
-      zipCode: data.presentAddress?.zipCode || ''
-    },
-    permanentAddress: {
-      street: data.permanentAddress?.street || '',
-      city: data.permanentAddress?.city || '',
-      state: data.permanentAddress?.state || '',
-      country: data.permanentAddress?.country || '',
-      zipCode: data.permanentAddress?.zipCode || ''
-    },
-    passportNumber: data.passportNumber,
-    passportExpiry: data.passportExpiry,
     maritalStatus: data.maritalStatus,
-    citizenship: data.citizenship,
     bloodGroup: data.bloodGroup,
     occupation: {
       title: data.occupation?.title || '',
@@ -184,8 +143,8 @@ const formatDataForAPI = (data, dateValue) => {
       experience: data.occupation?.experience || ''
     },
     religion: data.religion,
-    hobbies: Array.isArray(data.hobbies) 
-      ? data.hobbies 
+    hobbies: Array.isArray(data.hobbies)
+      ? data.hobbies
       : data.hobbies?.split(',').filter(Boolean) || [],
     additionalInfo: {
       languages: data.languages || [],
@@ -194,125 +153,7 @@ const formatDataForAPI = (data, dateValue) => {
   }
 }
 
-// Move this component outside the main component function
-const SkillsAndInterestsSection = ({ localFormValues, handleLocalChange }) => {
-  const getArray = (key) => {
-    // Ensure we're working with arrays for all tag inputs
-    const value = localFormValues[key];
-    if (Array.isArray(value)) return value;
-    if (!value) return [];
-    return value.split(',').map(item => item.trim()).filter(Boolean);
-  }
 
-  const handleAddItem = (key, newItem) => {
-    handleLocalChange(key, [...getArray(key), newItem])
-  }
-
-  const handleRemoveItem = (key, index) => {
-    handleLocalChange(key, getArray(key).filter((_, i) => i !== index))
-  }
-
-  return (
-    <div className="space-y-4">
-      <h4 className="text-sm font-medium flex items-center gap-2">
-        <Bookmark className="h-4 w-4 text-muted-foreground" />
-        Skills & Interests
-      </h4>
-      <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        <TagInput
-          label="Skills"
-          icon={Code}
-          values={getArray('skills')}
-          onAdd={(newSkill) => handleAddItem('skills', newSkill)}
-          onRemove={(index) => handleRemoveItem('skills', index)}
-          placeholder="Add a skill..."
-        />
-
-        <TagInput
-          label="Languages"
-          icon={LanguagesIcon}
-          values={getArray('languages')}
-          onAdd={(newLanguage) => handleAddItem('languages', newLanguage)}
-          onRemove={(index) => handleRemoveItem('languages', index)}
-          placeholder="Add a language..."
-        />
-
-        <TagInput
-          label="Hobbies"
-          icon={Heart}
-          values={getArray('hobbies')}
-          onAdd={(newHobby) => handleAddItem('hobbies', newHobby)}
-          onRemove={(index) => handleRemoveItem('hobbies', index)}
-          placeholder="Add a hobby..."
-        />
-      </div>
-    </div>
-  )
-}
-
-// Add this helper component outside the main component
-const AddressSection = ({ title, addressKey, values, onChange, copyFromPresent }) => {
-  return (
-    <>
-      {copyFromPresent && (
-        <div className="flex items-center justify-between mt-6">
-          <h3 className="text-md font-medium">{title}</h3>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-8 text-xs"
-            onClick={copyFromPresent}
-          >
-            <Copy className="mr-2 h-3 w-3" />
-            Same as Present Address
-          </Button>
-        </div>
-      )}
-      {!copyFromPresent && <h3 className="text-md font-medium mt-4">{title}</h3>}
-      
-      <div className="grid gap-4 md:grid-cols-2">
-        <InputWithIcon
-          icon={FileText}
-          label="Street"
-          value={values?.street || ''}
-          onChange={(e) => onChange(`${addressKey}.street`, e.target.value)}
-          placeholder="Enter street"
-        />
-        <InputWithIcon
-          icon={FileText}
-          label="City"
-          value={values?.city || ''}
-          onChange={(e) => onChange(`${addressKey}.city`, e.target.value)}
-          placeholder="Enter city"
-        />
-      </div>
-      <div className="grid gap-4 md:grid-cols-3">
-        <InputWithIcon
-          icon={FileText}
-          label="State"
-          value={values?.state || ''}
-          onChange={(e) => onChange(`${addressKey}.state`, e.target.value)}
-          placeholder="Enter state"
-        />
-        <InputWithIcon
-          icon={FileText}
-          label="Country"
-          value={values?.country || ''}
-          onChange={(e) => onChange(`${addressKey}.country`, e.target.value)}
-          placeholder="Enter country"
-        />
-        <InputWithIcon
-          icon={FileText}
-          label="ZIP Code"
-          value={values?.zipCode || ''}
-          onChange={(e) => onChange(`${addressKey}.zipCode`, e.target.value)}
-          placeholder="Enter ZIP code"
-        />
-      </div>
-    </>
-  );
-};
 
 export default function BasicInfoPersonalSection({
   formValues,
@@ -326,13 +167,14 @@ export default function BasicInfoPersonalSection({
   const [saving, setSaving] = useState(false)
   const [localFormValues, setLocalFormValues] = useState(() => initializeFormValues(formValues))
   const [autoSave, setAutoSave] = useState(false)
-  
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+
   // Create a debounced save function - will be recreated only when autoSave changes
   const debouncedSave = useCallback(
     debounce(async (data, dateValue) => {
       try {
-        if (!data.firstName) return
-        
+        if (!data) return
+
         setSaving(true)
         const formattedData = formatDataForAPI(data, dateValue)
         await SettingsService.updateBasicInfo(formattedData)
@@ -346,12 +188,12 @@ export default function BasicInfoPersonalSection({
     }, 2000),
     [autoSave]
   )
-  
+
   // Handle local form changes with optimized logic
   const handleLocalChange = useCallback((field, value) => {
     try {
       let updatedValues
-      
+
       // Handle nested objects like address
       if (field.includes('.')) {
         const [parent, child] = field.split('.')
@@ -360,7 +202,7 @@ export default function BasicInfoPersonalSection({
             ...(prevValues[parent] || {}),
             [child]: value
           }
-          
+
           return {
             ...prevValues,
             [parent]: updatedParent
@@ -373,21 +215,24 @@ export default function BasicInfoPersonalSection({
           [field]: value
         })
       }
-      
+
       // Update local state
       setLocalFormValues(prevValues => {
-        const newValues = typeof updatedValues === 'function' 
-          ? updatedValues(prevValues) 
+        const newValues = typeof updatedValues === 'function'
+          ? updatedValues(prevValues)
           : { ...prevValues, ...updatedValues }
-          
+
+        // Set unsaved changes to true
+        setHasUnsavedChanges(true)
+
         // Propagate change to parent component
         handleChange(field, value)
-        
+
         // Trigger auto-save if enabled
-        if (autoSave && newValues.firstName) {
+        if (autoSave && newValues) {
           debouncedSave(newValues, date)
         }
-        
+
         return newValues
       })
     } catch (error) {
@@ -399,21 +244,18 @@ export default function BasicInfoPersonalSection({
   // Handle form submission
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault()
-    
-    try {
-      // Validate required fields
-      if (!localFormValues.firstName) {
-        toast.error("First name is required")
-        return
-      }
 
+    try {
       setSaving(true)
-      
       // Format and submit the data
       const formattedData = formatDataForAPI(localFormValues, date)
-      await SettingsService.updateBasicInfo(formattedData)
-      
-      toast.success("Updated successfully")
+      const response = await SettingsService.updateBasicInfo(formattedData)
+      if (response.success) {
+        toast.success("Updated successfully")
+        setHasUnsavedChanges(false)
+      } else {
+        toast.error("Failed to save information")
+      }
     } catch (error) {
       console.error("Error saving information:", error)
       toast.error("Failed to save information")
@@ -442,7 +284,7 @@ export default function BasicInfoPersonalSection({
           placeholder="Enter middle name"
         />
       </div>
-      
+
       <div className="grid gap-4 md:grid-cols-2">
         <InputWithIcon
           icon={User}
@@ -459,7 +301,7 @@ export default function BasicInfoPersonalSection({
           placeholder="Enter nickname"
         />
       </div>
-      
+
       <div className="grid gap-4 md:grid-cols-2">
         <div className="grid w-full items-center gap-1.5">
           <label htmlFor="date-of-birth" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
@@ -492,8 +334,8 @@ export default function BasicInfoPersonalSection({
           <label htmlFor="gender" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
             Gender
           </label>
-          <Select 
-            value={localFormValues.genderIdentity || ''} 
+          <Select
+            value={localFormValues.genderIdentity || ''}
             onValueChange={(value) => handleLocalChange('genderIdentity', value)}
           >
             <SelectTrigger>
@@ -509,7 +351,7 @@ export default function BasicInfoPersonalSection({
           </Select>
         </div>
       </div>
-      
+
       <div className="grid gap-4 md:grid-cols-2">
         <InputWithIcon
           icon={User}
@@ -534,6 +376,62 @@ export default function BasicInfoPersonalSection({
     </div>
   ), [localFormValues, date, onDateSelect, handleLocalChange])
 
+  // 
+  const SkillsAndInterestsSection = ({ localFormValues, handleLocalChange }) => {
+    const getArray = (key) => {
+      // Ensure we're working with arrays for all tag inputs
+      const value = localFormValues[key];
+      if (Array.isArray(value)) return value;
+      if (!value) return [];
+      return value.split(',').map(item => item.trim()).filter(Boolean);
+    }
+
+    const handleAddItem = (key, newItem) => {
+      handleLocalChange(key, [...getArray(key), newItem])
+    }
+
+    const handleRemoveItem = (key, index) => {
+      handleLocalChange(key, getArray(key).filter((_, i) => i !== index))
+    }
+
+    return (
+      <div className="space-y-4">
+        <h4 className="text-sm font-medium flex items-center gap-2">
+          <Bookmark className="h-4 w-4 text-muted-foreground" />
+          Skills & Interests
+        </h4>
+        <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          <TagInput
+            label="Skills"
+            icon={Code}
+            values={getArray('skills')}
+            onAdd={(newSkill) => handleAddItem('skills', newSkill)}
+            onRemove={(index) => handleRemoveItem('skills', index)}
+            placeholder="Add a skill..."
+          />
+
+          <TagInput
+            label="Languages"
+            icon={LanguagesIcon}
+            values={getArray('languages')}
+            onAdd={(newLanguage) => handleAddItem('languages', newLanguage)}
+            onRemove={(index) => handleRemoveItem('languages', index)}
+            placeholder="Add a language..."
+          />
+
+          <TagInput
+            label="Hobbies"
+            icon={Heart}
+            values={getArray('hobbies')}
+            onAdd={(newHobby) => handleAddItem('hobbies', newHobby)}
+            onRemove={(index) => handleRemoveItem('hobbies', index)}
+            placeholder="Add a hobby..."
+          />
+        </div>
+      </div>
+    )
+  }
+
   // Memoize the personal details fields for better performance
   const PersonalDetailsFields = useMemo(() => (
     <div className="space-y-6 mt-6">
@@ -544,8 +442,8 @@ export default function BasicInfoPersonalSection({
             <Heart className="h-4 w-4 text-muted-foreground" />
             Marital Status
           </label>
-          <Select 
-            value={localFormValues.maritalStatus || ''} 
+          <Select
+            value={localFormValues.maritalStatus || ''}
             onValueChange={(value) => handleLocalChange('maritalStatus', value)}
           >
             <SelectTrigger>
@@ -565,8 +463,8 @@ export default function BasicInfoPersonalSection({
             <Book className="h-4 w-4 text-muted-foreground" />
             Religion
           </label>
-          <Select 
-            value={localFormValues.religion || ''} 
+          <Select
+            value={localFormValues.religion || ''}
             onValueChange={(value) => handleLocalChange('religion', value)}
           >
             <SelectTrigger>
@@ -615,43 +513,12 @@ export default function BasicInfoPersonalSection({
       </div>
 
       {/* Use the separately defined component */}
-      <SkillsAndInterestsSection 
+      <SkillsAndInterestsSection
         localFormValues={localFormValues}
         handleLocalChange={handleLocalChange}
       />
     </div>
   ), [localFormValues, handleLocalChange])
-
-  // Memoize the address fields
-  const AddressFields = useMemo(() => (
-    <div className="space-y-4 mt-6">
-      <AddressSection 
-        title="Current Address"
-        addressKey="address"
-        values={localFormValues.address}
-        onChange={handleLocalChange}
-      />
-      
-      <AddressSection 
-        title="Present Address"
-        addressKey="presentAddress"
-        values={localFormValues.presentAddress}
-        onChange={handleLocalChange}
-      />
-      
-      <AddressSection 
-        title="Permanent Address"
-        addressKey="permanentAddress"
-        values={localFormValues.permanentAddress}
-        onChange={handleLocalChange}
-        copyFromPresent={() => {
-          handleLocalChange('permanentAddress', {
-            ...localFormValues.presentAddress
-          });
-        }}
-      />
-    </div>
-  ), [localFormValues.address, localFormValues.presentAddress, localFormValues.permanentAddress, handleLocalChange])
 
   // Memoize the save button for better performance
   const SaveButton = useMemo(() => (
@@ -663,8 +530,8 @@ export default function BasicInfoPersonalSection({
             checked={autoSave}
             onCheckedChange={setAutoSave}
           />
-          <label 
-            htmlFor="auto-save" 
+          <label
+            htmlFor="auto-save"
             className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
           >
             Auto-save
@@ -676,9 +543,9 @@ export default function BasicInfoPersonalSection({
           </span>
         )}
       </div>
-      <Button 
-        type="submit" 
-        disabled={saving || loading || !localFormValues.firstName}
+      <Button
+        type="submit"
+        disabled={saving || loading || !hasUnsavedChanges}
         className="w-fit"
       >
         {(saving || loading) && (
@@ -688,11 +555,20 @@ export default function BasicInfoPersonalSection({
         Save Changes
       </Button>
     </div>
-  ), [saving, loading, autoSave, localFormValues.firstName])
+  ), [saving, loading, autoSave, hasUnsavedChanges])
+
+  // If loading, show skeletons instead of the form
+  if (loading) {
+    return (
+      <div className="max-w-[1200px] mx-auto space-y-8">
+        <FormSectionSkeleton columns={2} />
+      </div>
+    )
+  }
 
   // If no form values available, show a blank space
-  if (!localFormValues || !localFormValues.firstName) {
-    return <div className="py-4">Loading your profile information...</div>
+  if (!localFormValues) {
+    return <div className="py-4"></div>
   }
 
   return (
@@ -704,7 +580,7 @@ export default function BasicInfoPersonalSection({
         </h3>
         {BasicInfoFields}
       </div>
-      
+
       <div className="space-y-6">
         <h3 className="text-lg font-medium flex items-center gap-2">
           <Heart className="h-5 w-5 text-muted-foreground" />
@@ -712,9 +588,6 @@ export default function BasicInfoPersonalSection({
         </h3>
         {PersonalDetailsFields}
       </div>
-      
-      {AddressFields}
-      
       {SaveButton}
     </form>
   )

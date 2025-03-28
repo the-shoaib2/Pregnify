@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import React from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -12,17 +12,15 @@ import {
 } from "@/components/ui/card"
 import { 
   Phone,
-  Home,
-  Building,
-  Globe,
   Save,
   Loader2,
   CheckCircle2,
   AlertCircle,
-  Mail,
   Info,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  FileText,
+  Copy
 } from "lucide-react"
 import { InputWithIcon } from "@/components/input-with-icon"
 import { Badge } from "@/components/ui/badge"
@@ -33,25 +31,76 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 
-export default function ContactTab({ profile, formData, handleChange, handleSave, settingsLoading, updateSettings }) {
-  useEffect(() => {
-    console.log('Contact Tab Data:', {
-      profile,
-      contactInfo: {
-        email: profile?.email,
-        phone: profile?.phone,
-        verifiedEmail: profile?.emailVerified,
-        verifiedPhone: profile?.phoneVerified
-      },
-      timestamp: new Date().toISOString()
-    });
-  }, [profile]);
+const AddressSection = ({ title, addressKey, values, onChange, copyFromPresent }) => {
+  return (
+    <>
+      {copyFromPresent && (
+        <div className="flex items-center justify-between mt-6">
+          <h3 className="text-md font-medium">{title}</h3>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs"
+            onClick={copyFromPresent}
+          >
+            <Copy className="mr-2 h-3 w-3" />
+            Same as Present Address
+          </Button>
+        </div>
+      )}
+      {!copyFromPresent && <h3 className="text-md font-medium mt-4">{title}</h3>}
+      
+      <div className="grid gap-4 md:grid-cols-2">
+        <InputWithIcon
+          icon={FileText}
+          label="Street"
+          value={values?.street || ''}
+          onChange={(e) => onChange(`${addressKey}.street`, e.target.value)}
+          placeholder="Enter street"
+        />
+        <InputWithIcon
+          icon={FileText}
+          label="City"
+          value={values?.city || ''}
+          onChange={(e) => onChange(`${addressKey}.city`, e.target.value)}
+          placeholder="Enter city"
+        />
+      </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <InputWithIcon
+          icon={FileText}
+          label="State"
+          value={values?.state || ''}
+          onChange={(e) => onChange(`${addressKey}.state`, e.target.value)}
+          placeholder="Enter state"
+        />
+        <InputWithIcon
+          icon={FileText}
+          label="Country"
+          value={values?.country || ''}
+          onChange={(e) => onChange(`${addressKey}.country`, e.target.value)}
+          placeholder="Enter country"
+        />
+        <InputWithIcon
+          icon={FileText}
+          label="ZIP Code"
+          value={values?.zipCode || ''}
+          onChange={(e) => onChange(`${addressKey}.zipCode`, e.target.value)}
+          placeholder="Enter ZIP code"
+        />
+      </div>
+    </>
+  );
+};
 
-  // Local form state
+export default function ContactTab({ profile, formData, handleChange, handleSave, settingsLoading, updateSettings }) {
+  // Local form state - updated to include address fields
   const [localForm, setLocalForm] = useState({
     phoneNumber: "",
-    presentAddress: "",
-    permanentAddress: "",
+    address: {},
+    presentAddress: {},
+    permanentAddress: {},
     nationality: ""
   });
 
@@ -63,10 +112,29 @@ export default function ContactTab({ profile, formData, handleChange, handleSave
     if (profile?.personal?.[0]) {
       const personal = profile.personal[0];
       setLocalForm({
-        phoneNumber: personal.contactNumber || "",
-        presentAddress: personal.presentAddress || "",
-        permanentAddress: personal.permanentAddress || "",
-        nationality: personal.nationality || ""
+        phoneNumber: personal.contact?.phone || "",
+        address: {
+          street: personal.addresses?.current?.street || "",
+          city: personal.addresses?.current?.city || "",
+          state: personal.addresses?.current?.state || "",
+          country: personal.addresses?.current?.country || "",
+          zipCode: personal.addresses?.current?.zipCode || ""
+        },
+        presentAddress: {
+          street: personal.addresses?.present?.street || "",
+          city: personal.addresses?.present?.city || "",
+          state: personal.addresses?.present?.state || "",
+          country: personal.addresses?.present?.country || "",
+          zipCode: personal.addresses?.present?.zipCode || ""
+        },
+        permanentAddress: {
+          street: personal.addresses?.permanent?.street || "",
+          city: personal.addresses?.permanent?.city || "",
+          state: personal.addresses?.permanent?.state || "",
+          country: personal.addresses?.permanent?.country || "",
+          zipCode: personal.addresses?.permanent?.zipCode || ""
+        },
+        nationality: personal.origin?.nationality || ""
       });
       setIsDirty(false);
     }
@@ -75,12 +143,23 @@ export default function ContactTab({ profile, formData, handleChange, handleSave
   // Collapsible state
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Handle local form changes
+  // Enhanced handleLocalChange to handle nested objects
   const handleLocalChange = (field, value) => {
-    setLocalForm(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    if (field.includes('.')) {
+      const [parent, child] = field.split('.');
+      setLocalForm(prev => ({
+        ...prev,
+        [parent]: {
+          ...prev[parent],
+          [child]: value
+        }
+      }));
+    } else {
+      setLocalForm(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
     setIsDirty(true);
   };
 
@@ -100,6 +179,7 @@ export default function ContactTab({ profile, formData, handleChange, handleSave
     const data = {
       personal: {
         contactNumber: localForm.phoneNumber,
+        address: localForm.address,
         presentAddress: localForm.presentAddress,
         permanentAddress: localForm.permanentAddress,
         nationality: localForm.nationality
@@ -108,6 +188,42 @@ export default function ContactTab({ profile, formData, handleChange, handleSave
 
     handleSave(data);
   };
+
+  // Memoize the address fields
+  const AddressFields = useMemo(() => (
+    <div className="space-y-4 mt-6">
+      <AddressSection 
+        title="Current Address"
+        addressKey="address"
+        values={localForm.address}
+        onChange={handleLocalChange}
+      />
+      
+      <AddressSection 
+        title="Present Address"
+        addressKey="presentAddress"
+        values={localForm.presentAddress}
+        onChange={handleLocalChange}
+        copyFromPresent={() => {
+          handleLocalChange('presentAddress', {
+            ...localForm.address
+          });
+        }}
+      />
+      
+      <AddressSection 
+        title="Permanent Address"
+        addressKey="permanentAddress"
+        values={localForm.permanentAddress}
+        onChange={handleLocalChange}
+        copyFromPresent={() => {
+          handleLocalChange('permanentAddress', {
+            ...localForm.presentAddress
+          });
+        }}
+      />
+    </div>
+  ), [localForm.address, localForm.presentAddress, localForm.permanentAddress, handleLocalChange]);
 
   return (
     <Card className="animate-in fade-in duration-300 relative">
@@ -173,56 +289,8 @@ export default function ContactTab({ profile, formData, handleChange, handleSave
             </div>
 
             {/* Address Section */}
-            <div className="space-y-4">
-              <Label className="text-sm sm:text-base font-medium block">Address Information</Label>
-              <div className="grid gap-6">
-                <div className="space-y-2">
-                  <InputWithIcon
-                    icon={Home}
-                    label="Current Address"
-                    value={localForm.presentAddress}
-                    onChange={(e) => handleLocalChange('presentAddress', e.target.value)}
-                    placeholder="Enter your current residential address"
-                    className="h-9 sm:h-10"
-                  />
-                  <p className="text-xs text-muted-foreground pl-1">
-                    This is where you currently live
-                  </p>
-                </div>
+            {AddressFields}
 
-                <div className="space-y-2">
-                  <InputWithIcon
-                    icon={Building}
-                    label="Permanent Address"
-                    value={localForm.permanentAddress}
-                    onChange={(e) => handleLocalChange('permanentAddress', e.target.value)}
-                    placeholder="Enter your permanent address"
-                    className="h-9 sm:h-10"
-                  />
-                  <p className="text-xs text-muted-foreground pl-1">
-                    Your permanent or home address
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Additional Information */}
-            <div className="space-y-4">
-              <Label className="text-sm sm:text-base font-medium block">Additional Information</Label>
-              <div className="space-y-2">
-                <InputWithIcon
-                  icon={Globe}
-                  label="Nationality"
-                  value={localForm.nationality}
-                  onChange={(e) => handleLocalChange('nationality', e.target.value)}
-                  placeholder="Enter your nationality"
-                  className="h-9 sm:h-10"
-                />
-                <p className="text-xs text-muted-foreground pl-1">
-                  Your country of citizenship
-                </p>
-              </div>
-            </div>
           </CardContent>
 
           <CardFooter className="flex flex-col-reverse sm:flex-row items-center justify-between border-t pt-4 sm:pt-6 gap-3 sm:gap-4">
