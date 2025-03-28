@@ -1,9 +1,10 @@
 import { memo, useCallback } from 'react'
-import { Edit, Trash, ChevronsUpDown, Loader2 } from "lucide-react"
+import { Edit, Trash, ChevronsUpDown, Loader } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import EducationDialog from './education-form'
 
 const EducationCard = memo(({ 
     education, 
@@ -11,7 +12,9 @@ const EducationCard = memo(({
     handleDeleteClick, 
     isExpanded, 
     handleToggleCollapse,
-    isDeleting
+    isDeleting,
+    loading,
+    handleFormChange
 }) => {
     // Use useCallback for event handlers to prevent unnecessary re-renders
     const onEditClick = useCallback(() => {
@@ -19,15 +22,29 @@ const EducationCard = memo(({
     }, [handleEdit, education]);
 
     const onDeleteClick = useCallback(() => {
+        // Optimistically update UI before the actual delete happens
+        if (handleFormChange) {
+            handleFormChange("optimisticUpdate", {
+                type: "delete",
+                data: education
+            });
+        }
         handleDeleteClick(education);
-    }, [handleDeleteClick, education]);
+    }, [handleDeleteClick, education, handleFormChange]);
 
     const onToggleClick = useCallback(() => {
         handleToggleCollapse(education.id);
     }, [handleToggleCollapse, education.id]);
 
+    const handleLocalFormChange = useCallback((field, value) => {
+        // Pass changes to parent component for optimistic updates
+        if (handleFormChange) {
+            handleFormChange(field, value);
+        }
+    }, [handleFormChange]);
+
     return (
-        <Card className="mb-2 shadow-md">
+        <Card className={`mb-2 shadow-md `}>
             <Collapsible open={isExpanded}>
                 <CollapsibleTrigger asChild>
                     <div className="education-entry p-3 flex justify-between items-center cursor-pointer">
@@ -36,24 +53,30 @@ const EducationCard = memo(({
                             <span className="text-gray-600 text-xs">{education.institution}</span>
                         </div>
                         <div className="flex items-center">
-                            <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="ml-2 border-none" 
-                                onClick={onEditClick}
-                                disabled={isDeleting}
+                            <EducationDialog
+                                formValues={education}
+                                handleChange={handleLocalFormChange}
+                                loading={loading}
                             >
-                                <Edit className="h-3 w-3" />
-                            </Button>
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="ml-2 border-none" 
+                                    disabled={isDeleting}
+                                >
+                                    <Edit className="h-3 w-3" />
+                                </Button>
+                            </EducationDialog>
+                            
                             <Button
                                 variant="outline"
                                 size="sm"
                                 className="ml-2 border-none text-red-600 focus:text-red-600 focus:ring-0"
                                 onClick={onDeleteClick}
-                                disabled={isDeleting}
+                                disabled={isDeleting }
                             >
                                 {isDeleting ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                    <Loader className="h-3 w-3 animate-spin" />
                                 ) : (
                                     <Trash className="h-3 w-3 text-red-600 focus:text-red-600" />
                                 )}

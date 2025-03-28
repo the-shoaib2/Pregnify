@@ -7,45 +7,103 @@ import toast from "react-hot-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SettingsService } from "@/services/settings/account/personal";
 
-export default function EducationDialog({ formValues, handleChange, loading }) {
+export default function EducationDialog({ formValues, handleChange, loading, children, onClose }) {
   const [saving, setSaving] = useState(false);
   const [localFormValues, setLocalFormValues] = useState(formValues || {});
+  const [open, setOpen] = useState(false);
 
+  // Reset form values when dialog opens/closes or when formValues prop changes
   useEffect(() => {
     if (formValues) setLocalFormValues(formValues);
-  }, [formValues]);
+  }, [formValues, open]);
 
   const handleLocalChange = useCallback((field, value) => {
     setLocalFormValues((prev) => ({ ...prev, [field]: value }));
-    handleChange(field, value);
-  }, [handleChange]);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
+    
     try {
-      const response = localFormValues.id
+      // Optimistic UI update - immediately update the UI before API call completes
+      const isUpdate = !!localFormValues.id;
+      let optimisticResponse;
+      
+      // Create a copy of the form values for optimistic update
+      const updatedEducation = { ...localFormValues };
+      
+      if (isUpdate) {
+        // For updates, we'll optimistically update the existing item
+        optimisticResponse = {
+          success: true,
+          data: updatedEducation
+        };
+        
+        // Optimistically update the UI immediately
+        handleChange("optimisticUpdate", {
+          type: "update",
+          data: updatedEducation
+        });
+      } else {
+        // For new items, we'll optimistically add with a temporary ID
+        const tempId = `temp-${Date.now()}`;
+        updatedEducation.id = tempId;
+        
+        optimisticResponse = {
+          success: true,
+          data: updatedEducation
+        };
+        
+        // Optimistically update the UI immediately
+        handleChange("optimisticUpdate", {
+          type: "add",
+          data: updatedEducation
+        });
+      }
+      
+      // Make the actual API call
+      const response = isUpdate
         ? await SettingsService.updateEducation(localFormValues.id, localFormValues)
         : await SettingsService.addEducation(localFormValues);
-      
-      response.success ? toast.success("Education saved successfully") : toast.error("Failed to save education");
-      handleChange("education", await SettingsService.getEducation());
+
+      if (response.success) {
+        toast.success(`Education ${isUpdate ? 'updated' : 'added'} successfully`);
+        
+        // Get the latest data from the server to ensure consistency
+        const allEducation = await SettingsService.getEducation();
+        handleChange("education", allEducation);
+      } else {
+        toast.error(`Failed to ${isUpdate ? 'update' : 'add'} education`);
+        
+        // Revert the optimistic update on failure
+        handleChange("optimisticUpdate", {
+          type: "revert"
+        });
+      }
     } catch (error) {
       console.error("Error saving education info:", error);
       toast.error("Failed to save education information");
+      
+      // Revert the optimistic update on error
+      handleChange("optimisticUpdate", {
+        type: "revert"
+      });
     } finally {
       setSaving(false);
+      setOpen(false); // Close the dialog after save attempt
+      if (onClose) onClose();
     }
   };
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">Edit Education</Button>
+        {children || <Button variant="outline">Edit Education</Button>}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Education Information</DialogTitle>
+          <DialogTitle>{localFormValues.id ? "Edit" : "Add"} Education</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
