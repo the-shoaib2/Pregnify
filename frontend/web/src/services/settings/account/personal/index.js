@@ -198,6 +198,27 @@ export const ProfileService = {
       const errorMessage = handleApiError(error);
       throw new Error(errorMessage);
     }
+  },
+
+  deleteEducation: async (id) => {
+    try {
+      const response = await api.delete(PERSONAL_ENDPOINTS.DELETE_EDUCATION(id));
+      
+      // Update cache or state if necessary
+      const cache = CacheManager.get(CACHE_KEY);
+      if (cache.profile && cache.profile.personal) {
+        const updatedEducation = cache.profile.personal.education.filter(edu => edu.id !== id);
+        CacheManager.set(CACHE_KEY, {
+          profile: { ...cache.profile, personal: { ...cache.profile.personal, education: updatedEducation } },
+          lastRefresh: Date.now()
+        });
+      }
+      
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      throw new Error(errorMessage);
+    }
   }
 }
 
@@ -425,6 +446,17 @@ export const SettingsService = {
   deleteEducation: async (id) => {
     try {
       const response = await api.delete(PERSONAL_ENDPOINTS.DELETE_EDUCATION(id));
+      
+      // Update cache or state if necessary
+      const cache = CacheManager.get(CACHE_KEY);
+      if (cache.profile && cache.profile.personal) {
+        const updatedEducation = cache.profile.personal.education.filter(edu => edu.id !== id);
+        CacheManager.set(CACHE_KEY, {
+          profile: { ...cache.profile, personal: { ...cache.profile.personal, education: updatedEducation } },
+          lastRefresh: Date.now()
+        });
+      }
+      
       return response.data;
     } catch (error) {
       const errorMessage = handleApiError(error);

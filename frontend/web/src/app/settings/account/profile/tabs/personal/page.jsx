@@ -50,7 +50,7 @@ const DocumentsSection = lazy(() => {
 
 const EducationSection = lazy(() => {
   // Preload the component
-  return import("./components/sections/education")
+  return import("./components/sections/education/education")
 })
 
 const MedicalSection = lazy(() => {
@@ -74,7 +74,7 @@ const preloadSectionComponents = () => {
   const preloads = [
     import("./components/sections/basic-info-personal"),
     import("./components/sections/documents"),
-    import("./components/sections/education"),
+    import("./components/sections/education/education-form"),
     import("./components/sections/medical"),
     import("./components/sections/medical-reports")
   ]
@@ -186,52 +186,23 @@ export default function PersonalTab({
   // Memoize education data extraction with error handling
   const education = useMemo(() => {
     try {
-      const educationData = profile?.education?.[0] || {};
+      const educationData = profile?.education || []; // Ensure we get an array
       
       
-      // Handle yearOfPassing in a more flexible way
-      let formattedYearOfPassing = "";
-      if (educationData?.yearOfPassing) {
-        // Try to handle different possible formats
-        try {
-          // If it's an ISO date string with a T
-          if (typeof educationData.yearOfPassing === 'string' && 
-              educationData.yearOfPassing.includes('T')) {
-            // Extract just the year part
-            const date = new Date(educationData.yearOfPassing);
-            if (!isNaN(date.getTime())) {
-              formattedYearOfPassing = date.getFullYear().toString();
-            }
-          } 
-          // If it's just a year as a number or string number
-          else if (!isNaN(Number(educationData.yearOfPassing))) {
-            formattedYearOfPassing = Number(educationData.yearOfPassing).toString();
-          } 
-          // Otherwise, use as is if it's a string
-          else if (typeof educationData.yearOfPassing === 'string') {
-            formattedYearOfPassing = educationData.yearOfPassing;
-          }
-        } catch (error) {
-          console.error("Error formatting year of passing:", error);
-          formattedYearOfPassing = "";
-        }
-      }
-      
-      const result = {
-        id: educationData?.id || "",
-        degree: educationData?.degree || "",
-        fieldOfStudy: educationData?.fieldOfStudy || "",
-        qualification: educationData?.qualification || "",
-        institution: educationData?.institution || "",
-        yearOfPassing: formattedYearOfPassing,
-        gpa: educationData?.gpa?.toString() || "",
-      };
-      
-      
-      return result;
+      return educationData.map(edu => ({
+        id: edu?.id || "",
+        degree: edu?.degree || "",
+        fieldOfStudy: edu?.fieldOfStudy || "",
+        qualification: edu?.qualification || "",
+        institution: edu?.institution || "",
+        startYear: edu?.startYear || "",
+        endYear: edu?.endYear || "",
+        isOngoing: edu?.isOngoing || false,
+        gpa: edu?.gpa || "",
+      }));
     } catch (error) {
       console.error("Error processing education data:", error)
-      return {}
+      return []
     }
   }, [profile?.education])
   
@@ -255,135 +226,70 @@ export default function PersonalTab({
   }, [profile?.medical]);
   
   // Memoize form values with error handling
-  const [formValues, setFormValues] = useState(() => {
-    try {
-      return {
-        // Basic Information
-        id: personal?.id || "",
-        firstName: personal?.firstName || "",
-        middleName: personal?.middleName || "",
-        lastName: personal?.lastName || "",
-        nickName: personal?.nickName || "",
-        dateOfBirth: personal?.dateOfBirth || "",
-        genderIdentity: personal?.genderIdentity || "",
-        description: personal?.description || "",
-        age: personal?.age || "",
-        isDeceased: personal?.isDeceased || false,
-        
-        // Location Information
-        placeOfBirth: personal?.placeOfBirth || "",
-        countryOfBirth: personal?.countryOfBirth || "",
-        nationality: personal?.nationality || "",
-        
-        // Documents & Identity
-        passportNumber: personal?.passportNumber || "",
-        passportExpiry: personal?.passportExpiry || "",
-        citizenship: personal?.citizenship || "",
-        
-        // Personal Details
-        maritalStatus: personal?.maritalStatus || "",
-        bloodGroup: personal?.bloodGroup || "",
-        occupation: personal?.occupation || "",
-        religion: personal?.religion || "",
-        hobbies: personal?.hobbies || "",
-        additionalInfo: personal?.additionalInfo || "",
-        
-        // Contact information
-        contactNumber: personal?.contactNumber || "",
-        
-        // Address information
-        address: personal?.address || {},
-        presentAddress: personal?.presentAddress || {},
-        permanentAddress: personal?.permanentAddress || {},
-
-        // Education Information
-        degree: education?.degree || "",
-        fieldOfStudy: education?.fieldOfStudy || "",
-        qualification: education?.qualification || "",
-        institution: education?.institution || "",
-        yearOfPassing: education?.yearOfPassing || "",
-        gpa: education?.gpa || "",
-
-        // Medical Information
-        allergies: medicalData?.allergies || "",
-        chronicConditions: medicalData?.chronicConditions || "",
-        medications: medicalData?.medications || "",
-        medicalNotes: medicalData?.medicalNotes || "",
-
-        // System Fields
-        createdAt: personal?.createdAt || "",
-        updatedAt: personal?.updatedAt || "",
-        deletedAt: personal?.deletedAt || null,
-      }
-    } catch (error) {
-      console.error("Error initializing form values:", error)
-      return {}
-    }
-  })
+  const [formValues, setFormValues] = useState([]);
   
   // Update form values when personal data changes
   useEffect(() => {
     try {
       if (personal || education || medicalData) {
-        setFormValues({
-          // Basic Information
-          id: personal?.id || "",
-          firstName: personal?.firstName || "",
-          middleName: personal?.middleName || "",
-          lastName: personal?.lastName || "",
-          nickName: personal?.nickName || "",
-          dateOfBirth: personal?.dateOfBirth || "",
-          genderIdentity: personal?.genderIdentity || "",
-          description: personal?.description || "",
-          age: personal?.age || "",
-          isDeceased: personal?.isDeceased || false,
-          
-          // Location Information
-          placeOfBirth: personal?.placeOfBirth || "",
-          countryOfBirth: personal?.countryOfBirth || "",
-          nationality: personal?.nationality || "",
-          
-          // Documents & Identity
-          passportNumber: personal?.passportNumber || "",
-          passportExpiry: personal?.passportExpiry || "",
-          citizenship: personal?.citizenship || "",
-          
-          // Personal Details
-          maritalStatus: personal?.maritalStatus || "",
-          bloodGroup: personal?.bloodGroup || "",
-          occupation: personal?.occupation || "",
-          religion: personal?.religion || "",
-          hobbies: personal?.hobbies || "",
-          additionalInfo: personal?.additionalInfo || "",
-          
-          // Contact information
-          contactNumber: personal?.contactNumber || "",
-          
-          // Address information
-          address: personal?.address || {},
-          presentAddress: personal?.presentAddress || {},
-          permanentAddress: personal?.permanentAddress || {},
+        // Assuming formValues should hold an array of education entries
+        const updatedFormValues = [
+          {
+            // Basic Information
+            id: personal?.id || "",
+            firstName: personal?.firstName || "",
+            middleName: personal?.middleName || "",
+            lastName: personal?.lastName || "",
+            nickName: personal?.nickName || "",
+            dateOfBirth: personal?.dateOfBirth || "",
+            genderIdentity: personal?.genderIdentity || "",
+            description: personal?.description || "",
+            age: personal?.age || "",
+            isDeceased: personal?.isDeceased || false,
+            
+            // Location Information
+            placeOfBirth: personal?.placeOfBirth || "",
+            countryOfBirth: personal?.countryOfBirth || "",
+            nationality: personal?.nationality || "",
+            
+            // Documents & Identity
+            passportNumber: personal?.passportNumber || "",
+            passportExpiry: personal?.passportExpiry || "",
+            citizenship: personal?.citizenship || "",
+            
+            // Personal Details
+            maritalStatus: personal?.maritalStatus || "",
+            bloodGroup: personal?.bloodGroup || "",
+            occupation: personal?.occupation || "",
+            religion: personal?.religion || "",
+            hobbies: personal?.hobbies || "",
+            additionalInfo: personal?.additionalInfo || "",
+            
+            // Contact information
+            contactNumber: personal?.contactNumber || "",
+            
+            // Address information
+            address: personal?.address || {},
+            presentAddress: personal?.presentAddress || {},
+            permanentAddress: personal?.permanentAddress || {},
 
-          // Education Information
-          degree: education?.degree || "",
-          fieldOfStudy: education?.fieldOfStudy || "",
-          qualification: education?.qualification || "",
-          institution: education?.institution || "",
-          yearOfPassing: education?.yearOfPassing || "",
-          gpa: education?.gpa || "",
+            // Education Information
+            education: education || [], // Ensure this is an array
 
-          // Medical Information
-          allergies: medicalData?.allergies || "",
-          chronicConditions: medicalData?.chronicConditions || "",
-          medications: medicalData?.medications || "",
-          medicalNotes: medicalData?.medicalNotes || "",
+            // Medical Information
+            allergies: medicalData?.allergies || "",
+            chronicConditions: medicalData?.chronicConditions || "",
+            medications: medicalData?.medications || "",
+            medicalNotes: medicalData?.medicalNotes || "",
 
-          // System Fields
-          createdAt: personal?.createdAt || "",
-          updatedAt: personal?.updatedAt || "",
-          deletedAt: personal?.deletedAt || null,
-        });
-        
+            // System Fields
+            createdAt: personal?.createdAt || "",
+            updatedAt: personal?.updatedAt || "",
+            deletedAt: personal?.deletedAt || null,
+          }
+        ];
+
+        setFormValues(updatedFormValues); // Set the updated form values
         setDataInitialized(true);
       }
     } catch (error) {
@@ -777,7 +683,8 @@ export default function PersonalTab({
             icon={Book}
           >
             <EducationSection
-              formValues={formValues}
+              formValues={education}
+              setFormValues={setFormValues}
               handleChange={handleLocalChange}
               handleSave={handleSectionSave}
               loading={settingsLoading || sectionLoading.education}
