@@ -94,7 +94,7 @@ const ProfileHeader = memo(({
               {/* Name and description or bio */}
               <div className="flex flex-col">
                 <h2 className="text-2xl font-bold">
-                  {userData?.basicInfo?.name?.firstName || userData?.personalInfo?.name?.firstName} {userData?.basicInfo?.name?.lastName || userData?.personalInfo?.name?.lastName}
+                  {userData?.basicInfo?.name?.firstName } {userData?.basicInfo?.name?.lastName}
                 </h2>
               </div>
               
