@@ -45,7 +45,7 @@ const BasicInfoPersonalSection = lazy(() => {
 
 const DocumentsSection = lazy(() => {
   // Preload the component
-  return import("./components/sections/documents")
+  return import("./components/sections/documents/documents")
 })
 
 const EducationSection = lazy(() => {
@@ -55,12 +55,12 @@ const EducationSection = lazy(() => {
 
 const MedicalSection = lazy(() => {
   // Preload the component
-  return import("./components/sections/medical")
+  return import("./components/sections/medical/medical")
 })
 
 const MedicalReportsSection = lazy(() => {
   // Preload the component
-  return import("./components/sections/medical-reports")
+  return import("./components/sections/medical-reports/medical-reports")
 })
 
 const ProfileCompletionCard = lazy(() => {
@@ -73,10 +73,9 @@ const preloadSectionComponents = () => {
   // Preload all components in parallel
   const preloads = [
     import("./components/sections/basic-info-personal"),
-    import("./components/sections/documents"),
-    import("./components/sections/education/education-form"),
-    import("./components/sections/medical"),
-    import("./components/sections/medical-reports")
+    import("./components/sections/documents/documents"),
+    import("./components/sections/medical/medical"),
+    import("./components/sections/medical-reports/medical-reports")
   ]
   
   // Execute all preloads
@@ -122,7 +121,7 @@ export default function PersonalTab({
       const personalData = profile?.personal || {};
       
       // Map the nested structure to a flattened structure
-      return {
+      const mappedData = {
         id: personalData?.id || "",
         // Name fields
         firstName: personalData?.name?.firstName || "",
@@ -176,7 +175,9 @@ export default function PersonalTab({
         createdAt: personalData?.timestamps?.created || "",
         updatedAt: personalData?.timestamps?.updated || "",
         deletedAt: null,
-      }
+      };
+      
+      return mappedData;
     } catch (error) {
       console.error("Error processing personal data:", error)
       return {}
@@ -187,7 +188,6 @@ export default function PersonalTab({
   const education = useMemo(() => {
     try {
       const educationData = profile?.education || []; // Ensure we get an array
-      
       
       return educationData.map(edu => ({
         id: edu?.id || "",
@@ -226,68 +226,66 @@ export default function PersonalTab({
   }, [profile?.medical]);
   
   // Memoize form values with error handling
-  const [formValues, setFormValues] = useState([]);
+  const [formValues, setFormValues] = useState({});
   
   // Update form values when personal data changes
   useEffect(() => {
     try {
       if (personal || education || medicalData) {
-        // Assuming formValues should hold an array of education entries
-        const updatedFormValues = [
-          {
-            // Basic Information
-            id: personal?.id || "",
-            firstName: personal?.firstName || "",
-            middleName: personal?.middleName || "",
-            lastName: personal?.lastName || "",
-            nickName: personal?.nickName || "",
-            dateOfBirth: personal?.dateOfBirth || "",
-            genderIdentity: personal?.genderIdentity || "",
-            description: personal?.description || "",
-            age: personal?.age || "",
-            isDeceased: personal?.isDeceased || false,
-            
-            // Location Information
-            placeOfBirth: personal?.placeOfBirth || "",
-            countryOfBirth: personal?.countryOfBirth || "",
-            nationality: personal?.nationality || "",
-            
-            // Documents & Identity
-            passportNumber: personal?.passportNumber || "",
-            passportExpiry: personal?.passportExpiry || "",
-            citizenship: personal?.citizenship || "",
-            
-            // Personal Details
-            maritalStatus: personal?.maritalStatus || "",
-            bloodGroup: personal?.bloodGroup || "",
-            occupation: personal?.occupation || "",
-            religion: personal?.religion || "",
-            hobbies: personal?.hobbies || "",
-            additionalInfo: personal?.additionalInfo || "",
-            
-            // Contact information
-            contactNumber: personal?.contactNumber || "",
-            
-            // Address information
-            address: personal?.address || {},
-            presentAddress: personal?.presentAddress || {},
-            permanentAddress: personal?.permanentAddress || {},
+        // Change from array to object
+        const updatedFormValues = {
+          // Basic Information
+          id: personal?.id || "",
+          firstName: personal?.firstName || "",
+          middleName: personal?.middleName || "",
+          lastName: personal?.lastName || "",
+          nickName: personal?.nickName || "",
+          dateOfBirth: personal?.dateOfBirth || "",
+          genderIdentity: personal?.genderIdentity || "",
+          description: personal?.description || "",
+          age: personal?.age || "",
+          isDeceased: personal?.isDeceased || false,
+          
+          // Location Information
+          placeOfBirth: personal?.placeOfBirth || "",
+          countryOfBirth: personal?.countryOfBirth || "",
+          nationality: personal?.nationality || "",
+          
+          // Documents & Identity
+          passportNumber: personal?.passportNumber || "",
+          passportExpiry: personal?.passportExpiry || "",
+          citizenship: personal?.citizenship || "",
+          
+          // Personal Details
+          maritalStatus: personal?.maritalStatus || "",
+          bloodGroup: personal?.bloodGroup || "",
+          occupation: personal?.occupation || {},
+          religion: personal?.religion || "",
+          hobbies: personal?.hobbies || "",
+          additionalInfo: personal?.additionalInfo || "",
+          
+          // Contact information
+          contactNumber: personal?.contactNumber || "",
+          
+          // Address information
+          address: personal?.address || {},
+          presentAddress: personal?.presentAddress || {},
+          permanentAddress: personal?.permanentAddress || {},
 
-            // Education Information
-            education: education || [], // Ensure this is an array
+          // Education Information
+          education: education || [], // Ensure this is an array
 
-            // Medical Information
-            allergies: medicalData?.allergies || "",
-            chronicConditions: medicalData?.chronicConditions || "",
-            medications: medicalData?.medications || "",
-            medicalNotes: medicalData?.medicalNotes || "",
+          // Medical Information
+          allergies: medicalData?.allergies || "",
+          chronicConditions: medicalData?.chronicConditions || "",
+          medications: medicalData?.medications || "",
+          medicalNotes: medicalData?.medicalNotes || "",
 
-            // System Fields
-            createdAt: personal?.createdAt || "",
-            updatedAt: personal?.updatedAt || "",
-            deletedAt: personal?.deletedAt || null,
-          }
-        ];
+          // System Fields
+          createdAt: personal?.createdAt || "",
+          updatedAt: personal?.updatedAt || "",
+          deletedAt: personal?.deletedAt || null,
+        };
 
         setFormValues(updatedFormValues); // Set the updated form values
         setDataInitialized(true);
@@ -297,10 +295,39 @@ export default function PersonalTab({
     }
   }, [personal, education, medicalData]);
   
-  // Memoize date state
-  const [date, setDate] = useState(() => 
-    formValues.dateOfBirth ? new Date(formValues.dateOfBirth) : null
-  )
+  // Memoized handlers with error handling
+  const handleLocalChange = useMemo(() => (field, value) => {
+    try {
+      setFormValues(prev => ({
+        ...prev,
+        [field]: value
+      }))
+    } catch (error) {
+      console.error("Error updating form value:", error)
+      toast.error(`Failed to update ${field}`)
+    }
+  }, [])
+  
+  // Set up date state
+  const [date, setDate] = useState(null)
+  
+  // Initialize date from profile data when it's available
+  useEffect(() => {
+    try {
+      if (profile?.personal?.identity?.dateOfBirth) {
+        const dateString = profile.personal.identity.dateOfBirth;
+        // Parse the date string to a Date object
+        const dateObj = new Date(dateString);
+        if (!isNaN(dateObj.getTime())) {
+          setDate(dateObj);
+        } else {
+          console.error('Invalid date format:', dateString);
+        }
+      }
+    } catch (error) {
+      console.error('Error setting date from profile:', error);
+    }
+  }, [profile]);
   
   // Update date when dateOfBirth changes
   useEffect(() => {
@@ -342,18 +369,6 @@ export default function PersonalTab({
   }, [profile?.medical]);
 
   // Memoized handlers with error handling
-  const handleLocalChange = useMemo(() => (field, value) => {
-    try {
-      setFormValues(prev => ({
-        ...prev,
-        [field]: value
-      }))
-    } catch (error) {
-      console.error("Error updating form value:", error)
-      toast.error(`Failed to update ${field}`)
-    }
-  }, [])
-  
   const handleDateSelect = useMemo(() => (newDate) => {
     try {
       setDate(newDate)
