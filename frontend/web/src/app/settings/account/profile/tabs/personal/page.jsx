@@ -92,8 +92,7 @@ export default function PersonalTab({
 }) {
   // Track component preloading state
   const [componentsPreloaded, setComponentsPreloaded] = useState(false)
-  const [dataInitialized, setDataInitialized] = useState(false)
-  const [dataFetched, setDataFetched] = useState(false)
+  const [isDataReady, setIsDataReady] = useState(false)
   
   // Preload all section components when the component mounts
   useEffect(() => {
@@ -107,12 +106,14 @@ export default function PersonalTab({
     }
     
     preloadComponents()
-    
-    // Cleanup function
-    return () => {
-      // Any cleanup needed when component unmounts
-    }
   }, [])
+
+  // Set data ready when profile is available
+  useEffect(() => {
+    if (profile && profile.personal) {
+      setIsDataReady(true)
+    }
+  }, [profile])
   
   // Memoize personal data extraction with error handling
   const personal = useMemo(() => {
@@ -288,7 +289,6 @@ export default function PersonalTab({
         };
 
         setFormValues(updatedFormValues); // Set the updated form values
-        setDataInitialized(true);
       }
     } catch (error) {
       console.error("Error updating form values:", error);
@@ -667,114 +667,117 @@ export default function PersonalTab({
   // Render sections with Suspense and ErrorBoundary
   return (
     <div className="flex flex-col gap-6">
-      <ErrorBoundary>
-        <Suspense fallback={<CardSkeleton />}>
-          <CardWithCollapse
-            section="basicPersonal"
-            title="Personal Information"
-            description="Your personal details and information"
-            isLoading={settingsLoading || sectionLoading.basicPersonal}
-            icon={User}
-          >
-            <BasicInfoPersonalSection
-              formValues={formValues}
-              handleChange={handleLocalChange}
-              handleSave={handleSectionSave}
-              date={date}
-              onDateSelect={handleDateSelect}
-              loading={settingsLoading || sectionLoading.basicPersonal}
-            />
-          </CardWithCollapse>
-        </Suspense>
-      </ErrorBoundary>
+      {componentsPreloaded && isDataReady && (
+        <>
+          <ErrorBoundary>
+            <Suspense fallback={<CardSkeleton />}>
+              <CardWithCollapse
+                section="basicPersonal"
+                title="Personal Information"
+                description="Your personal details and information"
+                isLoading={settingsLoading || sectionLoading.basicPersonal}
+                icon={User}
+              >
+                <BasicInfoPersonalSection
+                  formValues={formValues}
+                  handleChange={handleLocalChange}
+                  handleSave={handleSectionSave}
+                  date={date}
+                  onDateSelect={handleDateSelect}
+                  loading={settingsLoading || sectionLoading.basicPersonal}
+                />
+              </CardWithCollapse>
+            </Suspense>
+          </ErrorBoundary>
 
-      <ErrorBoundary>
-        <Suspense fallback={<CardSkeleton />}>
-          <CardWithCollapse
-            section="education"
-            title="Education"
-            description="Your educational background and qualifications"
-            isLoading={settingsLoading || sectionLoading.education}
-            icon={Book}
-          >
-            <EducationSection
-              formValues={education}
-              setFormValues={setFormValues}
-              handleChange={handleLocalChange}
-              handleSave={handleSectionSave}
-              loading={settingsLoading || sectionLoading.education}
-            />
-          </CardWithCollapse>
-        </Suspense>
-      </ErrorBoundary>
+          <ErrorBoundary>
+            <Suspense fallback={<CardSkeleton />}>
+              <CardWithCollapse
+                section="education"
+                title="Education"
+                description="Your educational background and qualifications"
+                isLoading={settingsLoading || sectionLoading.education}
+                icon={Book}
+              >
+                <EducationSection
+                  formValues={education}
+                  setFormValues={setFormValues}
+                  handleChange={handleLocalChange}
+                  handleSave={handleSectionSave}
+                  loading={settingsLoading || sectionLoading.education}
+                />
+              </CardWithCollapse>
+            </Suspense>
+          </ErrorBoundary>
 
-      <ErrorBoundary>
-        <Suspense fallback={<CardSkeleton />}>
-          <CardWithCollapse
-            section="documents"
-            title="Documents & Identity"
-            description="Your identification and important documents"
-            isLoading={settingsLoading || sectionLoading.documents}
-            icon={FileText}
-          >
-            <DocumentsSection
-              formValues={formValues}
-              handleChange={handleLocalChange}
-              handleSave={handleSectionSave}
-              loading={settingsLoading || sectionLoading.documents}
-            />
-          </CardWithCollapse>
-        </Suspense>
-      </ErrorBoundary>
+          <ErrorBoundary>
+            <Suspense fallback={<CardSkeleton />}>
+              <CardWithCollapse
+                section="documents"
+                title="Documents & Identity"
+                description="Your identification and important documents"
+                isLoading={settingsLoading || sectionLoading.documents}
+                icon={FileText}
+              >
+                <DocumentsSection
+                  formValues={formValues}
+                  handleChange={handleLocalChange}
+                  handleSave={handleSectionSave}
+                  loading={settingsLoading || sectionLoading.documents}
+                />
+              </CardWithCollapse>
+            </Suspense>
+          </ErrorBoundary>
 
-      <ErrorBoundary>
-        <Suspense fallback={<CardSkeleton />}>
-          <CardWithCollapse
-            section="medical"
-            title="Medical Information"
-            description="Your medical history and health information"
-            isLoading={settingsLoading || sectionLoading.medical}
-            icon={Activity}
-          >
-            <MedicalSection
-              formValues={formValues}
-              handleChange={handleLocalChange}
-              handleSave={handleSectionSave}
-              loading={settingsLoading || sectionLoading.medical}
-              profile={profile}
-            />
-          </CardWithCollapse>
-        </Suspense>
-      </ErrorBoundary>
+          <ErrorBoundary>
+            <Suspense fallback={<CardSkeleton />}>
+              <CardWithCollapse
+                section="medical"
+                title="Medical Information"
+                description="Your medical history and health information"
+                isLoading={settingsLoading || sectionLoading.medical}
+                icon={Activity}
+              >
+                <MedicalSection
+                  formValues={formValues}
+                  handleChange={handleLocalChange}
+                  handleSave={handleSectionSave}
+                  loading={settingsLoading || sectionLoading.medical}
+                  profile={profile}
+                />
+              </CardWithCollapse>
+            </Suspense>
+          </ErrorBoundary>
 
-      <ErrorBoundary>
-        <Suspense fallback={<CardSkeleton />}>
-          <CardWithCollapse
-            section="medicalReports"
-            title="Medical Reports"
-            description="Your medical reports and test results"
-            isLoading={settingsLoading || sectionLoading.medicalReports}
-            icon={FileText}
-          >
-            <MedicalReportsSection
-              reports={medicalReports}
-              onAddReport={handleAddMedicalReport}
-              onUpdateReport={handleUpdateMedicalReport}
-              onDeleteReport={handleDeleteMedicalReport}
-              loading={settingsLoading || sectionLoading.medicalReports}
-              profile={profile}
-            />
-          </CardWithCollapse>
-        </Suspense>
-      </ErrorBoundary>
+          <ErrorBoundary>
+            <Suspense fallback={<CardSkeleton />}>
+              <CardWithCollapse
+                section="medicalReports"
+                title="Medical Reports"
+                description="Your medical reports and test results"
+                isLoading={settingsLoading || sectionLoading.medicalReports}
+                icon={FileText}
+              >
+                <MedicalReportsSection
+                  reports={medicalReports}
+                  onAddReport={handleAddMedicalReport}
+                  onUpdateReport={handleUpdateMedicalReport}
+                  onDeleteReport={handleDeleteMedicalReport}
+                  loading={settingsLoading || sectionLoading.medicalReports}
+                  profile={profile}
+                />
+              </CardWithCollapse>
+            </Suspense>
+          </ErrorBoundary>
 
-      {/* Profile Completion Card */}
-      <ErrorBoundary>
-        <Suspense fallback={<ProfileCompletionSkeleton />}>
-          <ProfileCompletionCard profile={profile} isLoading={settingsLoading} />
-        </Suspense>
-      </ErrorBoundary>
-
+          {/* Profile Completion Card */}
+          <ErrorBoundary>
+            <Suspense fallback={<ProfileCompletionSkeleton />}>
+              <ProfileCompletionCard profile={profile} isLoading={settingsLoading} />
+            </Suspense>
+          </ErrorBoundary>
+        </>
+      )}
     </div>
   )
 }
