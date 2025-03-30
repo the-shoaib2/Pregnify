@@ -89,7 +89,7 @@ export default function MedicalReports({ reports = [] }) {
           </div>
           <CardTitle className="flex items-center text-lg gap-2">
             <FileText className="h-5 w-5 text-primary" />
-            Medical Reports
+            Medical Documents
           </CardTitle>
         </CardHeader>
         <CollapsibleContent>
@@ -100,18 +100,19 @@ export default function MedicalReports({ reports = [] }) {
               handleSave={() => { }}
               loading={false}
               title=""
-              emptyMessage="No medical reports added yet."
+              // emptyMessage="No Medical Documents added yet."
+              emptyMessage="Not Implelemnted.."
               ItemFormDialog={(props) => (
                 <ItemFormDialog
                   {...props}
-                  title="Medical Report"
-                  itemType="Medical Report"
+                  title="Medical Documents"
+                  itemType="Medical Documents"
                   apiService={reportsService}
                   FormFields={MedicalReportsFormFields}
                 />
               )}
               apiService={reportsService}
-              itemType="Medical Report"
+              itemType="Medical Documents"
               titleField="type"
               subtitleField="formattedDate"
               detailFields={detailFields}

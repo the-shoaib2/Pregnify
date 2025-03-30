@@ -4,12 +4,12 @@ import { SettingsService } from '@/services/settings/account/personal';
 import { toast } from "react-hot-toast";
 import { FormSectionSkeleton } from "../../skeleton";
 import { Save } from "lucide-react";
-import MedicalDocuments from './medical-documents';
+import MedicalDocuments from './medical-documents-fields';
 import { CurrentHealth } from './components/current-health';
 import { MedicalHistory } from './components/medical-history';
 import { CurrentCare } from './components/current-care';
 import { AdditionalInfo } from './components/additional-info';
-import MedicalReports from './medical-reports';
+import MedicalReports from './components/medical-reports';
 
 export default function MedicalSection({ profile, handleSave, loading }) {
   const [formValues, setFormValues] = useState({

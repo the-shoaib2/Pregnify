@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react'
 import { InputWithIcon } from "@/components/input-with-icon"
 import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
+import { DatePicker } from "@/components/ui/date-picker" 
 import {
   Select,
   SelectContent,
@@ -154,8 +154,6 @@ export default function BasicInfoPersonalSection({
   formValues,
   handleChange,
   handleSave,
-  date,
-  onDateSelect,
   loading
 }) {
   // Initialize states with proper values immediately
@@ -163,6 +161,10 @@ export default function BasicInfoPersonalSection({
   const [localFormValues, setLocalFormValues] = useState(() => initializeFormValues(formValues))
   const [autoSave, setAutoSave] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [date, setDate] = useState(() => {
+    const initialDate = formValues?.dateOfBirth ? new Date(formValues.dateOfBirth) : new Date();
+    return initialDate;
+  });
 
   // Create a debounced save function - will be recreated only when autoSave changes
   const debouncedSave = useCallback(
@@ -236,6 +238,12 @@ export default function BasicInfoPersonalSection({
     }
   }, [handleChange, autoSave, date, debouncedSave])
 
+  const handleDateSelect = (newDate) => {
+    setDate(newDate);
+    handleLocalChange('dateOfBirth', newDate);
+    setHasUnsavedChanges(true);
+  };
+
   // Handle form submission
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault()
@@ -302,28 +310,16 @@ export default function BasicInfoPersonalSection({
           <label htmlFor="date-of-birth" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
             Date of Birth
           </label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant={"outline"}
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !date && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {date ? format(date, "PPP") : <span>Pick a date</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={onDateSelect}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
+          <DatePicker
+            startYear={1900}
+            endYear={new Date().getFullYear()}
+            value={date}
+            onValueChange={(newDate) => {
+              if (newDate) {
+                handleDateSelect(newDate);
+              }
+            }}
+          />
         </div>
         <div className="grid w-full items-center gap-1.5">
           <label htmlFor="gender" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
@@ -369,7 +365,7 @@ export default function BasicInfoPersonalSection({
         </div>
       </div>
     </div>
-  ), [localFormValues, date, onDateSelect, handleLocalChange])
+  ), [localFormValues, date, handleLocalChange])
 
   // 
   const SkillsAndInterestsSection = ({ localFormValues, handleLocalChange }) => {
