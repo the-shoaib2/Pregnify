@@ -25,22 +25,18 @@ import {
   ContextMenuSubTrigger,
   ContextMenuSubContent,
   ContextMenuSeparator,
-  ContextMenuCheckboxItem,
-  ContextMenuRadioGroup,
-  ContextMenuRadioItem,
-  ContextMenuLabel,
+  ContextMenuCheckboxItem
 } from "@/components/ui/context-menu"
 
 import ErrorBoundary from "@/components/error-boundary"
 import toast from "react-hot-toast"
 import { FormSectionSkeleton, CardSkeleton } from "./components/skeleton"
 import { ProfileCompletionSkeleton } from "./components/profile-completion/page"
-// import { SettingsService } from "@/services/settings/account/personal"
 
 // Preload section components to avoid initial render issues
 const BasicInfoPersonalSection = lazy(() => {
   // Preload the component
-  return import("./components/sections/basic-info-personal")
+  return import("./components/sections/personal-info/page")
 })
 
 const DocumentsSection = lazy(() => {
@@ -58,10 +54,6 @@ const MedicalSection = lazy(() => {
   return import("./components/sections/medical/medical")
 })
 
-const MedicalReportsSection = lazy(() => {
-  // Preload the component
-  return import("./components/sections/medical-reports/medical-reports")
-})
 
 const ProfileCompletionCard = lazy(() => {
   // Preload the component
@@ -72,10 +64,10 @@ const ProfileCompletionCard = lazy(() => {
 const preloadSectionComponents = () => {
   // Preload all components in parallel
   const preloads = [
-    import("./components/sections/basic-info-personal"),
+    import("./components/sections/personal-info/page"),
     import("./components/sections/documents/documents"),
+    import("./components/sections/education/education"),
     import("./components/sections/medical/medical"),
-    import("./components/sections/medical-reports/medical-reports")
   ]
   
   // Execute all preloads
@@ -131,7 +123,7 @@ export default function PersonalTab({
         nickName: personalData?.name?.nickName || "",
         
         // Identity fields
-        dateOfBirth: personalData?.identity?.dateOfBirth ? personalData.identity.dateOfBirth.split('T')[0] : "",
+        dateOfBirth: personalData?.identity?.dateOfBirth || "",
         genderIdentity: personalData?.identity?.gender || "",
         age: personalData?.identity?.age || "",
         isDeceased: personalData?.identity?.isDeceased || false,
@@ -151,8 +143,7 @@ export default function PersonalTab({
         
         // Identification fields
         passportNumber: personalData?.identification?.passport?.number || "",
-        passportExpiry: personalData?.identification?.passport?.expiry ? 
-          personalData.identification.passport.expiry.split('T')[0] : "",
+        passportExpiry: personalData?.identification?.passport?.expiry || "",
         citizenship: personalData?.identification?.citizenship || "",
         bloodGroup: personalData?.identification?.bloodGroup || "",
         maritalStatus: personalData?.identification?.maritalStatus || "",
@@ -730,44 +721,21 @@ export default function PersonalTab({
           </ErrorBoundary>
 
           <ErrorBoundary>
-            <Suspense fallback={<CardSkeleton />}>
-              <CardWithCollapse
-                section="medical"
-                title="Medical Information"
-                description="Your medical history and health information"
-                isLoading={settingsLoading || sectionLoading.medical}
-                icon={Activity}
-              >
-                <MedicalSection
-                  formValues={formValues}
-                  handleChange={handleLocalChange}
-                  handleSave={handleSectionSave}
-                  loading={settingsLoading || sectionLoading.medical}
-                  profile={profile}
-                />
-              </CardWithCollapse>
-            </Suspense>
-          </ErrorBoundary>
-
-          <ErrorBoundary>
-            <Suspense fallback={<CardSkeleton />}>
-              <CardWithCollapse
-                section="medicalReports"
-                title="Medical Reports"
-                description="Your medical reports and test results"
-                isLoading={settingsLoading || sectionLoading.medicalReports}
-                icon={FileText}
-              >
-                <MedicalReportsSection
-                  reports={medicalReports}
-                  onAddReport={handleAddMedicalReport}
-                  onUpdateReport={handleUpdateMedicalReport}
-                  onDeleteReport={handleDeleteMedicalReport}
-                  loading={settingsLoading || sectionLoading.medicalReports}
-                  profile={profile}
-                />
-              </CardWithCollapse>
-            </Suspense>
+            <CardWithCollapse
+              section="medical"
+              title="Medical Information"
+              description="Your medical history and health information"
+              isLoading={settingsLoading || sectionLoading.medical}
+              icon={Activity}
+            >
+              <MedicalSection
+                formValues={formValues}
+                handleChange={handleLocalChange}
+                handleSave={handleSectionSave}
+                loading={settingsLoading || sectionLoading.medical}
+                profile={profile}
+              />
+            </CardWithCollapse>
           </ErrorBoundary>
 
           {/* Profile Completion Card */}

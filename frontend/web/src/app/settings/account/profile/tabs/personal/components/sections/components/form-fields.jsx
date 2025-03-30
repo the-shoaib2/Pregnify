@@ -3,6 +3,7 @@ import { InputWithIcon } from "@/components/input-with-icon";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
+import { Switch } from "@/components/ui/switch";
 import {
   Popover,
   PopoverContent,
@@ -19,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 export function FormFields({ 
   formValues, 
@@ -37,26 +39,108 @@ export function FormFields({
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {/* Regular input fields */}
-      {fields.map((field) => (
-        <InputWithIcon
-          key={field.name}
-          icon={field.icon}
-          label={field.label}
-          value={field.path ? 
-            (field.path.split('.').reduce((obj, path) => (obj && obj[path] !== undefined) ? obj[path] : '', formValues)) : 
-            (formValues[field.name] || '')}
-          onChange={(e) => handleChange(field.path || field.name, e.target.value)}
-          placeholder={field.placeholder}
-          required={field.required}
-        />
-      ))}
+      {fields.map((field) => {
+        if (field.type === 'select') {
+          return (
+            <div key={field.name} className="grid gap-1.5">
+              <Label className="flex items-center gap-2">
+                {field.icon && <field.icon className="h-4 w-4 text-muted-foreground" />}
+                {field.label}
+              </Label>
+              <Select
+                value={formValues[field.name] || ''}
+                onValueChange={(value) => handleChange(field.name, value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={field.placeholder} />
+                </SelectTrigger>
+                <SelectContent>
+                  {field.options.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          );
+        }
+
+        if (field.type === 'textarea') {
+          return (
+            <div key={field.name} className="grid gap-1.5">
+              <Label className="flex items-center gap-2">
+                {field.icon && <field.icon className="h-4 w-4 text-muted-foreground" />}
+                {field.label}
+              </Label>
+              <Textarea
+                value={formValues[field.name] || ''}
+                onChange={(e) => handleChange(field.name, e.target.value)}
+                placeholder={field.placeholder}
+                required={field.required}
+              />
+            </div>
+          );
+        }
+
+        if (field.type === 'switch') {
+          return (
+            <div key={field.name} className="flex items-center justify-between">
+              <Label className="flex items-center gap-2">
+                {field.icon && <field.icon className="h-4 w-4 text-muted-foreground" />}
+                {field.label}
+              </Label>
+              <Switch
+                checked={formValues[field.name] || false}
+                onCheckedChange={(checked) => handleChange(field.name, checked)}
+              />
+            </div>
+          );
+        }
+
+        if (field.type === 'number') {
+          return (
+            <div key={field.name} className="grid gap-1.5">
+              <Label className="flex items-center gap-2">
+                {field.icon && <field.icon className="h-4 w-4 text-muted-foreground" />}
+                {field.label}
+              </Label>
+              <InputWithIcon
+                type="number"
+                icon={field.icon}
+                value={formValues[field.name] || ''}
+                onChange={(e) => handleChange(field.name, e.target.value)}
+                placeholder={field.placeholder}
+                required={field.required}
+                min={field.min}
+                max={field.max}
+              />
+            </div>
+          );
+        }
+
+        return (
+          <InputWithIcon
+            key={field.name}
+            icon={field.icon}
+            label={field.label}
+            value={field.path ? 
+              (field.path.split('.').reduce((obj, path) => (obj && obj[path] !== undefined) ? obj[path] : '', formValues)) : 
+              (formValues[field.name] || '')}
+            onChange={(e) => handleChange(field.path || field.name, e.target.value)}
+            placeholder={field.placeholder}
+            required={field.required}
+          />
+        );
+      })}
 
       {/* Date fields */}
       {dateFields.map((field) => (
-        <div key={field.name} className="grid w-full items-center gap-1.5">
-          <label className="text-sm font-medium leading-none">
+        <div key={field.name} className="grid gap-1.5">
+          <Label className="flex items-center gap-2">
+            {field.icon && <field.icon className="h-4 w-4 text-muted-foreground" />}
             {field.label}
-          </label>
+          </Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button

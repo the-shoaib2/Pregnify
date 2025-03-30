@@ -22,17 +22,12 @@ import {
   Loader,
   Heart,
   Book,
-  Activity,
-  FileText,
-  X,
-  Copy,
   Building2,
   Briefcase,
   Clock,
   Languages as LanguagesIcon,
   Code,
-  Bookmark,
-  PlusCircle,
+  Bookmark
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import toast from "react-hot-toast"
@@ -40,7 +35,7 @@ import { SettingsService } from '@/services/settings/account/personal'
 import { Switch } from "@/components/ui/switch"
 import { TagInput } from '@/components/ui/tag-input'
 import { debounce } from 'lodash'
-import { FormSectionSkeleton } from "../skeleton"
+import { FormSectionSkeleton } from "../../skeleton"
 
 
 // Constants
@@ -548,10 +543,7 @@ export default function BasicInfoPersonalSection({
         disabled={saving || loading || !hasUnsavedChanges}
         className="w-fit"
       >
-        {(saving || loading) && (
-          <Loader className="mr-2 h-4 w-4 animate-spin" />
-        )}
-        <Save className="mr-2 h-4 w-4" />
+        {(saving || loading) ?<Loader className="mr-2 h-4 w-4 animate-spin" /> :  <Save className="mr-2 h-4 w-4" />}
         Save Changes
       </Button>
     </div>

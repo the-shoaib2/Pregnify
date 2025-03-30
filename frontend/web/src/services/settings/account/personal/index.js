@@ -26,7 +26,10 @@ const PERSONAL_ENDPOINTS = {
   GET_MEDICAL_REPORTS: '/account/profile/personal/medical/reports',
   ADD_MEDICAL_REPORT: '/account/profile/personal/medical/reports',
   UPDATE_MEDICAL_REPORT: (id) => `/account/profile/personal/medical/reports/${id}`,
-  DELETE_MEDICAL_REPORT: (id) => `/account/profile/personal/medical/reports/${id}`
+  DELETE_MEDICAL_REPORT: (id) => `/account/profile/personal/medical/reports/${id}`,
+  UPLOAD_MEDICAL_DOCUMENT: '/account/profile/personal/medical/documents',
+  GET_MEDICAL_DOCUMENTS: '/account/profile/personal/medical/documents',
+  DELETE_MEDICAL_DOCUMENT: (id) => `/account/profile/personal/medical/documents/${id}`
 }
 
 // Track ongoing profile requests
@@ -266,11 +269,59 @@ export const SettingsService = {
   
   updateMedicalInfo: async (data) => {
     try {
-      const response = await api.patch('/account/medical-info', data);
-      return response.data;
+      const response = await api.post('/account/profile/personal/medical', data);
+      return { success: true, data: response.data };
     } catch (error) {
-      const errorMessage = handleApiError(error);
-      throw new Error(errorMessage);
+      console.error('Error updating medical information:', error);
+      return { success: false, error };
+    }
+  },
+  
+  addMedicalReport: async (data) => {
+    try {
+      const response = await api.post('/account/profile/personal/medical/reports', data);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Error adding medical report:', error);
+      return { success: false, error };
+    }
+  },
+  
+  uploadMedicalDocument: async (file, metadata) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('metadata', JSON.stringify(metadata));
+
+      const response = await api.post('/account/profile/personal/medical/documents', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Error uploading medical document:', error);
+      return { success: false, error };
+    }
+  },
+  
+  getMedicalDocuments: async () => {
+    try {
+      const response = await api.get('/account/profile/personal/medical/documents');
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Error getting medical documents:', error);
+      return { success: false, error };
+    }
+  },
+  
+  deleteMedicalDocument: async (documentId) => {
+    try {
+      const response = await api.delete(`/account/profile/personal/medical/documents/${documentId}`);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Error deleting medical document:', error);
+      return { success: false, error };
     }
   },
   
