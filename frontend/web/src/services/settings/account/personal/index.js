@@ -267,9 +267,18 @@ export const SettingsService = {
     }
   },
   
-  updateMedicalInfo: async (data) => {
+  addMedicalInfo: async (data) => {
     try {
       const response = await api.post('/account/profile/personal/medical', data);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Error adding medical information:', error);
+      return { success: false, error };
+    }
+  },  
+  updateMedicalInfo: async (data) => {
+    try {
+      const response = await api.put('/account/profile/personal/medical', data);
       return { success: true, data: response.data };
     } catch (error) {
       console.error('Error updating medical information:', error);

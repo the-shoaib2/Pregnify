@@ -153,7 +153,6 @@ const formatDataForAPI = (data, dateValue) => {
 export default function BasicInfoPersonalSection({
   formValues,
   handleChange,
-  handleSave,
   loading
 }) {
   // Initialize states with proper values immediately

@@ -79,7 +79,6 @@ const preloadSectionComponents = () => {
 
 export default function PersonalTab({
   profile,
-  handleSave,
   settingsLoading
 }) {
   // Track component preloading state
@@ -199,17 +198,28 @@ export default function PersonalTab({
   }, [profile?.education])
   
   // Add this for medical data
-  const medicalData = useMemo(() => {
+  const medical = useMemo(() => {
     try {
       const data = profile?.medical || {};
       return {
         id: data?.id || "",
-        allergies: data?.currentCare?.allergies || "",
-        medications: data?.currentCare?.medications || "",
-        chronicConditions: Array.isArray(data?.history?.chronicConditions) ? 
-          data.history.chronicConditions.join(", ") : "",
+        allergies: data?.allergies || "",
+        medications: data?.medications || "",
+        chronicConditions: Array.isArray(data?.chronicDiseases?.condition) ? 
+          data.chronicDiseases.condition.join(", ") : "",
         medicalNotes: "",
-        medicalReports: data?.reports || []
+        medicalReports: data?.reports || [],
+        bloodGroup: data?.bloodGroup || "",
+        cancerHistory: data?.cancerHistory || false,
+        cancerType: data?.cancerType || "",
+        vaccinationRecords: data?.vaccinationRecords || { 'COVID-19': "" },
+        geneticDisorders: data?.geneticDisorders?.condition || "",
+        disabilities: {
+          physical: data?.disabilities?.physical || "",
+          mental: data?.disabilities?.mental || ""
+        },
+        emergencyContact: data?.emergencyContact || "",
+        primaryPhysician: data?.primaryPhysician || ""
       };
     } catch (error) {
       console.error("Error processing medical data:", error);
@@ -223,7 +233,7 @@ export default function PersonalTab({
   // Update form values when personal data changes
   useEffect(() => {
     try {
-      if (personal || education || medicalData) {
+      if (personal) {
         // Change from array to object
         const updatedFormValues = {
           // Basic Information
@@ -250,7 +260,6 @@ export default function PersonalTab({
           
           // Personal Details
           maritalStatus: personal?.maritalStatus || "",
-          bloodGroup: personal?.bloodGroup || "",
           occupation: personal?.occupation || {},
           religion: personal?.religion || "",
           hobbies: personal?.hobbies || "",
@@ -268,10 +277,8 @@ export default function PersonalTab({
           education: education || [], // Ensure this is an array
 
           // Medical Information
-          allergies: medicalData?.allergies || "",
-          chronicConditions: medicalData?.chronicConditions || "",
-          medications: medicalData?.medications || "",
-          medicalNotes: medicalData?.medicalNotes || "",
+medical: medical || [],
+        
 
           // System Fields
           createdAt: personal?.createdAt || "",
@@ -284,7 +291,7 @@ export default function PersonalTab({
     } catch (error) {
       console.error("Error updating form values:", error);
     }
-  }, [personal, education, medicalData]);
+  }, [personal, education, medical]);
   
   // Memoized handlers with error handling
   const handleLocalChange = useMemo(() => (field, value) => {
@@ -319,13 +326,7 @@ export default function PersonalTab({
       console.error('Error setting date from profile:', error);
     }
   }, [profile]);
-  
-  // Update date when dateOfBirth changes
-  useEffect(() => {
-    if (formValues.dateOfBirth) {
-      setDate(new Date(formValues.dateOfBirth))
-    }
-  }, [formValues.dateOfBirth])
+
   
   // Track loading states for each section
   const [sectionLoading, setSectionLoading] = useState({
@@ -345,19 +346,6 @@ export default function PersonalTab({
     medicalReports: true
   })
 
-  // Add state for medical reports
-  const [medicalReports, setMedicalReports] = useState([])
-
-  // Extract medical data from the profile
-  useEffect(() => {
-    try {
-      if (profile?.medical?.reports && profile.medical.reports.length > 0) {
-        setMedicalReports(profile.medical.reports);
-      }
-    } catch (error) {
-      console.error("Error extracting medical reports:", error);
-    }
-  }, [profile?.medical]);
 
   // Memoized handlers with error handling
   const handleDateSelect = useMemo(() => (newDate) => {
@@ -370,91 +358,6 @@ export default function PersonalTab({
       toast.error("Failed to update date of birth")
     }
   }, [handleLocalChange])
-  
-  const handleSectionSave = useCallback(async (section, data) => {
-    try {
-      // Set section loading state
-      setSectionLoading(prev => ({
-        ...prev,
-        [section === 'basic-personal' ? 'basicPersonal' : section]: true
-      }))
-      
-      let sectionData = {}
-      
-      if (section === 'education') {
-        sectionData = {
-          education: [{
-            ...education,
-            ...data
-          }]
-        }
-      } else if (section === 'medical') {
-        sectionData = {
-          medical: {
-            ...profile.medical,
-            currentCare: {
-              allergies: data.allergies || "",
-              medications: data.medications || ""
-            },
-            history: {
-              ...profile.medical?.history,
-              chronicConditions: data.chronicConditions ? data.chronicConditions.split(',').map(item => item.trim()) : []
-            }
-          }
-        }
-      } else {
-        // Map flattened structure back to the nested API structure
-        const personalData = {
-          id: personal.id,
-          name: {
-            firstName: data.firstName || personal.firstName,
-            middleName: data.middleName || personal.middleName,
-            lastName: data.lastName || personal.lastName,
-            nickName: data.nickName || personal.nickName
-          },
-          identity: {
-            gender: data.genderIdentity || personal.genderIdentity,
-            dateOfBirth: data.dateOfBirth || personal.dateOfBirth,
-            age: data.age || personal.age,
-            isDeceased: data.isDeceased || personal.isDeceased
-          },
-          contact: {
-            phone: data.contactNumber || personal.contactNumber
-          },
-          addresses: {
-            current: data.address || personal.address,
-            permanent: data.permanentAddress || personal.permanentAddress,
-            other: personal.presentAddress
-          },
-          description: data.description || personal.description,
-          religion: data.religion || personal.religion,
-          hobbies: data.hobbies ? data.hobbies.split(',').map(item => item.trim()) : [],
-          occupation: data.occupation || personal.occupation,
-          identification: {
-            ...personal.identification,
-            bloodGroup: data.bloodGroup || personal.bloodGroup,
-            maritalStatus: data.maritalStatus || personal.maritalStatus
-          }
-        };
-        
-        sectionData = {
-          personal: personalData
-        }
-      }
-      
-      await handleSave(sectionData)
-      toast.success(`${section} information updated successfully`)
-    } catch (error) {
-      console.error("Error saving section data:", error)
-      toast.error(`Failed to save ${section} information`)
-    } finally {
-      // Reset section loading state
-      setSectionLoading(prev => ({
-        ...prev,
-        [section === 'basic-personal' ? 'basicPersonal' : section]: false
-      }))
-    }
-  }, [formValues, personal, education, profile, handleSave])
 
   const toggleSection = useMemo(() => (section) => {
     try {
@@ -507,55 +410,6 @@ export default function PersonalTab({
     });
   };
 
-  // Add handlers for medical reports
-  const handleAddMedicalReport = useCallback(async (data) => {
-    try {
-      setSectionLoading(prev => ({ ...prev, medicalReports: true }))
-      // Call your API service to add medical report
-      const response = await SettingsService.addMedicalReport(data)
-      // Update medical reports list
-      setMedicalReports(prev => [...prev, response.data])
-      return response.data
-    } catch (error) {
-      console.error("Error adding medical report:", error)
-      throw error
-    } finally {
-      setSectionLoading(prev => ({ ...prev, medicalReports: false }))
-    }
-  }, [])
-
-  const handleUpdateMedicalReport = useCallback(async (id, data) => {
-    try {
-      setSectionLoading(prev => ({ ...prev, medicalReports: true }))
-      // Call your API service to update medical report
-      const response = await SettingsService.updateMedicalReport(id, data)
-      // Update medical reports list
-      setMedicalReports(prev => prev.map(report => 
-        report.id === id ? { ...report, ...response.data } : report
-      ))
-      return response.data
-    } catch (error) {
-      console.error("Error updating medical report:", error)
-      throw error
-    } finally {
-      setSectionLoading(prev => ({ ...prev, medicalReports: false }))
-    }
-  }, [])
-
-  const handleDeleteMedicalReport = useCallback(async (id) => {
-    try {
-      setSectionLoading(prev => ({ ...prev, medicalReports: true }))
-      // Call your API service to delete medical report
-      await SettingsService.deleteMedicalReport(id)
-      // Update medical reports list
-      setMedicalReports(prev => prev.filter(report => report.id !== id))
-    } catch (error) {
-      console.error("Error deleting medical report:", error)
-      throw error
-    } finally {
-      setSectionLoading(prev => ({ ...prev, medicalReports: false }))
-    }
-  }, [])
 
   // Memoized card header component with command menu
   const CardWithCollapse = useMemo(() => ({ 
@@ -672,7 +526,6 @@ export default function PersonalTab({
                 <BasicInfoPersonalSection
                   formValues={formValues}
                   handleChange={handleLocalChange}
-                  handleSave={handleSectionSave}
                   date={date}
                   onDateSelect={handleDateSelect}
                   loading={settingsLoading || sectionLoading.basicPersonal}
@@ -694,7 +547,6 @@ export default function PersonalTab({
                   formValues={education}
                   setFormValues={setFormValues}
                   handleChange={handleLocalChange}
-                  handleSave={handleSectionSave}
                   loading={settingsLoading || sectionLoading.education}
                 />
               </CardWithCollapse>
@@ -713,7 +565,6 @@ export default function PersonalTab({
                 <DocumentsSection
                   formValues={formValues}
                   handleChange={handleLocalChange}
-                  handleSave={handleSectionSave}
                   loading={settingsLoading || sectionLoading.documents}
                 />
               </CardWithCollapse>
@@ -731,7 +582,6 @@ export default function PersonalTab({
               <MedicalSection
                 formValues={formValues}
                 handleChange={handleLocalChange}
-                handleSave={handleSectionSave}
                 loading={settingsLoading || sectionLoading.medical}
                 profile={profile}
               />

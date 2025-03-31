@@ -11,7 +11,7 @@ import { CurrentCare } from './components/current-care';
 import { AdditionalInfo } from './components/additional-info';
 import MedicalReports from './components/medical-reports';
 
-export default function MedicalSection({ profile, handleSave, loading }) {
+export default function MedicalSection({ profile, loading }) {
   const [formValues, setFormValues] = useState({
     medicalHistory: { condition: '', details: '' },
     chronicDiseases: { condition: '', details: '' },
@@ -35,25 +35,29 @@ export default function MedicalSection({ profile, handleSave, loading }) {
 
   // Initialize form values from profile data
   useEffect(() => {
-    if (profile?.medical) {
-      setFormValues({
-        medicalHistory: profile.medical.medicalHistory || { condition: '', details: '' },
-        chronicDiseases: profile.medical.chronicDiseases || { condition: '', details: '' },
-        cancerHistory: profile.medical.cancerHistory || false,
-        cancerType: profile.medical.cancerType || '',
-        allergies: profile.medical.allergies || '',
-        medications: profile.medical.medications || '',
-        bloodGroup: profile.medical.bloodGroup || '',
-        organDonor: profile.medical.organDonor || false,
-        vaccinationRecords: profile.medical.vaccinationRecords || { 'COVID-19': '' },
-        geneticDisorders: profile.medical.geneticDisorders || { condition: '' },
-        disabilities: profile.medical.disabilities || { physical: '', mental: '' },
-        emergencyContact: profile.medical.emergencyContact || '',
-        primaryPhysician: profile.medical.primaryPhysician || '',
-        documents: profile.medical.documents || [],
-        reports: profile.medical.reports || []
-      });
+    if (!profile) {
+      console.warn('Profile data is undefined');
+      return;
     }
+
+    const medicalData = profile?.medical || {};
+    setFormValues({
+      medicalHistory: medicalData.medicalHistory || { condition: '', details: '' },
+      chronicDiseases: medicalData.chronicDiseases || { condition: '', details: '' },
+      cancerHistory: medicalData.cancerHistory || false,
+      cancerType: medicalData.cancerType || '',
+      allergies: medicalData.allergies || '',
+      medications: medicalData.medications || '',
+      bloodGroup: medicalData.bloodGroup || '',
+      organDonor: medicalData.organDonor || false,
+      vaccinationRecords: medicalData.vaccinationRecords || { 'COVID-19': '' },
+      geneticDisorders: medicalData.geneticDisorders || { condition: '' },
+      disabilities: medicalData.disabilities || { physical: '', mental: '' },
+      emergencyContact: medicalData.emergencyContact || '',
+      primaryPhysician: medicalData.primaryPhysician || '',
+      documents: medicalData.documents || [],
+      reports: medicalData.reports || []
+    });
   }, [profile]);
 
   // Track form changes
@@ -69,15 +73,25 @@ export default function MedicalSection({ profile, handleSave, loading }) {
       return;
     }
 
+    if (!profile) {
+      toast.error('Profile data is not available');
+      return;
+    }
+
     setIsSaving(true);
     try {
-      const success = await handleSave(formValues);
-      if (success) {
+      console.log('Submitting form values:', formValues);
+      const response = await SettingsService.updateMedicalInfo(formValues);
+      console.log('API response:', response);
+      if (response.success) {
         toast.success('Medical information updated successfully');
         setHasChanges(false);
+      } else {
+        throw new Error(response.error || 'Failed to update medical information');
       }
     } catch (error) {
-      toast.error('Failed to save changes');
+      console.error('Error saving medical information:', error);
+      toast.error('Failed to save changes: ' + error.message);
     } finally {
       setIsSaving(false);
     }
