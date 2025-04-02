@@ -75,7 +75,6 @@ const initializeFormValues = (rawFormValues) => {
       nickName: '',
       genderIdentity: '',
       age: '',
-      contactNumber: '',
       maritalStatus: '',
       bloodGroup: '',
       religion: '',
@@ -129,7 +128,6 @@ const formatDataForAPI = (data, dateValue) => {
     dateOfBirth: dateValue ? format(dateValue, "yyyy-MM-dd") : null,
     age: data.age,
     description: data.description,
-    contactNumber: data.contactNumber,
     maritalStatus: data.maritalStatus,
     bloodGroup: data.bloodGroup,
     occupation: {
@@ -309,16 +307,20 @@ export default function BasicInfoPersonalSection({
           <label htmlFor="date-of-birth" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
             Date of Birth
           </label>
-          <DatePicker
-            startYear={1900}
-            endYear={new Date().getFullYear()}
-            value={date}
-            onValueChange={(newDate) => {
-              if (newDate) {
-                handleDateSelect(newDate);
-              }
-            }}
-          />
+          <div className="relative w-full">
+            <DatePicker
+              startYear={1900}
+              endYear={new Date().getFullYear()}
+              value={date}
+              onValueChange={(newDate) => {
+                if (newDate) {
+                  handleDateSelect(newDate);
+                }
+              }}
+              className="w-full"
+            />
+            <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          </div>
         </div>
         <div className="grid w-full items-center gap-1.5">
           <label htmlFor="gender" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
@@ -342,21 +344,14 @@ export default function BasicInfoPersonalSection({
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <InputWithIcon
-          icon={User}
-          label="Contact Number"
-          value={localFormValues.contactNumber || ''}
-          onChange={(e) => handleLocalChange('contactNumber', e.target.value)}
-          placeholder="Enter contact number"
-        />
+      <div >
         <div className="grid w-full items-center gap-1.5">
           <label htmlFor="description" className="text-sm font-medium leading-none">
             Description
           </label>
-          <input
+          <textarea
             id="description"
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            className="flex min-h-[90px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={localFormValues.description || ''}
             onChange={(e) => handleLocalChange('description', e.target.value)}
             placeholder="Enter a brief description"

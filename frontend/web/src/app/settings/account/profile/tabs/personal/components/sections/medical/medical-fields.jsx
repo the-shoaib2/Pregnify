@@ -1,5 +1,5 @@
 import React from 'react';
-import { FormFields, TextareaFields, ListFields } from '../components/form-fields';
+import { FormFields, TextareaFields, ListFields } from '../../../../../../../../../components/shared/form-fields';
 import { Heart, Activity, Pill, AlertCircle, FileText } from "lucide-react";
 
 // Constants

@@ -151,16 +151,7 @@ export default function MedicalSection({ profile, loading }) {
         </div>
       </div>
 
-      
-      <div className="space-y-6">
-
-        
-        <MedicalReports reports={formValues.reports} />
-
-
-        <MedicalDocuments documents={formValues.documents} onUpload={handleFileUpload} />
-      </div>
-      <div className="flex justify-end">
+      <div className="flex justify-end pt-8">
         <Button
           type="submit"
           disabled={isSaving || !hasChanges}
@@ -175,6 +166,16 @@ export default function MedicalSection({ profile, loading }) {
             </>
           )}
         </Button>
+      </div>
+
+      
+      <div className="space-y-6">
+
+        
+        <MedicalReports reports={formValues.reports} />
+
+
+        <MedicalDocuments documents={formValues.documents} onUpload={handleFileUpload} />
       </div>
     </form>
   );

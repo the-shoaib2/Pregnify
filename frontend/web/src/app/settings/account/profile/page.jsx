@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react"
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react"
 import { useAuth } from "@/contexts/auth-context/auth-context"
 import { useSettings } from "@/contexts/settings-context/settings-context"
 import { ProfileSkeleton } from "./components/profile-skeleton"

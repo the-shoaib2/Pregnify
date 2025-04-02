@@ -12,6 +12,24 @@ const PERSONAL_ENDPOINTS = {
   GET_PROFILE: '/account/profile/personal',
   UPDATE_BASIC_INFO: '/account/profile/personal/basic',
   
+  // Contact endpoints
+  GET_CONTACT: '/account/profile/contact',
+  CONTACT_NUMBERS: {
+    CREATE: '/account/profile/contact/numbers',
+    UPDATE: (id) => `/account/profile/contact/numbers/${id}`,
+    DELETE: (id) => `/account/profile/contact/numbers/${id}`
+  },
+  ADDRESSES: {
+    CREATE: '/account/profile/contact/addresses',
+    UPDATE: (id) => `/account/profile/contact/addresses/${id}`,
+    DELETE: (id) => `/account/profile/contact/addresses/${id}`
+  },
+  WEBSITES: {
+    CREATE: '/account/profile/contact/websites',
+    UPDATE: (id) => `/account/profile/contact/websites/${id}`,
+    DELETE: (id) => `/account/profile/contact/websites/${id}`
+  },
+  
   // Education endpoints
   GET_EDUCATION: '/account/profile/personal/education',
   ADD_EDUCATION: '/account/profile/personal/education',
@@ -584,5 +602,111 @@ export const SettingsService = {
       const errorMessage = handleApiError(error);
       throw new Error(errorMessage);
     }
-  }
+  },
+
+  // Contact Information Methods
+  getContact: memoize(async (refresh = false) => {
+    try {
+      const cachedData = await CacheManager.get(CACHE_KEY, PERSONAL_ENDPOINTS.GET_CONTACT);
+      if (!refresh && cachedData) {
+        return cachedData;
+      }
+      const response = await api.get(PERSONAL_ENDPOINTS.GET_CONTACT);
+      await CacheManager.set(CACHE_KEY, PERSONAL_ENDPOINTS.GET_CONTACT, response.data, CACHE_DURATION);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  }),
+
+  createContactNumber: async (data) => {
+    try {
+      const response = await api.post(PERSONAL_ENDPOINTS.CONTACT_NUMBERS.CREATE, data);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
+  updateContactNumber: async (id, data) => {
+    try {
+      const response = await api.put(PERSONAL_ENDPOINTS.CONTACT_NUMBERS.UPDATE(id), data);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
+  deleteContactNumber: async (id) => {
+    try {
+      const response = await api.delete(PERSONAL_ENDPOINTS.CONTACT_NUMBERS.DELETE(id));
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
+  createAddress: async (data) => {
+    try {
+      const response = await api.post(PERSONAL_ENDPOINTS.ADDRESSES.CREATE, data);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
+  updateAddress: async (id, data) => {
+    try {
+      const response = await api.put(PERSONAL_ENDPOINTS.ADDRESSES.UPDATE(id), data);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
+  deleteAddress: async (id) => {
+    try {
+      const response = await api.delete(PERSONAL_ENDPOINTS.ADDRESSES.DELETE(id));
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
+  createWebsite: async (data) => {
+    try {
+      const response = await api.post(PERSONAL_ENDPOINTS.WEBSITES.CREATE, data);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
+  updateWebsite: async (id, data) => {
+    try {
+      const response = await api.put(PERSONAL_ENDPOINTS.WEBSITES.UPDATE(id), data);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
+
+  deleteWebsite: async (id) => {
+    try {
+      const response = await api.delete(PERSONAL_ENDPOINTS.WEBSITES.DELETE(id));
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
+    }
+  },
 }

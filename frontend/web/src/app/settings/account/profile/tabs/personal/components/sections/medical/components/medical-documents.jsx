@@ -7,10 +7,10 @@ import {
 } from "@/components/ui/card";
 import { FileText, ChevronUp, ChevronDown } from "lucide-react";
 import { format } from 'date-fns';
-import Section from '../../components/section';
-import ItemFormDialog from '../../components/item-form';
+import Section from '../../../../../../../../../../components/shared/section';
+import ItemFormDialog from '../../../../../../../../../../components/shared/item-form';
 import MedicalReportsFormFields from '../medical-reports-fields';
-import { createServiceAdapter } from '../../components/service-adapter';
+import { createServiceAdapter } from '../../../../../../../../../../components/shared/service-adapter';
 import { SettingsService } from '@/services/settings/account/personal';
 import {
   Collapsible,

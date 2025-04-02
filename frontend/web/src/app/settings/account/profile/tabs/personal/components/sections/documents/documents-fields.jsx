@@ -1,5 +1,5 @@
 import React from 'react';
-import { FormFields } from '../components/form-fields';
+import { FormFields } from '../../../../../../../../../components/shared/form-fields';
 import { IdCard, Flag, CalendarIcon } from "lucide-react";
 
 export default function DocumentsFormFields({ formValues, handleChange }) {

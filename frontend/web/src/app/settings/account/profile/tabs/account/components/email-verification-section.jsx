@@ -50,18 +50,18 @@ const EmailVerificationSection = memo(({
               {basicInfo?.email || 'No email set'}
             </p>
             {basicInfo?.isEmailVerified ? (
-              <Badge className="flex items-center gap-1 p-1 px-2 text-green-500 border-green-200 bg-green-50 dark:bg-green-950/30 dark:border-green-800">
-                <CheckCircle2 className="h-3 w-3" />
-                Verified
-              </Badge>
+            <Badge className="flex items-center gap-1 p-1 px-2 text-green-500 border-green-200 bg-green-50 dark:bg-green-950/30 dark:border-green-800">
+              <CheckCircle2 className="h-3 w-3" />
+              Verified
+            </Badge>
             ) : basicInfo?.email ? (
-              <Badge className="flex items-center gap-1 p-1 px-2 text-amber-500 border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800">
-                <AlertCircle className="h-3 w-3" />
-                Unverified
-              </Badge>
-            ) : null}
+            <Badge className="flex items-center gap-1 p-1 px-2 text-amber-500 border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800">
+              <AlertCircle className="h-3 w-3" />
+              Unverified
+            </Badge>
+          ) : null}
           </div>
-          
+
           {basicInfo?.email && !basicInfo?.isEmailVerified && (
             <Dialog open={verificationDialogOpen} onOpenChange={setVerificationDialogOpen}>
               <DialogTrigger asChild>
@@ -255,12 +255,6 @@ const EmailVerificationSection = memo(({
                 )}
               </DialogContent>
             </Dialog>
-          )}
-          
-          {basicInfo?.email && !basicInfo?.isEmailVerified && (
-            <p className="text-xs text-muted-foreground mt-2">
-              We'll send a verification link or code to your email address
-            </p>
           )}
         </div>
       </div>

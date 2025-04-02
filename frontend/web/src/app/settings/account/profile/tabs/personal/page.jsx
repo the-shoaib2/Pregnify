@@ -51,7 +51,7 @@ const EducationSection = lazy(() => {
 
 const MedicalSection = lazy(() => {
   // Preload the component
-  return import("./components/sections/medical/medical")
+  return import("./components/sections/medical/page")
 })
 
 
@@ -67,7 +67,7 @@ const preloadSectionComponents = () => {
     import("./components/sections/personal-info/page"),
     import("./components/sections/documents/documents"),
     import("./components/sections/education/education"),
-    import("./components/sections/medical/medical"),
+    import("./components/sections/medical/page"),
   ]
   
   // Execute all preloads

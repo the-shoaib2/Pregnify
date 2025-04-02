@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { SettingsService } from '@/services/settings/account/personal'
-import Section from '../components/section'
-import ItemFormDialog from '../components/item-form'
+import Section from '../../../../../../../../../components/shared/section'
+import ItemFormDialog from '../../../../../../../../../components/shared/item-form'
 import EducationFormFields from './education-fields'
-import { createServiceAdapter } from '../components/service-adapter'
+import { createServiceAdapter } from '../../../../../../../../../components/shared/service-adapter'
 
 export default function EducationSection({ formValues, handleChange, handleSave, loading }) {
     // Create a service adapter for the education API

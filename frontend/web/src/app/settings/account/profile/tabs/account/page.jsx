@@ -158,6 +158,8 @@ export default function AccountTab({ profile, handleSave, settingsLoading }) {
   // Use the profile data passed as props instead of fetching it from useAuth
   const profileData = profile || {}
 
+  
+
   // Collapsible state
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -165,21 +167,21 @@ export default function AccountTab({ profile, handleSave, settingsLoading }) {
   const basicInfo = useMemo(() => profileData?.basicInfo || {}, [profileData]);
   const accountStatus = useMemo(() => profileData?.accountStatus || {}, [profileData]);
   const personal = useMemo(() => {
-    // Handle both nested and flat structures
-    if (profileData?.personal?.[0]) {
-      return profileData.personal[0];
-    } else if (profileData?.personal?.['0']) {
-      return profileData.personal['0'];
+    // Handle the nested structure correctly
+    if (profileData?.personal) {
+      return profileData.personal;
     }
     return {};
   }, [profileData]);
-  
+
   // Create a local state for form values
   const [formValues, setFormValues] = useState(() => ({
     username: basicInfo?.username || "",
     email: basicInfo?.email || "",
-    phoneNumber: personal?.contactNumber || ""
+    phoneNumber: personal?.contact?.phone?.[0]?.number || ""
   }));
+
+  console.log('Personal data:', personal);
   
   // Verification states
   const [verificationDialogOpen, setVerificationDialogOpen] = useState(false);
@@ -199,7 +201,7 @@ export default function AccountTab({ profile, handleSave, settingsLoading }) {
       setFormValues({
         username: basicInfo?.username || "",
         email: basicInfo?.email || "",
-        phoneNumber: personal?.contactNumber || "",
+        phoneNumber: personal?.contact?.phone?.[0]?.number || "",
       });
       setIsDirty(false);
     }

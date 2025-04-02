@@ -1,5 +1,5 @@
 import React from 'react';
-import { FormFields, TextareaFields } from '../components/form-fields';
+import { FormFields, TextareaFields } from '../../../../../../../../../components/shared/form-fields';
 import { GraduationCap, BookOpen, Award, School, Calendar } from "lucide-react";
 
 export default function EducationFormFields({ formValues, handleChange }) {

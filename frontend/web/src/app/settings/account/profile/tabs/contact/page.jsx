@@ -6,22 +6,10 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "@/components/ui/card"
-import { 
-  Phone,
-  Save,
-  Loader2,
-  CheckCircle2,
-  AlertCircle,
-  Info,
-  ChevronUp,
-  ChevronDown,
-  FileText,
-  Copy
-} from "lucide-react"
 import { InputWithIcon } from "@/components/input-with-icon"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "react-hot-toast"
@@ -30,303 +18,762 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import WebsiteList from "./components/websites/website-list";
+import { FormFields } from "@/components/shared/form-fields";
+import { PhoneNumberForm } from "./components/phone-number-form";
+import WebsiteForm from "./components/websites/website-form";
+import { CheckCircle2, AlertCircle, Info, ChevronUp, ChevronDown, FileText, Copy, Plus, Pencil, Trash2, Globe, Phone } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Loader2 } from "lucide-react"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { SettingsService } from "@/services/settings/account/personal";
+import { AddressForm } from "./components/address-form";
 
-const AddressSection = ({ title, addressKey, values, onChange, copyFromPresent }) => {
-  return (
-    <>
-      {copyFromPresent && (
-        <div className="flex items-center justify-between mt-6">
-          <h3 className="text-md font-medium">{title}</h3>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-8 text-xs"
-            onClick={copyFromPresent}
-          >
-            <Copy className="mr-2 h-3 w-3" />
-            Same as Present Address
-          </Button>
-        </div>
-      )}
-      {!copyFromPresent && <h3 className="text-md font-medium mt-4">{title}</h3>}
-      
-      <div className="grid gap-4 md:grid-cols-2">
-        <InputWithIcon
-          icon={FileText}
-          label="Street"
-          value={values?.street || ''}
-          onChange={(e) => onChange(`${addressKey}.street`, e.target.value)}
-          placeholder="Enter street"
-        />
-        <InputWithIcon
-          icon={FileText}
-          label="City"
-          value={values?.city || ''}
-          onChange={(e) => onChange(`${addressKey}.city`, e.target.value)}
-          placeholder="Enter city"
-        />
-      </div>
-      <div className="grid gap-4 md:grid-cols-3">
-        <InputWithIcon
-          icon={FileText}
-          label="State"
-          value={values?.state || ''}
-          onChange={(e) => onChange(`${addressKey}.state`, e.target.value)}
-          placeholder="Enter state"
-        />
-        <InputWithIcon
-          icon={FileText}
-          label="Country"
-          value={values?.country || ''}
-          onChange={(e) => onChange(`${addressKey}.country`, e.target.value)}
-          placeholder="Enter country"
-        />
-        <InputWithIcon
-          icon={FileText}
-          label="ZIP Code"
-          value={values?.zipCode || ''}
-          onChange={(e) => onChange(`${addressKey}.zipCode`, e.target.value)}
-          placeholder="Enter ZIP code"
-        />
-      </div>
-    </>
-  );
-};
 
 export default function ContactTab({ profile, formData, handleChange, handleSave, settingsLoading, updateSettings }) {
   // Local form state - updated to include address fields
   const [localForm, setLocalForm] = useState({
-    phoneNumber: "",
-    address: {},
-    presentAddress: {},
-    permanentAddress: {},
-    nationality: ""
+    phoneNumbers: [],
+    address: {
+      street: "",
+      city: "",
+      state: "",
+      country: "",
+      zipCode: ""
+    },
+    presentAddress: {
+      street: "",
+      city: "",
+      state: "",
+      country: "",
+      zipCode: ""
+    },
+    permanentAddress: {
+      street: "",
+      city: "",
+      state: "",
+      country: "",
+      zipCode: ""
+    },
+    nationality: "",
+    websites: []
   });
 
   // Track form changes
   const [isDirty, setIsDirty] = useState(false);
 
+  // Function to mask phone numbers
+  const maskPhoneNumber = (number) => {
+    if (!number) return '';
+    console.log('Masking phone number:', number);
+    // Keep only the last 4 digits visible
+    const visibleDigits = number.slice(-4);
+    const maskedPart = '•'.repeat(number.length - 4);
+    const masked = maskedPart + visibleDigits;
+    console.log('Masked phone number:', masked);
+    return masked;
+  };
+
   // Initialize form with data
   useEffect(() => {
+    console.log('Profile data received:', profile);
+
     if (profile?.personal?.[0]) {
       const personal = profile.personal[0];
+      const contact = personal.contact || {};
+      const addresses = personal.addresses || [];
+      const websites = personal.websites || [];
+
+      // Process addresses
+      const currentAddress = addresses.find(addr => addr.type === 'CURRENT')?.details || {};
+      const presentAddress = addresses.find(addr => addr.type === 'PRESENT')?.details || {};
+      const permanentAddress = addresses.find(addr => addr.type === 'PERMANENT')?.details || {};
+
+      // Process phone numbers
+      const phoneNumbers = Array.isArray(contact.phone)
+        ? contact.phone.map(phone => ({
+          id: phone.id || Date.now().toString(),
+          number: phone.number || '',
+          isPrimary: phone.isPrimary || false,
+          isVerified: phone.isVerified || false
+        }))
+        : [];
+
+      // Process websites
+      const processedWebsites = Array.isArray(websites)
+        ? websites.map(website => ({
+          id: website.id || Date.now().toString(),
+          category: website.category || '',
+          name: website.name || '',
+          url: website.url || '',
+          username: website.username || ''
+        }))
+        : [];
+
+      console.log('Raw phone numbers:', phoneNumbers);
+      console.log('Raw websites:', processedWebsites);
+
       setLocalForm({
-        phoneNumber: personal.contact?.phone || "",
+        phoneNumbers,
         address: {
-          street: personal.addresses?.current?.street || "",
-          city: personal.addresses?.current?.city || "",
-          state: personal.addresses?.current?.state || "",
-          country: personal.addresses?.current?.country || "",
-          zipCode: personal.addresses?.current?.zipCode || ""
+          street: currentAddress.street || "",
+          city: currentAddress.city || "",
+          state: currentAddress.state || "",
+          country: currentAddress.country || "",
+          zipCode: currentAddress.postalCode || ""
         },
         presentAddress: {
-          street: personal.addresses?.present?.street || "",
-          city: personal.addresses?.present?.city || "",
-          state: personal.addresses?.present?.state || "",
-          country: personal.addresses?.present?.country || "",
-          zipCode: personal.addresses?.present?.zipCode || ""
+          street: presentAddress.street || "",
+          city: presentAddress.city || "",
+          state: presentAddress.state || "",
+          country: presentAddress.country || "",
+          zipCode: presentAddress.postalCode || ""
         },
         permanentAddress: {
-          street: personal.addresses?.permanent?.street || "",
-          city: personal.addresses?.permanent?.city || "",
-          state: personal.addresses?.permanent?.state || "",
-          country: personal.addresses?.permanent?.country || "",
-          zipCode: personal.addresses?.permanent?.zipCode || ""
+          street: permanentAddress.street || "",
+          city: permanentAddress.city || "",
+          state: permanentAddress.state || "",
+          country: permanentAddress.country || "",
+          zipCode: permanentAddress.postalCode || ""
         },
-        nationality: personal.origin?.nationality || ""
+        nationality: personal.origin?.nationality || "",
+        websites: processedWebsites
+      });
+      setIsDirty(false);
+    } else if (profile?.personal) {
+      // Handle case where personal is not an array
+      const contact = profile.personal.contact || {};
+      const addresses = profile.personal.addresses || [];
+      const websites = profile.personal.websites || [];
+
+      const currentAddress = addresses.find(addr => addr.type === 'CURRENT')?.details || {};
+      const presentAddress = addresses.find(addr => addr.type === 'PRESENT')?.details || {};
+      const permanentAddress = addresses.find(addr => addr.type === 'PERMANENT')?.details || {};
+
+      const phoneNumbers = Array.isArray(contact.phone)
+        ? contact.phone.map(phone => ({
+          id: phone.id || Date.now().toString(),
+          number: phone.number || '',
+          isPrimary: phone.isPrimary || false,
+          isVerified: phone.isVerified || false
+        }))
+        : [];
+
+      const processedWebsites = Array.isArray(websites)
+        ? websites.map(website => ({
+          id: website.id || Date.now().toString(),
+          category: website.category || '',
+          name: website.name || '',
+          url: website.url || '',
+          username: website.username || ''
+        }))
+        : [];
+
+      setLocalForm({
+        phoneNumbers,
+        address: {
+          street: currentAddress.street || "",
+          city: currentAddress.city || "",
+          state: currentAddress.state || "",
+          country: currentAddress.country || "",
+          zipCode: currentAddress.postalCode || ""
+        },
+        presentAddress: {
+          street: presentAddress.street || "",
+          city: presentAddress.city || "",
+          state: presentAddress.state || "",
+          country: presentAddress.country || "",
+          zipCode: presentAddress.postalCode || ""
+        },
+        permanentAddress: {
+          street: permanentAddress.street || "",
+          city: permanentAddress.city || "",
+          state: permanentAddress.state || "",
+          country: permanentAddress.country || "",
+          zipCode: permanentAddress.postalCode || ""
+        },
+        nationality: profile.personal.origin?.nationality || "",
+        websites: processedWebsites
       });
       setIsDirty(false);
     }
   }, [profile]);
 
-  // Collapsible state
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  // Function to mask email
+  const maskEmail = (email) => {
+    if (!email) return '';
+    console.log('Masking email:', email);
+    const atIndex = email.indexOf('@');
+    if (atIndex === -1) return email;
+    const firstPart = email.substring(0, atIndex);
+    const lastPart = email.substring(atIndex);
+    const maskedFirst = firstPart[0] + '•'.repeat(firstPart.length - 2) + firstPart[firstPart.length - 1];
+    const masked = maskedFirst + lastPart;
+    console.log('Masked email:', masked);
+    return masked;
+  };
 
-  // Enhanced handleLocalChange to handle nested objects
-  const handleLocalChange = (field, value) => {
-    if (field.includes('.')) {
-      const [parent, child] = field.split('.');
-      setLocalForm(prev => ({
-        ...prev,
-        [parent]: {
-          ...prev[parent],
-          [child]: value
-        }
-      }));
-    } else {
-      setLocalForm(prev => ({
-        ...prev,
-        [field]: value
-      }));
-    }
+  // Handle form changes
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setLocalForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
     setIsDirty(true);
   };
 
-  // Phone number validation
-  const validatePhoneNumber = (phone) => {
-    const phoneRegex = /^\+?[1-9]\d{1,14}$/;
-    return phoneRegex.test(phone);
-  };
-
-  // Handle form submission
-  const handleSubmit = () => {
-    if (!isDirty) {
-      toast.info("No changes to save");
-      return;
-    }
-
-    const data = {
-      personal: {
-        contactNumber: localForm.phoneNumber,
-        address: localForm.address,
-        presentAddress: localForm.presentAddress,
-        permanentAddress: localForm.permanentAddress,
-        nationality: localForm.nationality
+  // Handle address changes
+  const handleAddressChange = (addressKey, name, value) => {
+    setLocalForm(prev => ({
+      ...prev,
+      [addressKey]: {
+        ...prev[addressKey],
+        [name]: value
       }
-    };
-
-    handleSave(data);
+    }));
+    setIsDirty(true);
   };
 
-  // Memoize the address fields
-  const AddressFields = useMemo(() => (
-    <div className="space-y-4 mt-6">
-      <AddressSection 
-        title="Current Address"
-        addressKey="address"
-        values={localForm.address}
-        onChange={handleLocalChange}
-      />
-      
-      <AddressSection 
-        title="Present Address"
-        addressKey="presentAddress"
-        values={localForm.presentAddress}
-        onChange={handleLocalChange}
-        copyFromPresent={() => {
-          handleLocalChange('presentAddress', {
-            ...localForm.address
-          });
-        }}
-      />
-      
-      <AddressSection 
-        title="Permanent Address"
-        addressKey="permanentAddress"
-        values={localForm.permanentAddress}
-        onChange={handleLocalChange}
-        copyFromPresent={() => {
-          handleLocalChange('permanentAddress', {
-            ...localForm.presentAddress
-          });
-        }}
-      />
-    </div>
-  ), [localForm.address, localForm.presentAddress, localForm.permanentAddress, handleLocalChange]);
+  // Handle address save
+  const handleAddressSave = async (address, addressKey) => {
+    try {
+      const response = await SettingsService.updateAddress(addressKey, address);
+      if (response.success) {
+        toast.success(`${addressKey.replace('Address', '')} address saved successfully`);
+        setLocalForm(prev => ({
+          ...prev,
+          [addressKey]: address
+        }));
+        setIsDirty(true);
+      }
+    } catch (error) {
+      toast.error('Failed to save address');
+      console.error('Error saving address:', error);
+    }
+  };
 
+  // State for phone number dialog
+  const [isPhoneDialogOpen, setIsPhoneDialogOpen] = useState(false);
+  const [selectedPhone, setSelectedPhone] = useState(null);
+
+  // Handle phone number edit
+  const handleEditPhone = (phone) => {
+    console.log('Editing phone:', phone);
+    setSelectedPhone(phone);
+    setIsPhoneDialogOpen(true);
+  };
+
+  // Handle phone number form submission
+  const handlePhoneSave = async (data) => {
+    try {
+      if (selectedPhone) {
+        // Update existing phone number
+        const response = await SettingsService.updateContactNumber(selectedPhone.id, {
+          number: data.number,
+          isPrimary: data.isPrimary,
+          isVerified: data.isVerified
+        });
+        if (response.success) {
+          setLocalForm(prev => ({
+            ...prev,
+            phoneNumbers: prev.phoneNumbers.map(phone =>
+              phone.id === selectedPhone.id ? {
+                ...phone,
+                number: data.number,
+                isPrimary: data.isPrimary,
+                isVerified: data.isVerified
+              } : phone
+            )
+          }));
+          toast.success('Phone number updated successfully');
+        }
+      } else {
+        // Create new phone number
+        const response = await SettingsService.createContactNumber({
+          number: data.number,
+          isPrimary: data.isPrimary,
+          isVerified: data.isVerified
+        });
+        if (response.success) {
+          setLocalForm(prev => ({
+            ...prev,
+            phoneNumbers: [...prev.phoneNumbers, {
+              id: response.data.id,
+              number: data.number,
+              isPrimary: data.isPrimary,
+              isVerified: data.isVerified
+            }]
+          }));
+          toast.success('Phone number added successfully');
+        }
+      }
+      setIsDirty(true);
+    } catch (error) {
+      toast.error('Failed to save phone number');
+      console.error('Error saving phone number:', error);
+    } finally {
+      setSelectedPhone(null);
+      setIsPhoneDialogOpen(false);
+    }
+  };
+
+  // Handle phone number delete
+  const [deleteItemId, setDeleteItemId] = React.useState(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+  const [deleteType, setDeleteType] = React.useState(null);
+
+  const handleDeleteConfirmation = (id, type) => {
+    setDeleteItemId(id);
+    setDeleteType(type);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    try {
+      if (deleteType === 'phone') {
+        await SettingsService.deleteContactNumber(deleteItemId);
+        setLocalForm(prev => ({
+          ...prev,
+          phoneNumbers: prev.phoneNumbers.filter(phone => phone.id !== deleteItemId)
+        }));
+        toast.success('Phone number deleted successfully');
+      } else if (deleteType === 'website') {
+        await SettingsService.deleteWebsite(deleteItemId);
+        setLocalForm(prev => ({
+          ...prev,
+          websites: prev.websites.filter(website => website.id !== deleteItemId)
+        }));
+        toast.success('Website deleted successfully');
+      }
+      setIsDirty(true);
+    } catch (error) {
+      toast.error('Failed to delete item');
+      console.error('Error deleting item:', error);
+    } finally {
+      setIsDeleteDialogOpen(false);
+    }
+  };
+
+  // State for website dialog
+  const [isWebsiteDialogOpen, setIsWebsiteDialogOpen] = useState(false);
+  const [selectedWebsite, setSelectedWebsite] = useState(null);
+
+  // Handle website form submission
+  const handleWebsiteSave = async (data) => {
+    try {
+      if (selectedWebsite) {
+        // Update existing website
+        const response = await SettingsService.updateWebsite(selectedWebsite.id, {
+          category: data.category,
+          name: data.name,
+          url: data.url,
+          username: data.username
+        });
+        if (response.success) {
+          setLocalForm(prev => ({
+            ...prev,
+            websites: prev.websites.map(website =>
+              website.id === selectedWebsite.id ? {
+                ...website,
+                category: data.category,
+                name: data.name,
+                url: data.url,
+                username: data.username
+              } : website
+            )
+          }));
+          toast.success('Website updated successfully');
+        }
+      } else {
+        // Create new website
+        const response = await SettingsService.createWebsite({
+          category: data.category,
+          name: data.name,
+          url: data.url,
+          username: data.username
+        });
+        if (response.success) {
+          setLocalForm(prev => ({
+            ...prev,
+            websites: [...prev.websites, {
+              id: response.data.id,
+              category: data.category,
+              name: data.name,
+              url: data.url,
+              username: data.username
+            }]
+          }));
+          toast.success('Website added successfully');
+        }
+      }
+      setIsDirty(true);
+    } catch (error) {
+      toast.error('Failed to save website');
+      console.error('Error saving website:', error);
+    } finally {
+      setSelectedWebsite(null);
+      setIsWebsiteDialogOpen(false);
+    }
+  };
+
+  // Handle website edit
+  const handleEditWebsite = (website) => {
+    console.log('Editing website:', website);
+    setSelectedWebsite(website);
+    setIsWebsiteDialogOpen(true);
+  };
+
+  // Handle website delete
+  const handleDeleteWebsite = (websiteId) => {
+    handleDeleteConfirmation(websiteId, 'website');
+  };
+
+  // Handle save operation
+  const handleLocalSave = async () => {
+    console.log('Saving form:', localForm);
+    try {
+      // Prepare addresses data
+      const addresses = [
+        {
+          type: 'CURRENT',
+          details: localForm.address
+        },
+        {
+          type: 'PRESENT',
+          details: localForm.presentAddress
+        },
+        {
+          type: 'PERMANENT',
+          details: localForm.permanentAddress
+        }
+      ];
+
+      // Prepare contact data
+      const contactData = {
+        phone: localForm.phoneNumbers.map(phone => ({
+          id: phone.id,
+          number: phone.number,
+          isPrimary: phone.isPrimary,
+          isVerified: phone.isVerified
+        })),
+        addresses,
+        origin: {
+          nationality: localForm.nationality
+        },
+        websites: localForm.websites.map(website => ({
+          id: website.id,
+          category: website.category,
+          name: website.name,
+          url: website.url,
+          username: website.username
+        }))
+      };
+
+      // Update contact information
+      const response = await SettingsService.updateContact(contactData);
+      if (response.success) {
+        setIsDirty(false);
+        toast.success('Contact information updated successfully');
+      }
+    } catch (error) {
+      console.error('Save error:', error);
+      toast.error('Failed to update contact information');
+    }
+  };
+
+  // Render the form
   return (
-    <Card className="animate-in fade-in duration-300 relative">
-      <Collapsible open={!isCollapsed} onOpenChange={() => setIsCollapsed(!isCollapsed)}>
-        <div className="absolute right-4 top-4 flex items-center gap-2 z-10">
-          <CollapsibleTrigger asChild>
+    <div className="space-y-6">
+      {/* Phone Numbers */}
+      <Card className="hover:shadow-sm transition-shadow">
+        <CardHeader className="border-b">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">Phone Numbers</CardTitle>
+              <CardDescription className="mt-1">Add or edit your phone numbers</CardDescription>
+            </div>
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="h-8 w-8 p-0"
+              onClick={() => setIsPhoneDialogOpen(true)}
+              className="gap-1.5"
             >
-              {!isCollapsed ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
+              <Plus className="h-4 w-4" />
+              Add Number
             </Button>
-          </CollapsibleTrigger>
-        </div>
-
-        <CardHeader className="space-y-2 sm:space-y-1">
-          <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-            <Phone className="h-5 w-5 text-primary" />
-            Contact Information
-          </CardTitle>
-          <CardDescription className="flex items-center gap-2 text-xs sm:text-sm">
-            <Info className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
-            Manage your contact details and verification status
-          </CardDescription>
+          </div>
         </CardHeader>
-
-        <CollapsibleContent>
-          <CardContent className="space-y-6 sm:space-y-8">
-            {/* Phone Number Section */}
-            <div className="space-y-3 sm:space-y-4">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <Label className="text-sm sm:text-base font-medium">Phone Number</Label>
-                {profile?.personal?.[0]?.isPhoneVerified && (
-                  <Badge variant="success" className="h-5 sm:h-6 px-2 flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                    Verified
-                  </Badge>
-                )}
-              </div>
-              
-              <div className="grid gap-3">
-                <div className="relative">
-                  <InputWithIcon
-                    icon={Phone}
-                    value={localForm.phoneNumber}
-                    onChange={(e) => handleLocalChange('phoneNumber', e.target.value)}
-                    placeholder="+1 (555) 123-4567"
-                    className={`h-9 sm:h-10 ${!validatePhoneNumber(localForm.phoneNumber) && localForm.phoneNumber ? 'border-destructive' : ''}`}
-                  />
+        <CardContent className="p-4 space-y-3">
+          {localForm.phoneNumbers.length > 0 ? (
+            localForm.phoneNumbers.map((phone) => (
+              <div key={phone.id || phone.number} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-background rounded-lg">
+                    <Phone className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-base">{phone.number}</p>
+                    <div className="flex items-center space-x-2 mt-1.5">
+                      <Badge variant={phone.isPrimary ? "warning" : "secondary"} size="sm" className="font-medium">
+                        {phone.isPrimary ? "Primary" : "Secondary"}
+                      </Badge>
+                      <Badge variant={phone.isVerified ? "success" : "default"} size="sm" className="font-medium">
+                        {phone.isVerified ? "Verified" : "Unverified"}
+                      </Badge>
+                    </div>
+                  </div>
                 </div>
-                {!validatePhoneNumber(localForm.phoneNumber) && localForm.phoneNumber && (
-                  <p className="text-xs text-destructive flex items-center gap-1 -mt-1.5">
-                    <AlertCircle className="h-3 w-3" />
-                    Please enter a valid phone number
-                  </p>
-                )}
+                <div className="flex items-center space-x-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEditPhone(phone)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeleteConfirmation(phone.id, 'phone')}
+                    className="h-8 w-8 p-0 text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
+            ))
+          ) : (
+            <div className="flex flex-col items-center justify-center p-6 space-y-3 text-center">
+              <Phone className="h-8 w-8 text-muted-foreground" />
+              <p className="text-muted-foreground">No phone numbers added yet</p>
             </div>
+          )}
+        </CardContent>
+      </Card>
 
-            {/* Address Section */}
-            {AddressFields}
+      {/* Phone Number Dialog */}
+      <PhoneNumberForm
+        isOpen={isPhoneDialogOpen}
+        onClose={() => {
+          setIsPhoneDialogOpen(false);
+          setSelectedPhone(null);
+        }}
+        onSave={handlePhoneSave}
+        initialData={selectedPhone || { number: "", isPrimary: false, isVerified: false }}
+      />
 
-          </CardContent>
-
-          <CardFooter className="flex flex-col-reverse sm:flex-row items-center justify-between border-t pt-4 sm:pt-6 gap-3 sm:gap-4">
-            <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground w-full sm:w-auto text-center sm:text-left">
-              <Info className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-              {settingsLoading ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
-                  Saving changes...
-                </span>
-              ) : isDirty ? (
-                "You have unsaved changes"
-              ) : (
-                "All changes are saved"
-              )}
+      {/* Websites */}
+      <Card>
+        <CardHeader className="border-b">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">Websites</CardTitle>
+              <CardDescription className="mt-1">Add or edit your websites</CardDescription>
             </div>
-            <Button 
-              onClick={handleSubmit}
-              disabled={settingsLoading || !isDirty}
-              className="w-full sm:w-auto h-9 sm:h-10 text-sm"
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsWebsiteDialogOpen(true)}
+              className="gap-1.5"
             >
-              {settingsLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
-                  Saving Changes...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  Save Changes
-                </>
-              )}
+              <Plus className="h-4 w-4" />
+              Add Website
             </Button>
-          </CardFooter>
-        </CollapsibleContent>
-      </Collapsible>
-    </Card>
-  )
+          </div>
+        </CardHeader>
+        <CardContent className="p-4 space-y-3">
+          {localForm.websites.length > 0 ? (
+            localForm.websites.map((website) => (
+              <div key={website.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-background rounded-lg">
+                    <Globe className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-base">{website.name}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{website.url}</p>
+                    <div className="flex items-center space-x-2 mt-1.5">
+                      <Badge variant="secondary" size="sm" className="font-medium">
+                        {website.category}
+                      </Badge>
+                      {website.username && (
+                        <Badge variant="outline" size="sm" className="font-medium">
+                          @{website.username}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEditWebsite(website)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeleteConfirmation(website.id, 'website')}
+                    className="h-8 w-8 p-0 text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="flex flex-col items-center justify-center p-6 space-y-3 text-center">
+              <Globe className="h-8 w-8 text-muted-foreground" />
+              <p className="text-muted-foreground">No websites added yet</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Addresses */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Addresses</CardTitle>
+          <CardDescription>Manage your residential and contact addresses</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            {/* Current Address */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-md font-medium">Current Address</h3>
+                  <p className="text-sm text-muted-foreground">Your current residential address</p>
+                </div>
+              </div>
+              <AddressForm
+                initialData={{
+                  ...localForm.address,
+                  nationality: localForm.nationality
+                }}
+                onSubmit={(address) => {
+                  handleAddressSave(address, 'address');
+                  handleFormChange({ target: { name: 'nationality', value: address.nationality } });
+                }}
+                copyFromPresent={false}
+              />
+            </div>
+
+            {/* Present Address */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-md font-medium">Present Address</h3>
+                  <p className="text-sm text-muted-foreground">Your current work or living address</p>
+                </div>
+              </div>
+              <AddressForm
+                initialData={{
+                  ...localForm.presentAddress,
+                  nationality: localForm.nationality
+                }}
+                onSubmit={(address) => {
+                  handleAddressSave(address, 'presentAddress');
+                  handleFormChange({ target: { name: 'nationality', value: address.nationality } });
+                }}
+                copyFromPresent={false}
+              />
+            </div>
+
+            {/* Permanent Address */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-md font-medium">Permanent Address</h3>
+                  <p className="text-sm text-muted-foreground">Your permanent home address</p>
+                </div>
+              </div>
+              <AddressForm
+                initialData={{
+                  ...localForm.permanentAddress,
+                  nationality: localForm.nationality
+                }}
+                onSubmit={(address) => {
+                  handleAddressSave(address, 'permanentAddress');
+                  handleFormChange({ target: { name: 'nationality', value: address.nationality } });
+                }}
+                copyFromPresent={true}
+                presentAddress={localForm.presentAddress}
+              />
+            </div>
+            {/* Nationality */}
+            <div className="mt-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-md font-medium">Nationality</h3>
+                  <p className="text-sm text-muted-foreground">Your country of origin</p>
+                </div>
+              </div>
+              <InputWithIcon
+                icon={Info}
+                label="Nationality"
+                value={localForm.nationality}
+                onChange={(e) => handleFormChange(e)}
+                placeholder="Enter your nationality"
+                name="nationality"
+              />
+            </div>
+
+            {/* Save Button */}
+            <div className="flex justify-end mt-6">
+              <Button
+                type="button"
+                onClick={handleLocalSave}
+                disabled={!isDirty || settingsLoading}
+                className="w-auto"
+              >
+                {settingsLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Website Dialog */}
+      <WebsiteForm
+        isOpen={isWebsiteDialogOpen}
+        onClose={() => {
+          setIsWebsiteDialogOpen(false);
+          setSelectedWebsite(null);
+        }}
+        onSave={handleWebsiteSave}
+        initialData={selectedWebsite || { id: '', category: '', name: '', url: '', username: '' }}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the {deleteType}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
 }
