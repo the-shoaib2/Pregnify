@@ -1,0 +1,7 @@
+{"ip":"::1","level":"info","message":"Incoming request","method":"GET","path":"/api/v1/health/ping","timestamp":"2025-04-02T15:26:44.428Z"}
+{"ip":"::1","level":"info","message":"Incoming request","method":"GET","path":"/favicon.ico","timestamp":"2025-04-02T15:26:44.757Z"}
+{"ip":"::1","level":"info","message":"Incoming request","method":"POST","path":"/api/v1/auth/login","timestamp":"2025-04-02T15:27:12.058Z"}
+{"ip":"::1","level":"info","message":"Incoming request","method":"GET","path":"/api/v1/auth/user","timestamp":"2025-04-02T15:27:12.798Z"}
+{"ip":"::1","level":"info","message":"Incoming request","method":"GET","path":"/api/v1/account/profile","timestamp":"2025-04-02T15:27:16.166Z"}
+{"ip":"::1","level":"info","message":"Incoming request","method":"GET","path":"/api/v1/account/profile","timestamp":"2025-04-02T15:50:13.062Z"}
+{"ip":"::1","level":"info","message":"Incoming request","method":"GET","path":"/api/v1/account/profile","timestamp":"2025-04-02T15:57:45.935Z"}

@@ -42,12 +42,12 @@ export default function SecurityPage() {
                   <span className="font-medium">Two-Factor Authentication</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {user?.twoFactorEnabled 
+                  {user?.security?.twoFactorEnabled 
                     ? "Two-factor authentication is enabled"
                     : "Protect your account with 2FA"}
                 </p>
               </div>
-              <Switch checked={user?.twoFactorEnabled} />
+              <Switch checked={user?.security?.twoFactorEnabled} />
             </div>
 
             <div className="flex items-center justify-between">
@@ -57,12 +57,12 @@ export default function SecurityPage() {
                   <span className="font-medium">Passkey</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {user?.isPasskeyEnabled 
+                  {user?.security?.isPasskeyEnabled 
                     ? "Passkey authentication is enabled"
                     : "Use passkeys for passwordless login"}
                 </p>
               </div>
-              <Switch checked={user?.isPasskeyEnabled} />
+              <Switch checked={user?.security?.isPasskeyEnabled} />
             </div>
           </CardContent>
         </Card>
@@ -113,21 +113,21 @@ export default function SecurityPage() {
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <AlertTriangle className={`h-4 w-4 ${user?.accountStatus === 'ACTIVE' ? 'text-green-500' : 'text-red-500'}`} />
+                    <AlertTriangle className={`h-4 w-4 ${user?.status === 'ACTIVE' ? 'text-green-500' : 'text-red-500'}`} />
                     <span className="font-medium">Account Status</span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {user?.accountStatus}
+                    {user?.status || 'Unknown'}
                   </p>
                 </div>
-                {user?.accountStatus === 'ACTIVE' ? (
+                {user?.status === 'ACTIVE' ? (
                   <span className="text-xs text-green-500">Active</span>
                 ) : (
-                  <span className="text-xs text-red-500">{user?.accountStatus}</span>
+                  <span className="text-xs text-red-500">{user?.status}</span>
                 )}
               </div>
 
-              {user?.isAccountLocked && (
+              {user?.security?.isAccountLocked && (
                 <div className="rounded-md bg-red-50 p-4">
                   <div className="flex items-center gap-2 text-red-800">
                     <AlertTriangle className="h-5 w-5" />
@@ -139,14 +139,14 @@ export default function SecurityPage() {
                 </div>
               )}
 
-              {user?.accountSuspended && (
+              {user?.security?.accountSuspended && (
                 <div className="rounded-md bg-red-50 p-4">
                   <div className="flex items-center gap-2 text-red-800">
                     <AlertTriangle className="h-5 w-5" />
                     <span className="font-medium">Account Suspended</span>
                   </div>
                   <p className="mt-1 text-sm text-red-700">
-                    Your account is suspended until {new Date(user?.bannedUntil).toLocaleDateString()}
+                    Your account is suspended until {user?.security?.bannedUntil ? new Date(user?.security?.bannedUntil).toLocaleDateString() : 'Unknown date'}
                   </p>
                 </div>
               )}

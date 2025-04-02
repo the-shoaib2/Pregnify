@@ -1,4 +1,3 @@
-import pkg from '@prisma/client';
 import prisma from '../../utils/database/prisma.js';
 import ApiError from '../../utils/error/api.error.js';
 import asyncHandler from '../../utils/middleware/async.handler.js';
