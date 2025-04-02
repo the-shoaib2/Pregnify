@@ -1,0 +1,139 @@
+{
+  "info": {
+    "name": "User Profile API",
+    "description": "API endpoints for user profile management",
+    "version": "1.0.0"
+  },
+  "item": [
+    {
+      "name": "Get Profile",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/account/profile",
+        "headers": {
+          "Authorization": "Bearer {{authToken}}"
+        }
+      }
+    },
+    {
+      "name": "Update Profile",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/api/v1/account/profile/update",
+        "headers": {
+          "Authorization": "Bearer {{authToken}}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": {
+            "firstName": "John",
+            "lastName": "Doe",
+            "username": "johndoe",
+            "phoneNumber": "+1234567890",
+            "bio": "Software Developer",
+            "location": "New York",
+            "description": "Passionate about coding",
+            "socialLinks": {
+              "github": "https://github.com/johndoe",
+              "linkedin": "https://linkedin.com/in/johndoe"
+            },
+            "skills": ["JavaScript", "React", "Node.js"],
+            "languages": ["English", "Spanish"]
+          }
+        }
+      }
+    },
+    {
+      "name": "Update Avatar",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/api/v1/account/profile/avatar",
+        "headers": {
+          "Authorization": "Bearer {{authToken}}"
+        },
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": "/path/to/avatar.jpg"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Update Cover Image",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/api/v1/account/profile/cover",
+        "headers": {
+          "Authorization": "Bearer {{authToken}}"
+        },
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": "/path/to/cover.jpg"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Update Personal Information",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/api/v1/account/profile/personal-info",
+        "headers": {
+          "Authorization": "Bearer {{authToken}}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": {
+            "dateOfBirth": "1990-01-01",
+            "genderIdentity": "MALE",
+            "contactNumber": "+1234567890",
+            "address": {
+              "street": "123 Main St",
+              "city": "New York",
+              "country": "USA"
+            },
+            "nationality": "American",
+            "occupation": "Software Engineer",
+            "religion": "Prefer not to say",
+            "maritalStatus": "SINGLE",
+            "bloodGroup": "O+"
+          }
+        }
+      }
+    },
+    {
+      "name": "Add Education",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/v1/account/profile/education",
+        "headers": {
+          "Authorization": "Bearer {{authToken}}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": {
+            "degree": "Bachelor of Science",
+            "fieldOfStudy": "Computer Science",
+            "institution": "University of Technology",
+            "yearOfPassing": "2020",
+            "gpa": "3.8",
+            "qualification": "Graduated with Honors"
+          }
+        }
+      }
+    }
+  ]
+} 

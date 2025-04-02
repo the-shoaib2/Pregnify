@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passkey Authentication Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+        input, button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #log, #message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+            border: 1px solid #e2e6ea;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .error {
+            color: #721c24;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        .success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Passkey Authentication Test</h1>
+        
+        <div id="login-section">
+            <h2>Login</h2>
+            <input type="email" id="email" placeholder="Email" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <button id="loginButton">Login</button>
+        </div>
+
+        <div id="passkey-section">
+            <h2>Passkey Operations</h2>
+            <button id="registerButton" disabled>Register Passkey</button>
+            <button id="authenticateButton" disabled>Authenticate with Passkey</button>
+        </div>
+
+        <div id="message"></div>
+        <div id="log"></div>
+    </div>
+
+    <script nonce="test-passkey-nonce">
+        let accessToken = null;
+        const API_BASE_URL = 'http://localhost:8080/api/v1';
+        
+        const fetchOptions = {
+            mode: 'cors',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        };
+
+        // Get DOM elements
+        const loginButton = document.getElementById('loginButton');
+        const registerButton = document.getElementById('registerButton');
+        const authenticateButton = document.getElementById('authenticateButton');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+
+        function showMessage(message, isError = false) {
+            const messageElement = document.getElementById('message');
+            messageElement.textContent = message;
+            messageElement.className = isError ? 'error' : 'success';
+        }
+
+        function appendToLog(message) {
+            const logElement = document.getElementById('log');
+            const logEntry = document.createElement('div');
+            logEntry.textContent = `${new Date().toISOString()}: ${message}`;
+            logElement.prepend(logEntry);
+        }
+
+        // Add event listeners
+        loginButton.addEventListener('click', login);
+        registerButton.addEventListener('click', registerPasskey);
+        authenticateButton.addEventListener('click', authenticatePasskey);
+
+        async function login() {
+            try {
+                const email = emailInput.value;
+                const password = passwordInput.value;
+
+                if (!email || !password) {
+                    throw new Error('Please enter both email and password');
+                }
+
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    ...fetchOptions,
+                    method: 'POST',
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Login failed');
+                }
+
+                accessToken = data.tokens.accessToken;
+                registerButton.disabled = false;
+                authenticateButton.disabled = false;
+                showMessage('Login successful! You can now register or authenticate with a passkey.');
+                appendToLog('Login successful. Access token received.');
+            } catch (error) {
+                showMessage(error.message, true);
+                appendToLog(`Login error: ${error.message}`);
+            }
+        }
+
+        async function registerPasskey() {
+            try {
+                if (!accessToken) {
+                    throw new Error('Please login first');
+                }
+
+                appendToLog('Starting passkey registration...');
+
+                // Get registration options
+                const optionsResponse = await fetch(`${API_BASE_URL}/auth/passkey/register/options`, {
+                    ...fetchOptions,
+                    method: 'POST',
+                    headers: {
+                        ...fetchOptions.headers,
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+
+                const { options } = await optionsResponse.json();
+
+                // Convert challenge from base64
+                options.challenge = base64ToArrayBuffer(options.challenge);
+                options.user.id = base64ToArrayBuffer(options.user.id);
+
+                // Create credential
+                const credential = await navigator.credentials.create({ publicKey: options });
+
+                // Prepare credential for verification
+                const credentialResponse = {
+                    credential: {
+                        id: credential.id,
+                        rawId: arrayBufferToBase64(credential.rawId),
+                        type: credential.type,
+                        authenticatorAttachment: credential.authenticatorAttachment,
+                        response: {
+                            clientDataJSON: arrayBufferToBase64(credential.response.clientDataJSON),
+                            attestationObject: arrayBufferToBase64(credential.response.attestationObject)
+                        }
+                    }
+                };
+
+                // Verify registration
+                const verifyResponse = await fetch(`${API_BASE_URL}/auth/passkey/register/verify`, {
+                    ...fetchOptions,
+                    method: 'POST',
+                    headers: {
+                        ...fetchOptions.headers,
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                    body: JSON.stringify(credentialResponse)
+                });
+
+                const verificationResult = await verifyResponse.json();
+
+                if (verificationResult.success) {
+                    showMessage('Passkey registered successfully!');
+                    appendToLog('Passkey registration verified.');
+                } else {
+                    throw new Error('Passkey registration verification failed');
+                }
+            } catch (error) {
+                showMessage(error.message, true);
+                appendToLog(`Registration error: ${error.message}`);
+            }
+        }
+
+        async function authenticatePasskey() {
+            try {
+                if (!accessToken) {
+                    throw new Error('Please login first');
+                }
+
+                const email = emailInput.value;
+                if (!email) {
+                    throw new Error('Please enter your email');
+                }
+
+                appendToLog('Starting passkey authentication...');
+
+                // Get authentication options
+                const optionsResponse = await fetch(`${API_BASE_URL}/auth/passkey/authenticate/options`, {
+                    ...fetchOptions,
+                    method: 'POST',
+                    headers: {
+                        ...fetchOptions.headers,
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                    body: JSON.stringify({ email })
+                });
+
+                const { options } = await optionsResponse.json();
+
+                // Convert challenge from base64
+                options.challenge = base64ToArrayBuffer(options.challenge);
+
+                // Convert allowCredentials
+                if (options.allowCredentials) {
+                    options.allowCredentials = options.allowCredentials.map(cred => ({
+                        ...cred,
+                        id: base64ToArrayBuffer(cred.id)
+                    }));
+                }
+
+                // Get credential
+                const credential = await navigator.credentials.get({ publicKey: options });
+
+                // Prepare credential for verification
+                const credentialResponse = {
+                    email,
+                    credential: {
+                        id: credential.id,
+                        rawId: arrayBufferToBase64(credential.rawId),
+                        type: credential.type,
+                        authenticatorAttachment: credential.authenticatorAttachment,
+                        response: {
+                            clientDataJSON: arrayBufferToBase64(credential.response.clientDataJSON),
+                            authenticatorData: arrayBufferToBase64(credential.response.authenticatorData),
+                            signature: arrayBufferToBase64(credential.response.signature),
+                            userHandle: credential.response.userHandle ? arrayBufferToBase64(credential.response.userHandle) : null
+                        }
+                    }
+                };
+
+                // Verify authentication
+                const verifyResponse = await fetch(`${API_BASE_URL}/auth/passkey/authenticate/verify`, {
+                    ...fetchOptions,
+                    method: 'POST',
+                    headers: {
+                        ...fetchOptions.headers,
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                    body: JSON.stringify(credentialResponse)
+                });
+
+                const verificationResult = await verifyResponse.json();
+
+                if (verificationResult.success) {
+                    showMessage('Passkey authentication successful!');
+                    appendToLog('Passkey authentication verified.');
+                } else {
+                    throw new Error('Passkey authentication verification failed');
+                }
+            } catch (error) {
+                showMessage(error.message, true);
+                appendToLog(`Authentication error: ${error.message}`);
+            }
+        }
+
+        // Utility functions for base64 encoding/decoding ArrayBuffers
+        function base64ToArrayBuffer(base64) {
+            const binaryString = window.atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        function arrayBufferToBase64(buffer) {
+            const byteArray = new Uint8Array(buffer);
+            const binaryString = byteArray.reduce((data, byte) => data + String.fromCharCode(byte), '');
+            return window.btoa(binaryString);
+        }
+    </script>
+</body>
+</html>

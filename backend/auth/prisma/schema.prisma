@@ -1,0 +1,2350 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// npx prisma migrate reset
+// npx prisma generate
+// npx prisma db push
+// npx prisma migrate dev --name init
+
+/// ============================
+/// GENERATOR
+/// ============================
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["prismaSchemaFolder"]
+}
+
+datasource db {
+  provider  = "mysql"
+  url       = env("MYSQL_DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  // shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+/// ============================
+/// USERS TABLE
+/// ============================
+model User {
+  // ==========================
+  // Primary Identification
+  // ==========================
+  id          String  @id @default(uuid())
+  userID      String  @unique // Unique ID for the user
+  username    String  @unique
+  email       String  @unique
+  phoneNumber String? @unique
+
+  // ==========================
+  // Authentication & Security
+  // ==========================
+  password_hash        String
+  passwordChangedAt    DateTime?
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
+  verificationToken    String?
+  verificationExpires  DateTime?
+  isVerified           Boolean   @default(false)
+  isEmailVerified      Boolean   @default(false)
+  isSmsVerified        Boolean   @default(false)
+  multiFactorAuth      Boolean   @default(false)
+
+  // ==========================
+  // User Details
+  // ==========================
+  firstName   String?
+  lastName    String?
+  description String?
+  avatar         String?
+  avatarThumb    String?
+  cover          String?
+  coverThumb     String?
+  bio            String?
+  location       String?
+  isPublic       Boolean @default(true)
+  isPrivate      Boolean @default(false)
+
+  // ==========================
+  // Account Role
+  // ==========================
+  role Role
+
+  // ==========================
+  // Personal Information
+  // ==========================
+  personalInformation PersonalInformation[]
+
+  // ==========================
+  // Education Qualification
+  // ==========================
+  educationQualification EducationQualification[]
+
+  // ==========================
+  // Medical Information
+  // ==========================
+  medicalInformation MedicalInformation[]
+
+  // ==========================
+  // Account Status & Lockout
+  // ==========================
+  accountStatus    AccountStatus @default(ACTIVE)
+  isAccountLocked  Boolean       @default(false)
+  failedLoginCount Int           @default(0)
+  isDeleted        Boolean       @default(false)
+  termsAccepted    Boolean       @default(false)
+  accountSuspended Boolean       @default(false)
+  bannedUntil      DateTime? // If banned, the end date
+
+  // ==========================
+  // Preferences & UI Settings
+  // ==========================
+  preferences             AccountPreferences[]
+  darkModeEnabled         Boolean                  @default(false)
+  languagePreference      String? // Preferred language
+  notificationPreferences NotificationPreferences? @relation("UserNotificationPreferences")
+
+  // ==========================
+  // Security & Data Handling
+  // ==========================
+  ipWhitelists       IpWhitelist[]
+  loginHistory       LoginHistory[]
+  twoFactorEnabled   Boolean            @default(false)
+  twoFactorAuth      TwoFactorAuth[]
+  backupCodes        BackupCode[]
+  trustedDevices     TrustedDevice[]
+  twoFactorSessions  TwoFactorSession[]
+  preferredTwoFactor String?            @map("preferred_two_factor") // TOTP, SMS, etc.
+  lastTwoFactorAt    DateTime?          @map("last_two_factor_at")
+  twoFactorSetupAt   DateTime?          @map("two_factor_setup_at")
+  recoveryCode       String?
+  is2FAVerified      Boolean            @default(false)
+  linkedAccounts     LinkedAccount[] // Google, Facebook, etc.
+
+  // ==========================
+  // Activity Logs & Reputation
+  // ==========================
+  activityLogSettings ActivityLogSettings? @relation("UserActivityLogSettings")
+  activityLogs        UserActivityLog[]    @relation("UserActivityLogs")
+  reputationScore     Int                  @default(0) // User reputation system
+  badges              Badge[] // Achievements
+
+  // ==========================
+  // Forum & Social Features
+  // ==========================
+  forumPosts    ForumPost[]
+  forumComments ForumComment[]
+  followers     UserFollows[]  @relation("follower")
+  following     UserFollows[]  @relation("following")
+  referrals     Referral[]     @relation("UserReferrals")
+  referredBy    Referral[]     @relation("ReferredByUser")
+
+  // ==========================
+  // Sessions & API Access
+  // ==========================
+  sessions Session[]
+  apiKeys  ApiKey[] // API Key management
+
+  // ==========================
+  // OAuth Credentials & OAuth Linked Accounts
+  // ==========================
+  oauthCredentials    OauthCredentials[]
+  oauthLinkedAccounts OauthLinkedAccount[]
+
+  // ==========================
+  // Password Management
+  // ==========================
+  passwordPolicyId String         @default("default")
+  passwordPolicy   PasswordPolicy @relation(fields: [passwordPolicyId], references: [id])
+  passwordHistory         PasswordHistory[]
+  passwordResetActivities PasswordResetActivity[]
+  passwordSecurityLogs    PasswordSecurityLog[]
+  forgotPasswords         ForgotPassword[]        @relation("UserForgotPasswords")
+  loginAttempts           LoginAttempt[]
+  // passwordResetToken      String?   // Alredy hvaw in  Authentication & Security
+
+  // ==========================
+  // Passkeys & MFA
+  // ==========================
+  isPasskeyEnabled Boolean @default(false) // Flag for passkey enablement
+  isMfaEnabled     Boolean @default(false) // Flag for MFA enablement
+
+  passkeys           Passkey[]
+  webAuthnChallenges WebAuthnChallenge[]
+  mfaMethods         MultiFactorMethod[]
+
+  // ==========================
+  // Roles & Memberships
+  // ==========================
+  roles            UserRoleAssignment[]
+  membershipTier   MembershipTier?      @relation(fields: [membershipTierId], references: [id])
+  membershipTierId String?
+
+  // ==========================
+  // User Payment & Subscription Information
+  // ==========================
+  paymentCards          PaymentCard[]
+  payments              Payment[]
+  subscriptions         Subscription[]
+  referralBonus         ReferralBonus[]
+  totalReferralEarnings Float           @default(0.0)
+
+  // ==========================
+  // Recovery contact
+  // ==========================
+  recoveryContact   RecoveryContact? @relation("UserRecoveryContact", fields: [recoveryContactId], references: [id])
+  recoveryContactId String?          @map("recovery_contact_id")
+
+  // ==========================
+  // Storage
+  // ==========================
+  storage Storage? // Change from Storage[] to Storage? since it's a one-to-one relationship
+
+  // ==========================
+  // Files & Documents & Images & Albums & Collections & Comments & Reactions & Shares & Likes & Tags
+  // ==========================
+  files          File[]
+  albums         Album[]
+  collections    Collection[]
+  reactions      Reaction[]
+  comments       Comment[]
+  commentReplies CommentReply[]
+  // fileHistory   FileHistory[]
+  sharedBy       Share[]        @relation("SharedByUser")
+  sharedWith     Share[]        @relation("SharedWithUser")
+
+  // ==========================
+  // Emergency Contact and Requests
+  // ==========================
+  emergencyContacts EmergencyContact[]
+  emergencyRequests EmergencyRequest[]
+
+  // ==========================
+  // Extra Features
+  // ==========================
+  profileCompletionPercentage Int                @default(0)
+  securityQuestions           SecurityQuestion[]
+  userConsent                 UserConsent[]
+  lastDeviceUsed              String?
+  deviceTokens                DeviceToken[]
+  auditLogs                   AuditLog[]
+  feedbackRequests            FeedbackRequest[]
+
+  // ==========================
+  // Timestamps
+  // ==========================
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  deletedAt    DateTime?
+  lastLoginAt  DateTime?
+  expiryDateAt DateTime?
+  ForumReply   ForumReply[]
+
+  // ==========================
+  // Activity & Analytics
+  // ==========================
+  lastActive         DateTime?
+  totalLogins        Int        @default(0)
+  totalVisits        Int        @default(0)
+  totalTimeSpent     Int        @default(0) // In minutes
+  averageSessionTime Float      @default(0)
+  activeStatus       UserStatus @default(OFFLINE)
+
+  // Activity Metrics
+  postCount     Int @default(0)
+  commentCount  Int @default(0)
+  reactionCount Int @default(0)
+  shareCount    Int @default(0)
+
+  // Engagement Metrics
+  engagementScore Float @default(0.0)
+  interactionRate Float @default(0.0)
+  responseRate    Float @default(0.0)
+
+  // User Activities
+  userActivities   UserActivity[]
+  userInteractions UserInteraction[]
+  userSessions     UserSession[]
+  userMetrics      UserMetrics?
+  analyticsData    AnalyticsData[]
+
+  // ==========================
+  // Composite Indexes
+  // ==========================
+  @@index([email, password_hash])
+  @@index([username, password_hash])
+  @@index([email, isAccountLocked, failedLoginCount])
+  @@index([username, isAccountLocked, failedLoginCount])
+  @@index([email])
+  @@index([username])
+  @@index([userID])
+  @@index([phoneNumber])
+  @@index([isVerified])
+  @@index([accountStatus])
+  // Add composite indexes for searching
+  @@index([email, accountStatus])
+  @@index([username, accountStatus])
+  @@index([phoneNumber, accountStatus])
+  @@index([firstName, lastName, accountStatus])
+  @@index([isVerified, accountStatus])
+  @@index([isEmailVerified, accountStatus])
+  @@index([isSmsVerified, accountStatus])
+  @@index([membershipTierId])
+  @@index([passwordPolicyId])
+  @@index([recoveryContactId])
+  // ==========================
+  // Indexes
+  // ==========================
+  @@map("users")
+}
+
+/// ============================
+/// PERSONAL INFORMATION TABLE
+/// ============================
+
+model PersonalInformation {
+  id             String    @id @default(uuid())
+  userId         String    @unique
+  firstName      String?
+  middleName     String?
+  lastName       String?
+  nickName       String?
+  genderIdentity Gender?
+  dateOfBirth    DateTime?
+  age            Int?
+  isDeceased     Boolean?  @default(false)
+  description    String?
+
+  // Birth details
+  placeOfBirth   String?
+  countryOfBirth String?
+  nationality    String?
+
+  // Contact Information
+  contactNumbers ContactNumber[]
+  addresses      Address[]
+  websites       Website[]
+
+  // Documentation & Identification
+  passportNumber String?
+  passportExpiry DateTime?
+  maritalStatus  MaritalStatus?
+  citizenship    String?
+
+  // Other Personal Information
+  occupation     Json? // Stored as JSON
+  religion       Religion?
+  hobbies        Json? // Changed to Json to store array
+  additionalInfo Json? // Stored as JSON
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  emergencyContact EmergencyContact[]
+
+  @@index([userId])
+  @@index([userId, isDeceased])
+  @@index([userId, firstName, lastName])
+  @@map("personal_information")
+}
+
+// Contact Numbers Model
+model ContactNumber {
+  id         String  @id @default(uuid())
+  userId     String
+  number     String  @unique
+  isPrimary  Boolean @default(false)
+  isVerified Boolean @default(false)
+
+  personalInfo PersonalInformation @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([number])
+  @@index([isPrimary])
+  @@index([isVerified])
+  @@index([userId, isPrimary])
+  @@index([userId, isVerified])
+  @@map("contact_numbers")
+}
+
+// Address Model
+model Address {
+  id      String      @id @default(uuid())
+  userId  String
+  type    AddressType
+  details Json
+
+  personalInfo PersonalInformation @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([userId, type])
+  @@map("addresses")
+}
+
+// Enum for Address Types
+enum AddressType {
+  CURRENT
+  PRESENT
+  PERMANENT
+  WORK
+  HOME
+  OFFICE
+  OTHER
+}
+
+// Website Model
+model Website {
+  id       String          @id @default(uuid())
+  userId   String
+  category WebsiteCategory
+  name     String // Display name
+  url      String          @unique
+  username String?
+
+  personalInfo PersonalInformation @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([url])
+  @@index([userId, url])
+  @@index([userId, category])
+  @@index([userId, category, url])
+  @@map("websites")
+}
+
+// Enum for Website Categories
+enum WebsiteCategory {
+  SOCIAL
+  WORK
+  LEARNING
+  FINANCE
+  SPORTS
+  HEALTH
+  ENTERTAINMENT
+  ECOMMERCE
+  GOVERNMENT
+  PERSONAL
+  OTHER
+}
+
+/// GENDER ENUM
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum Religion {
+  ISLAM
+  CHRISTIANITY
+  HINDUISM
+  BUDDHISM
+  JUDAISM
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+  OTHER
+}
+
+/// ============================
+/// EDUCATION QUALIFICATION TABLE
+/// ============================
+model EducationQualification {
+  id     String @id @default(uuid())
+  userId String
+
+  // Education Details
+  degree        String?
+  fieldOfStudy  String?
+  qualification String?
+  institution   String?
+  startYear     Int?
+  endYear       Int?
+  isOngoing     Boolean @default(false)
+  gpa           Float?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("education_qualifications")
+}
+
+/// ============================
+/// MEDICAL INFORMATION TABLE
+/// ============================
+
+model MedicalInformation {
+  id                 String          @id @default(uuid())
+  userId             String          @unique
+  bloodGroup         String? // e.g., "A+", "O-", etc.
+  organDonor         Boolean         @default(false)
+  medicalHistory     Json?
+  chronicDiseases    Json?
+  cancerHistory      Boolean         @default(false)
+  cancerType         String?
+  allergies          String?
+  medications        String?
+  vaccinationRecords Json? // Stores vaccination details
+  geneticDisorders   Json? // Family genetic disorder history
+  disabilities       Json? // Any physical/mental disabilities
+  emergencyContact   String? // Emergency contact number
+  primaryPhysician   String? // Doctor's name or hospital
+  medicalReports     MedicalReport[]
+  prescriptions      Prescription[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("medical_information")
+}
+
+enum BloodGroup {
+  A_POSITIVE
+  A_NEGATIVE
+  B_POSITIVE
+  B_NEGATIVE
+  AB_POSITIVE
+  AB_NEGATIVE
+  O_POSITIVE
+  O_NEGATIVE
+  UNKNOWN
+}
+
+/// ============================
+/// MEDICAL REPORT TABLE
+/// ============================
+
+model MedicalReport {
+  id            String   @id @default(uuid())
+  medicalInfoId String // Changed from userId to medicalInfoId to match the relation
+  reportType    String
+  reportDate    DateTime
+  reportDetails Json?
+  doctorId      String?
+  fileId        String? // Reference to the uploaded file
+  file          File?    @relation(fields: [fileId], references: [id])
+
+  // Timestamps
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  medicalInfo MedicalInformation @relation(fields: [medicalInfoId], references: [id]) // Updated relation name
+
+  @@index([medicalInfoId])
+  @@index([fileId])
+  @@map("medical_report")
+}
+
+/// ============================
+/// PRESCRIPTION TABLE
+/// ============================
+
+model Prescription {
+  id             String    @id @default(uuid())
+  medicalInfoId  String
+  medicationName String
+  dosage         String
+  frequency      String
+  startDate      DateTime
+  endDate        DateTime?
+  doctorId       String?
+  pharmacy       String?
+  notes          String?
+  isActive       Boolean   @default(true)
+  refillCount    Int       @default(0)
+  refillDate     DateTime?
+  fileId         String? // Reference to the uploaded file
+  file           File?     @relation(fields: [fileId], references: [id])
+
+  // Timestamps
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  medicalInfo MedicalInformation @relation(fields: [medicalInfoId], references: [id])
+
+  @@index([medicalInfoId])
+  @@index([fileId])
+  @@map("prescription")
+}
+
+///==================================================================================================================
+///                                           PREFERENCES & UI SETTINGS
+/// =================================================================================================================
+
+model AccountPreferences {
+  id     String @id @default(uuid())
+  userId String @unique
+
+  preferences Json
+  version     Int  @default(1)
+
+  notifications Json?
+  settings      Json?
+  customization Json?
+  theme         Theme    @default(SYSTEM)
+  language      Language @default(EN)
+
+  dateFormat       String?
+  timeFormat       String?
+  currency         Currency @default(USD)
+  notificationTone String?
+  isEmailEnabled   Boolean  @default(true)
+  isSmsEnabled     Boolean  @default(true)
+  emailFrequency   String?
+
+  isTwoFactorEnabled Boolean @default(false)
+  privacySettings    Json?
+  securityQuestions  Json?
+
+  isDarkModeEnabled Boolean @default(false)
+  fontSize          String?
+  highContrastMode  Boolean @default(false)
+
+  billingAddress     String?
+  paymentMethod      PaymentMethod?
+  subscriptionPlan   AccountType    @default(BASIC)
+  isAutoRenewEnabled Boolean        @default(false)
+
+  contentFilters    Json?
+  adPersonalization Boolean  @default(true)
+  contentLanguage   Language @default(EN)
+
+  timezone String?
+  region   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("account_preferences")
+}
+
+model NotificationPreferences {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  emailNotifications Boolean  @default(true)
+  pushNotifications  Boolean  @default(true)
+  smsNotifications   Boolean  @default(false)
+  createdAt          DateTime @default(now())
+
+  user User @relation("UserNotificationPreferences", fields: [userId], references: [id])
+
+  @@index([emailNotifications])
+  @@index([pushNotifications])
+  @@index([smsNotifications])
+  @@index([createdAt])
+  @@index([userId, emailNotifications])
+  @@index([userId, pushNotifications])
+  @@index([userId, smsNotifications])
+  @@index([userId, createdAt])
+  @@index([userId])
+  @@map("notification_preferences")
+}
+
+enum Theme {
+  LIGHT // Light theme
+  DARK // Dark theme
+  SYSTEM // System theme
+}
+
+enum AccountType {
+  BASIC
+  PREMIUM
+  GOLD
+}
+
+///==================================================================================================================
+///                                            SECURITY & DATA HANDLING
+/// =================================================================================================================
+
+// IP WHITELIST
+model IpWhitelist {
+  id        String   @id @default(uuid())
+  userId    String
+  ipAddress String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, ipAddress])
+  @@index([userId]) // One to one relation with user
+  @@map("ip_whitelist")
+}
+
+// LOGIN HISTORY
+model LoginHistory {
+  id              String      @id @default(uuid())
+  userId          String
+  ipAddress       String
+  userAgent       String
+  macAddress      String? // Store MAC address for device identification
+  deviceType      DeviceType?
+  loginAt         DateTime    @default(now())
+  logoutAt        DateTime?
+  sessionDuration Int?
+  successful      Boolean     @default(true)
+  failureReason   String?
+  metadata        Json? // Store additional metadata as JSON
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("login_history")
+}
+
+// LINKED ACCOUNTS
+model LinkedAccount {
+  id        String   @id @default(uuid())
+  userId    String
+  provider  String // e.g., "google", "facebook", etc.
+  accountId String // Unique ID provided by the provider
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("linked_accounts")
+}
+
+// TRUSTED DEVICES
+model TrustedDevice {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  deviceId   String    @map("device_id")
+  deviceName String    @map("device_name")
+  deviceType String?   @map("device_type")
+  lastUsed   DateTime  @default(now()) @map("last_used")
+  expiresAt  DateTime  @map("expires_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  ipAddress  String?   @map("ip_address")
+  userAgent  String?   @map("user_agent")
+  isRevoked  Boolean   @default(false)
+  revokedAt  DateTime? @map("revoked_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deviceId])
+  @@map("trusted_devices")
+}
+
+// Two-Factor Authentication
+model TwoFactorAuth {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  method      String // TOTP, SMS, etc.
+  secret      String? // For TOTP
+  phoneNumber String? // For SMS
+  isVerified  Boolean   @default(false)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  lastUsedAt  DateTime? @map("last_used_at")
+
+  // Verification code for SMS
+  verificationCode       String?   @map("verification_code")
+  verificationCodeExpiry DateTime? @map("verification_code_expiry")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("two_factor_auth")
+}
+
+// Backup Codes for 2FA Recovery
+model BackupCode {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  code      String // Hashed backup code
+  used      Boolean   @default(false)
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("backup_codes")
+}
+
+// 2FA Sessions
+model TwoFactorSession {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  token     String    @unique
+  isValid   Boolean   @default(true)
+  expiresAt DateTime  @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  usedAt    DateTime? @map("used_at")
+  ipAddress String?   @map("ip_address")
+  userAgent String?   @map("user_agent")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("two_factor_sessions")
+}
+
+///==================================================================================================================
+///                                           ACTIVITY LOGS & REPUTATION
+/// =================================================================================================================
+
+// ACTIVITY LOG SETTINGS
+model ActivityLogSettings {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  logFailedLogin    Boolean  @default(true)
+  logAccountChanges Boolean  @default(true)
+  logProfileUpdates Boolean  @default(true)
+  createdAt         DateTime @default(now())
+
+  user User @relation("UserActivityLogSettings", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([logFailedLogin])
+  @@index([logAccountChanges])
+  @@index([logProfileUpdates])
+  @@index([createdAt])
+  @@map("activity_log_settings")
+}
+
+// USER ACTIVITY LOG
+model UserActivityLog {
+  id           String       @id @default(uuid())
+  userId       String
+  activityType ActivityType
+  description  String?
+  ipAddress    String?
+  userAgent    String?
+  timestamp    DateTime     @default(now())
+  metadata     Json?
+  user         User         @relation("UserActivityLogs", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([timestamp])
+  @@map("UserActivityLog")
+}
+
+// BADGE SYSTEM
+model Badge {
+  id          String @id @default(uuid())
+  name        String
+  description String
+  image       String
+  criteria    String
+  userId      String
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@map("Badges")
+}
+
+// ACTIVITY TYPE ENUM
+enum ActivityType {
+  REGISTER
+  REGISTER_SUCCESS
+  REGISTER_FAILED
+  LOGIN
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  LOGOUT
+  LOGOUT_SUCCESS
+  LOGOUT_FAILED
+  PROFILE_UPDATE
+  PASSWORD_CHANGE
+  EMAIL_CHANGE
+  PHONE_CHANGE
+  SECURITY_SETTING_CHANGE
+  ACCOUNT_DEACTIVATION
+  ACCOUNT_REACTIVATION
+  CONTENT_CREATION
+  CONTENT_DELETION
+  CONTENT_UPDATE
+  FRIEND_REQUEST
+  MESSAGE_SEND
+  FILE_UPLOAD
+  PAYMENT_MADE
+  SUBSCRIPTION_CHANGE
+  NOTIFICATION_SETTINGS_UPDATE
+  PRIVACY_SETTINGS_UPDATE
+  TWO_FACTOR_TOGGLE
+  DEVICE_ADDED
+  DEVICE_REMOVED
+  API_ACCESS
+  REPORT_GENERATION
+  FEEDBACK_SUBMISSION
+  GET_CURRENT_USER
+  GET_CURRENT_USER_FAILED
+  GET_USER_PROFILE
+  UPDATE_USER_PROFILE
+  DELETE_USER_PROFILE
+  USER_LOGIN_SUCCESS
+  USER_LOGIN_FAILED
+  USER_LOGOUT_SUCCESS
+  USER_LOGOUT_FAILED
+  PASSWORD_RESET_REQUEST
+  PASSWORD_RESET_SUCCESS
+  PASSWORD_RESET_FAILED
+  EMAIL_VERIFICATION_SENT
+  EMAIL_VERIFICATION_SUCCESS
+  EMAIL_VERIFICATION_FAILED
+  PHONE_VERIFICATION_SENT
+  PHONE_VERIFICATION_SUCCESS
+  PHONE_VERIFICATION_FAILED
+  TWO_FACTOR_SETUP
+  TWO_FACTOR_VERIFICATION
+  ACCOUNT_SETTINGS_UPDATE
+  PROFILE_PICTURE_UPDATE
+  USER_SESSION_START
+  USER_SESSION_END
+  USER_DATA_EXPORT
+  USER_DATA_DELETE
+  API_KEY_GENERATED
+  API_KEY_REVOKED
+  SECURITY_ALERT
+  ACCOUNT_RECOVERY
+  SUBSCRIPTION_RENEWED
+  SUBSCRIPTION_CANCELLED
+  PAYMENT_PROCESSED
+  PAYMENT_FAILED
+  DOCUMENT_UPLOAD
+  DOCUMENT_DELETE
+  EMERGENCY_CONTACT_ADDED
+  EMERGENCY_CONTACT_REMOVED
+  FEEDBACK_SUBMITTED
+  REPORT_DOWNLOADED
+  SETTINGS_CHANGED
+  NOTIFICATION_SENT
+  ACCOUNT_LINKED
+  ACCOUNT_UNLINKED
+  ROLE_ASSIGNED
+  ROLE_REMOVED
+  MEMBERSHIP_UPGRADED
+  MEMBERSHIP_DOWNGRADED
+  ACTIVITY_DATA_EXPORT
+}
+
+///==================================================================================================================
+///                                            FORUM & SOCIAL FEATURES
+/// =================================================================================================================
+
+// FORUM POST
+model ForumPost {
+  id        String   @id @default(uuid())
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+
+  comments ForumComment[]
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("Forum_Post")
+}
+
+// FORUM COMMENT
+
+model ForumComment {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  comment   String
+  createdAt DateTime @default(now())
+
+  post ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  replies ForumReply[]
+
+  @@index([userId])
+  @@index([postId])
+  @@index([createdAt])
+  @@map("Forum_Comment")
+}
+
+// USER FOLLOWERS & FOLLOWING
+model UserFollows {
+  id          String   @id @default(uuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+// FORUM REPLY
+model ForumReply {
+  id        String   @id @default(uuid())
+  commentId String
+  userId    String
+  reply     String
+  createdAt DateTime @default(now())
+
+  comment ForumComment @relation(fields: [commentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([commentId])
+  @@index([createdAt])
+  @@map("Forum_Reply")
+}
+
+// REFERRAL SYSTEM
+model Referral {
+  id         String   @id @default(uuid())
+  userId     String
+  referredBy String
+  createdAt  DateTime @default(now())
+
+  user         User @relation("UserReferrals", fields: [userId], references: [id], onDelete: Cascade)
+  referredUser User @relation("ReferredByUser", fields: [referredBy], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([referredBy])
+  @@index([createdAt])
+  @@map("Referral")
+}
+
+///==================================================================================================================
+///                                             SESSION & API ACCESS
+/// =================================================================================================================
+
+// SESSION TABLE
+model Session {
+  id     String @id @default(uuid())
+  userId String
+
+  accessToken  String? @unique
+  refreshToken String? @unique
+  deviceId     String?
+  ipAddress    String?
+  userAgent    String? // Store device/browser info
+
+  accessTokenCreatedAt  DateTime @default(now())
+  refreshTokenCreatedAt DateTime @default(now())
+
+  accessTokenUpdatedAt  DateTime @updatedAt
+  refreshTokenUpdatedAt DateTime @updatedAt
+
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+
+  isActive  Boolean @default(true)
+  isRevoked Boolean @default(false)
+  isExpired Boolean @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  // Optimize session queries with better indexing
+  @@index([userId, refreshToken, refreshTokenExpiresAt, isRevoked, isExpired])
+  @@index([userId, accessToken, accessTokenExpiresAt, isRevoked, isExpired])
+  @@index([userId, deviceId, isActive])
+  @@index([refreshToken])
+  @@index([accessToken])
+  @@map("Sessions")
+}
+
+// API ACCESS TABLE
+model ApiKey {
+  id         String    @id @default(uuid())
+  userId     String
+  key        String    @unique
+  name       String?
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  isRevoked  Boolean   @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId, isRevoked, expiresAt])
+  @@index([key])
+  @@map("API_keys")
+}
+
+///==================================================================================================================
+///                                              OAUTH CREDENTIALS & OAUTH LINKED ACCOUNTS
+/// =================================================================================================================
+
+// OAUTH CREDENTIALS TABLE
+model OauthCredentials {
+  id             String        @id @default(uuid())
+  userId         String
+  provider       OauthProvider
+  providerUserId String? // ID of the user on the OAuth provider (e.g., Google user ID)
+  accessToken    String?       @unique // Ensure tokens are unique
+  refreshToken   String?       @unique
+  scopes         String        @default("") // List of scopes granted by the provider (comma-separated)
+  tokenType      String? // Type of token (e.g., Bearer)
+  expiresAt      DateTime?
+  isRevoked      Boolean       @default(false) // Flag for revoking access
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  lastUsedAt     DateTime? // Track last usage of OAuth token
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId, provider, isRevoked])
+  @@index([accessToken, expiresAt])
+  @@index([providerUserId])
+  @@map("OAuth_Credentials")
+}
+
+// OAUTH LINKED ACCOUNTS TABLE
+model OauthLinkedAccount {
+  id             String        @id @default(uuid())
+  userId         String
+  provider       OauthProvider
+  providerUserId String        @unique // Unique ID from the external provider
+  accessToken    String?       @unique // Ensure tokens are unique
+  refreshToken   String?       @unique
+  scopes         String        @default("") // List of scopes granted by the provider (comma-separated)
+  accountEmail   String? // Email used in the linked account
+  accountName    String? // Display name in the linked account
+  profileUrl     String? // Link to the profile on the provider
+  pictureUrl     String? // Profile picture URL
+  expiresAt      DateTime?
+  isRevoked      Boolean       @default(false) // Flag for revoking access
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  lastSyncedAt   DateTime? // When data was last synced from the provider
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId, provider, isRevoked])
+  @@index([providerUserId])
+  @@map("Linked_Accounts")
+}
+
+// ENUM FOR OauthProvider
+
+enum OauthProvider {
+  GOOGLE // Google OAuth
+  GITHUB // GitHub OAuth
+  APPLE // Apple OAuth
+  MICROSOFT // Microsoft OAuth
+  FACEBOOK // Facebook OAuth
+  LINKEDIN // LinkedIn OAuth
+  DISCORD // Discord OAuth
+  SPOTIFY // Spotify OAuth
+  CREDENTIALS // Credentials-based login
+  OAUTH // Generic OAuth
+  OTHER // Other authentication methods
+  DEFAULT_REGISTER // Default register (e.g., email/password)
+}
+
+///==================================================================================================================
+///                                             PASSWORD MANAGEMENT
+/// =================================================================================================================
+
+// PASSWORD POLICY TABLE
+model PasswordPolicy {
+  id                     String   @id @default("default")
+  minLength              Int      @default(12)
+  maxLength              Int      @default(64)
+  requireUppercase       Boolean  @default(true)
+  requireLowercase       Boolean  @default(true)
+  requireNumbers         Boolean  @default(true)
+  requireSpecialChars    Boolean  @default(true)
+  specialCharsList       String   @default("!@#$%^&*()_+-=[]{}|;:,.<>?")
+  maxPasswordAge         Int      @default(90) // days before expiration
+  minPasswordAge         Int      @default(1) // days before change
+  preventReusedPasswords Int      @default(5) // Number of past passwords stored
+  lockoutThreshold       Int      @default(5) // Max failed login attempts
+  lockoutDuration        Int      @default(30) // Minutes user is locked out
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  users User[]
+}
+
+// PASSWORD HISTORY TABLE
+model PasswordHistory {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  passwordHash   String // Securely hashed password
+  salt           String? // Optional salt
+  createdAt      DateTime @default(now())
+  expiresAt      DateTime // Password expiration date
+  isCurrent      Boolean  @default(false)
+  wasCompromised Boolean  @default(false) // Track security breaches
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("password_history")
+}
+
+model PasswordResetActivity {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  // Activity details
+  action PasswordResetAction
+  status PasswordResetStatus @default(INITIATED)
+
+  // Tracking details
+  initiatedAt DateTime    @default(now())
+  completedAt DateTime?
+  ipAddress   String?
+  userAgent   String?
+  deviceType  DeviceType?
+
+  // OTP related tracking
+  otpSentAt     DateTime?
+  otpVerifiedAt DateTime?
+  otpAttempts   Int       @default(0)
+  otpExpiresAt  DateTime?
+
+  // Metadata
+  deviceInfo Json?
+  location   Json?
+  details    Json?
+
+  // Additional security tracking
+  resetMethod         PasswordResetMethod?
+  isFromTrustedDevice Boolean              @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("password_reset_activity")
+}
+
+enum PasswordResetAction {
+  FIND_USER
+  SEND_CODE
+  VERIFY_CODE
+  RESET_PASSWORD
+  UNKNOWN
+}
+
+// PASSWORD SECURITY LOG TABLE
+model PasswordSecurityLog {
+  id          String                @id @default(uuid())
+  userId      String
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  eventType   PasswordSecurityEvent
+  description String
+  ipAddress   String?
+  userAgent   String?
+  deviceInfo  Json?
+  location    Json?
+  timestamp   DateTime              @default(now())
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([timestamp])
+  @@map("password_security_logs")
+}
+
+// FORGOT PASSWORD TABLE
+model ForgotPassword {
+  id            String                      @id @default(uuid())
+  userId        String
+  token         String                      @unique
+  createdAt     DateTime                    @default(now())
+  expiresAt     DateTime
+  usedAt        DateTime?
+  ipAddress     String?
+  userAgent     String?
+  isRevoked     Boolean                     @default(false)
+  verifications PasswordResetVerification[]
+
+  user User @relation("UserForgotPasswords", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([userId, isRevoked, expiresAt])
+  @@map("forgot_passwords")
+}
+
+model PasswordResetVerification {
+  id               String         @id @default(cuid())
+  forgotPasswordId String
+  forgotPassword   ForgotPassword @relation(fields: [forgotPasswordId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  code             String
+  method           String // 'email' or 'sms'
+  type             String         @default("code")
+  verified         Boolean        @default(false)
+  verifiedAt       DateTime?
+  isUsed           Boolean        @default(false)
+  usedAt           DateTime?
+  expiresAt        DateTime
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([forgotPasswordId])
+  @@index([forgotPasswordId, verified])
+  @@index([code])
+  @@map("password_reset_verifications")
+}
+
+// LOGIN ATTEMPT TABLE
+model LoginAttempt {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  ipAddress String?
+  userAgent String?
+  timestamp DateTime @default(now())
+  success   Boolean  @default(false)
+
+  @@index([userId])
+  @@index([timestamp])
+  @@map("login_attempts")
+}
+
+///=================================================
+/// ENUMS
+///=================================================
+enum PasswordSecurityEvent {
+  PASSWORD_CHANGED
+  PASSWORD_RESET
+  FAILED_ATTEMPT
+  LOCKOUT
+  COMPROMISED_DETECTED
+  TWO_FACTOR_ENABLED
+  TWO_FACTOR_DISABLED
+}
+
+enum PasswordResetMethod {
+  EMAIL
+  SMS
+  AUTHENTICATOR_APP
+  BACKUP_CODES
+  ADMIN_RESET
+}
+
+enum PasswordResetStatus {
+  INITIATED
+  COMPLETED
+  FAILED
+  EXPIRED
+  CANCELED
+  PROCESSING
+}
+
+///==================================================================================================================
+///                                             PASSKEYS & MULTI-FACTOR AUTHENTICATION (MFA)
+///==================================================================================================================
+
+// PASSKEY TABLE
+model Passkey {
+  id                  String    @id @default(uuid())
+  userId              String
+  credentialID        String    @unique
+  credentialPublicKey String    @db.Text
+  counter             BigInt
+  transports          Json
+  lastUsedAt          DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([lastUsedAt])
+  @@map("passkeys")
+}
+
+// WEBAUTHN CHALLENGE TABLE
+model WebAuthnChallenge {
+  id        String   @id @default(uuid())
+  userId    String
+  challenge String   @db.Text
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("webauthn_challenges")
+}
+
+// MULTI-FACTOR AUTHENTICATION (MFA)
+model MultiFactorMethod {
+  id           String    @id @default(uuid())
+  userId       String
+  method       MFAType // Enum (TOTP, SMS, Email, Hardware Key)
+  secret       String? // For TOTP
+  token        String? // OTP for Email/SMS verification
+  tokenExpires DateTime? // Expiration time for OTP
+  isVerified   Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lastUsedAt   DateTime?
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([lastUsedAt])
+  @@map("multi_factor_methods")
+}
+
+enum MFAType {
+  TOTP // Time-Based One-Time Password (Google Authenticator)
+  SMS // OTP sent via SMS
+  EMAIL // OTP sent via Email
+  HARDWARE // Hardware security key (FIDO2/WebAuthn)
+}
+
+///==================================================================================================================
+///                                               ROLES & MEMBERSHIPS
+///==================================================================================================================
+
+// ROLE TABLE
+model UserRole {
+  id                 String               @id @default(uuid())
+  name               String               @unique // Role Name (e.g., "Admin", "Doctor", "Patient")
+  description        String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  UserRoleAssignment UserRoleAssignment[]
+
+  @@map("user_roles")
+}
+
+// ROLE ASSIGNMENT TABLE
+model UserRoleAssignment {
+  id         String   @id @default(uuid())
+  userId     String
+  roleId     String
+  assignedAt DateTime @default(now())
+
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  role UserRole @relation(fields: [roleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([userId, roleId]) // Prevent duplicate roles
+  @@index([userId])
+  @@index([roleId])
+  @@map("user_role_assignments")
+}
+
+// MEMBERSHIP TIER TABLE
+model MembershipTier {
+  id          String   @id @default(uuid())
+  name        String   @unique // Example: "Free", "Premium", "Gold"
+  description String?
+  price       Float    @default(0.0) // Default is free
+  features    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users User[]
+
+  @@map("membership_tiers")
+}
+
+///==================================================================================================================
+///                                               USER PAYMENT & SUBSCRIPTION INFORMATION
+///==================================================================================================================
+
+// PAYMENT CARD TABLE
+model PaymentCard {
+  id         String   @id @default(uuid())
+  userId     String
+  cardNumber String   @unique
+  cardHolder String
+  cvvHash    String // CVV stored securely as a hash
+  expiryDate DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([userId, cardNumber]) // Prevent duplicate cards
+  @@index([userId])
+  @@map("payment_cards")
+}
+
+// PAYMENT TABLE
+model Payment {
+  id            String          @id @default(uuid())
+  userId        String
+  amount        Float
+  currency      Currency        @default(BDT) // Default to Bangladeshi Taka (৳)
+  status        PaymentStatus   @default(PENDING)
+  method        PaymentMethod
+  gateway       PaymentGateway? // Stripe, bKash, Nagad, Rocket, etc.
+  transactionId String?         @unique
+  stripeId      String?         @unique
+  bkashId       String?         @unique
+  nagadId       String?         @unique
+  refunded      Boolean         @default(false)
+  refundId      String?         @unique
+  failureReason String? // Stores reason for failed transactions
+  metadata      Json? // Additional payment metadata (ex: transaction logs)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  deletedAt     DateTime? // Soft delete field
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  Refund Refund?
+
+  @@index([userId, status])
+  @@map("payments")
+}
+
+// ENUMS FOR PAYMENTS
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  PROCESSING
+  SUCCESS
+}
+
+// REFUND TABLE
+model Refund {
+  id         String    @id @default(uuid())
+  paymentId  String    @unique
+  amount     Float
+  reason     String?
+  refundedBy String? // Admin/User who approved the refund
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([paymentId])
+  @@map("refunds")
+}
+
+// SUBSCRIPTION TABLE
+model Subscription {
+  id          String             @id @default(uuid())
+  userId      String
+  plan        SubscriptionPlan   @default(FREE)
+  status      SubscriptionStatus @default(ACTIVE)
+  expiresAt   DateTime
+  trialEndsAt DateTime?
+  discount    Float? // Discount on this subscription
+  autoRenew   Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  deletedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@map("subscriptions")
+}
+
+// REFERRAL BONUS TABLE
+model ReferralBonus {
+  id          String   @id @default(uuid())
+  userId      String
+  referredBy  String?
+  bonusAmount Float    @default(50.0) // Default referral bonus in BDT
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId, referredBy])
+  @@map("referral_bonus")
+}
+
+// Payment Method (Card, Mobile Payment, Bank Transfer, etc.)
+enum PaymentMethod {
+  CARD
+  MOBILE_PAYMENT
+  BANK_TRANSFER
+  CASH
+  CRYPTO
+  OTHER
+}
+
+// Payment Gateways (Bangladeshi + Global)
+enum PaymentGateway {
+  STRIPE
+  PAYPAL
+  BKASH
+  NAGAD
+  ROCKET
+  UPAY
+  MASTERCARD
+  VISA
+  AMERICAN_EXPRESS
+  PAYONEER
+  GOOGLE_PAY
+  APPLE_PAY
+  CRYPTO
+  OTHER
+}
+
+// Subscription Plan Types
+enum SubscriptionPlan {
+  FREE
+  BASIC
+  PREMIUM
+  ENTERPRISE
+}
+
+// Subscription Status
+enum SubscriptionStatus {
+  ACTIVE
+  PENDING
+  CANCELED
+  EXPIRED
+  TRIAL
+}
+
+///==================================================================================================================
+///                                               RECOVERY CONTACT
+///==================================================================================================================
+
+// RECOVERY CONTACT TABLE
+model RecoveryContact {
+  id         String              @id @default(uuid())
+  userId     String              @unique
+  type       RecoveryContactType
+  value      String              @unique
+  isVerified Boolean             @default(false)
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  user User[] @relation("UserRecoveryContact")
+
+  @@map("recovery_contact")
+}
+
+// Enum for Contact Type
+enum RecoveryContactType {
+  EMAIL
+  PHONE
+  ALTERNATE_EMAIL
+  ALTERNATE_PHONE
+  OTHER
+}
+
+///==================================================================================================================
+///                 STORAGE & FILES & IMAGES & ALBUMS & COLLECTIONS COMMENTS & REPLIES & SHARES & LIKES & TAGS
+///==================================================================================================================
+
+// STORAGE MODEL
+model Storage {
+  id        String   @id @default(uuid())
+  userId    String   @unique // Keep unique constraint
+  usedSpace BigInt   @default(0) // Storage used in bytes
+  maxSpace  BigInt   @default(1073741824) // Default 1GB in bytes
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("storage")
+}
+
+// ==========================
+// UNIFIED FILE MODEL 
+// ==========================
+model File {
+  id             String         @id @default(uuid())
+  userId         String
+  fileType       FileType       @default(IMAGE)
+  fileCategory   FileCategory   @default(GALLERY)
+  documentType   DocumentType?
+  status         String         @default("TEMPORARY")
+  confirmedAt    DateTime?
+  url            String
+  title          String?
+  description    String?
+  visibility     VisibilityType @default(PRIVATE)
+  size           BigInt
+  format         String
+  // Image specific fields
+  width          Int?
+  height         Int?
+  // Video specific fields
+  duration       Float?
+  // Cloudinary specific fields
+  cloudinaryId   String?
+  cloudinaryData Json?
+
+  // Privacy and sharing settings
+  allowComments   Boolean @default(true)
+  allowSharing    Boolean @default(true)
+  allowDownload   Boolean @default(true)
+  customAudience  String?
+  privacySettings Json?
+
+  // Metadata and tracking
+  metadata      Json?
+  viewCount     Int   @default(0)
+  reactionCount Int   @default(0)
+  shareCount    Int   @default(0)
+  commentCount  Int   @default(0)
+
+  // Relations
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tags           Tag[]
+  reactions      Reaction[]
+  comments       Comment[]
+  shares         Share[]
+  fileHistory    FileHistory[]
+  albums         Album[]         @relation("FileAlbums")
+  collections    Collection[]    @relation("FileCollections")
+  medicalReports MedicalReport[]
+  prescriptions  Prescription[]
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  editedAt  DateTime?
+
+  //  Primary Indexes
+  @@index([id])
+  @@index([userId])
+  @@index([fileType])
+  @@index([fileCategory])
+  @@index([cloudinaryId])
+  @@index([userId, status, visibility])
+  @@index([userId, status, fileCategory])
+  @@index([userId, status, createdAt])
+  @@index([title, description])
+  @@index([userId, fileType])
+  @@index([status, createdAt])
+  @@index([deletedAt])
+  @@map("files")
+}
+
+// Enhanced Share model
+model Share {
+  id          String         @id @default(uuid())
+  fileId      String
+  sharedBy    String
+  sharedWith  String
+  shareType   ShareType      @default(DIRECT)
+  message     String?
+  visibility  VisibilityType @default(PRIVATE)
+  permissions Json?
+  expiresAt   DateTime?
+  sharedAt    DateTime       @default(now())
+  viewedAt    DateTime?
+
+  file           File @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  sharedByUser   User @relation("SharedByUser", fields: [sharedBy], references: [id], onDelete: Cascade)
+  sharedWithUser User @relation("SharedWithUser", fields: [sharedWith], references: [id], onDelete: Cascade)
+
+  @@unique([fileId, sharedWith])
+  @@index([fileId])
+  @@index([sharedBy])
+  @@index([sharedWith])
+  @@map("shares")
+}
+
+// Update FileType enum
+enum FileType {
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+  PDF
+  SPREADSHEET
+  PRESENTATION
+  ARCHIVE
+  CODE
+  OTHER
+}
+
+// Image Type
+enum FileCategory {
+  GENERAL
+  PROFILE
+  COVER
+  POST
+  DOCUMENT
+  AVATAR
+  GALLERY
+  OTHER
+
+  // Medical
+  MEDICAL
+  MEDICAL_REPORT
+
+  VIDEO
+  AUDIO
+  ARCHIVE
+  SPREADSHEET
+  PRESENTATION
+  TEXT
+  CODE
+  DATABASE
+  SYSTEM
+  FONT
+  DESIGN
+  TEMPORARY
+  BACKUP
+  CONFIG
+  LOG
+  CERTIFICATE
+  SCRIPT
+
+  STREAMING
+  SENSOR
+  AI_GENERATED
+  ENCRYPTED
+  BLOCKCHAIN
+  METADATA
+  ANNOTATION
+  EPHEMERAL
+  ANALYTICS
+}
+
+// Document Type
+enum DocumentType {
+  PDF
+  DOC
+  DOCX
+  XLS
+  XLSX
+  PPT
+  PPTX
+  TXT
+  JSON
+  HTML
+  CSS
+  JS
+  XML
+  ZIP
+  RAR
+  SEVENZ
+  JPG
+  JPEG
+  HEIC
+  HEIF
+  TIFF
+  PNG
+  GIF
+  WEBP
+  SVG
+  MP4
+  WEBM
+  MP3
+  WAV
+  OTHER
+}
+
+// Update Collection model to use unified File model
+model Collection {
+  id          String         @id @default(uuid())
+  userId      String
+  name        String
+  description String?
+  visibility  VisibilityType @default(PRIVATE)
+  coverFile   String?
+  files       File[]         @relation("FileCollections")
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("collections")
+}
+
+// Update Album model to use unified File model
+model Album {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  description String?
+  coverFile   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  files       File[]   @relation("FileAlbums")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("albums")
+}
+
+// Comment
+model Comment {
+  id        String         @id @default(uuid())
+  imageId   String
+  fileId    String
+  userId    String
+  content   String
+  likes     Int            @default(0)
+  replies   CommentReply[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  deletedAt DateTime?
+
+  file File @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([imageId])
+  @@index([fileId])
+  @@index([userId])
+  @@map("comments")
+}
+
+// Comment Replies
+model CommentReply {
+  id        String    @id @default(uuid())
+  commentId String
+  userId    String
+  content   String
+  likes     Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([commentId])
+  @@index([userId])
+  @@map("comment_replies")
+}
+
+// Reaction
+model Reaction {
+  id        String       @id @default(uuid())
+  type      ReactionType // LIKE, LOVE, HAHA, etc.
+  userId    String
+  fileId    String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  file File @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fileId], name: "userId_fileId")
+  @@index([userId])
+  @@index([fileId])
+  @@map("reactions")
+}
+
+enum ReactionType {
+  LIKE
+  LOVE
+  HAHA
+  CRY
+  CARE
+  WOW
+  SAD
+  ANGRY
+  THUMBS_UP
+  THUMBS_DOWN
+  LAUGH
+  SUPPORT
+  THANK
+  PRAY
+  HOPE
+  JOY
+  CELEBRATE
+}
+
+// Enhanced Share Types
+enum ShareType {
+  DIRECT // Shared directly with specific users
+  GROUP // Shared with a group
+  LINK // Shared via link
+  TEMPORARY // Temporary share with expiration
+  RESTRICTED // Share with restricted permissions
+}
+
+// Enhanced Visibility Options
+enum VisibilityType {
+  PUBLIC
+  PRIVATE
+  FRIENDS
+  CUSTOM
+}
+
+// IMAHE HISTORY
+model FileHistory {
+  id        String     @id @default(uuid())
+  fileId    String
+  userId    String
+  action    FileAction
+  oldValue  String?
+  newValue  String?
+  timestamp DateTime   @default(now())
+
+  file File @relation(fields: [fileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  // user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([fileId])
+  @@index([userId])
+  @@index([timestamp])
+  @@map("FileHistory")
+}
+
+// TAG
+model Tag {
+  id     String @id @default(uuid())
+  fileId String
+  tag    String
+
+  file File @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@unique([fileId, tag])
+  @@index([tag])
+  @@map("tags")
+}
+
+// VISIBILITY 
+model Visibility {
+  id           String    @id @default(uuid())
+  name         String    @unique
+  visibleUsers String    @default("") // Comma-separated list of user IDs
+  description  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+  editedAt     DateTime?
+
+  @@map("Visibility")
+}
+
+///=====================================
+///                 ENUMS
+///=====================================
+
+enum FileAction {
+  UPLOADED
+  UPDATED
+  DELETED
+  RESTORED
+  VISIBILITY_CHANGED
+  RESIZED
+  COMPRESSED
+  TAGGED
+  SHARED
+  COLLECTED
+  COMMENTED
+  LIKED
+  UNLIKED
+  REPLIED
+  VIEWED
+  DOWNLOADED
+}
+
+///==================================================================================================================
+///                                               EMERGENCY CONTACTS & REQUESTS
+///==================================================================================================================
+
+// EMERGENCY CONTACT TABLE
+
+model EmergencyContact {
+  id                    String    @id @default(uuid())
+  userId                String
+  personalInformationId String
+  name                  String
+  relation              String
+  phone                 String
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  deletedAt             DateTime?
+
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  personalInformation PersonalInformation @relation(fields: [personalInformationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([personalInformationId])
+  @@map("emergency_contact")
+}
+
+//EmergencyRequest
+model EmergencyRequest {
+  id        String    @id @default(uuid())
+  userId    String    @unique
+  message   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // Soft delete field
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+}
+
+///==================================================================================================================
+///                                               EXTRA FEATURES
+///==================================================================================================================
+
+// SECURITY QUESTION TABLE
+model SecurityQuestion {
+  id       String @id @default(uuid())
+  question String // The security question
+  answer   String // The answer to the security question (hashed)
+  userId   String @unique
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@map("security_question")
+}
+
+// USER CONSENT TABLE
+model UserConsent {
+  id          String   @id @default(uuid())
+  consented   Boolean // Whether user has agreed to terms and privacy
+  consentDate DateTime @default(now())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@map("user_consent")
+}
+
+// DEVICE TOKEN TABLE
+model DeviceToken {
+  id         String      @id @default(uuid())
+  token      String // Token for device identification
+  deviceType DeviceType? // e.g., mobile, desktop
+  lastUsedAt DateTime    @default(now())
+  userId     String
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@map("device_token")
+}
+
+// AUDIT LOG TABLE
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String // Action performed (e.g., "Update", "Delete")
+  details   Json // Details of the action
+  timestamp DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@map("audit_log")
+}
+
+// FEEDBACK REQUEST TABLE
+model FeedbackRequest {
+  id        String    @id @default(uuid())
+  userId    String
+  message   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@map("feedback_request")
+}
+
+///==================================================================================================================
+///                                                 ACTIVITY & ANALYTICS
+///==================================================================================================================
+
+// New Enums for Activity Tracking
+enum UserStatus {
+  ONLINE
+  OFFLINE
+  AWAY
+  BUSY
+  INVISIBLE
+}
+
+// User Activity Tracking
+model UserActivity {
+  id         String       @id @default(uuid())
+  userId     String
+  type       ActivityType
+  details    Json?
+  ipAddress  String?
+  deviceInfo Json?
+  location   Json?
+  createdAt  DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("user_activities")
+}
+
+// User Interaction Tracking
+model UserInteraction {
+  id              String          @id @default(uuid())
+  userId          String
+  interactionType InteractionType
+  targetId        String? // ID of the target (post, comment, etc.)
+  targetType      String? // Type of the target
+  metadata        Json?
+  createdAt       DateTime        @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([interactionType])
+  @@map("user_interactions")
+}
+
+// User Session Tracking
+model UserSession {
+  id         String    @id @default(uuid())
+  userId     String
+  startTime  DateTime  @default(now())
+  endTime    DateTime?
+  duration   Int? // In seconds
+  deviceInfo Json?
+  ipAddress  String?
+  location   Json?
+  isActive   Boolean   @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([startTime])
+  @@map("user_sessions")
+}
+
+// User Metrics
+model UserMetrics {
+  id                   String @id @default(uuid())
+  userId               String @unique
+  totalSessionTime     Int    @default(0) // In minutes
+  averageSessionLength Float  @default(0)
+  lastNSessions        Json? // Store last N sessions data
+  dailyActivityStats   Json? // Daily activity statistics
+  weeklyActivityStats  Json? // Weekly activity statistics
+  monthlyActivityStats Json? // Monthly activity statistics
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("user_metrics")
+}
+
+// Analytics Data
+model AnalyticsData {
+  id        String   @id @default(uuid())
+  userId    String
+  dataType  String
+  data      Json
+  timestamp DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([dataType])
+  @@map("analytics_data")
+}
+
+// New Enums for Activity Tracking
+enum InteractionType {
+  VIEW
+  LIKE
+  COMMENT
+  SHARE
+  FOLLOW
+  UNFOLLOW
+  BLOCK
+  UNBLOCK
+  REPORT
+  BOOKMARK
+  RATE
+  REACT
+  MENTION
+  TAG
+  INVITE
+  RSVP
+  DOWNLOAD
+  PRINT
+  SEARCH
+}
+
+/// =======================================================================================
+///                                                 COMMON ENUMS
+/// =======================================================================================
+
+/// ROLE ENUM
+enum Role {
+  GUEST // Guest role
+  PATIENT // Patient role
+  DOCTOR // Doctor role
+  ADMIN // Admin role
+  SUPER_ADMIN // Super admin role
+}
+
+/// ACCOUNT STATUS ENUM
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+  VERIFIED
+  DEACTIVATED
+  PENDING
+  SUSPENDED
+  DELETED
+  LOCKED
+}
+
+/// DEVICE TYPE ENUM
+enum DeviceType {
+  WEB
+  DESKTOP
+  MOBILE
+  TABLET
+  OTHER
+}
+
+enum Language {
+  EN // English language
+  BN // Bangla language
+  AR // Arabic language
+  ES // Spanish language
+  FR // French language
+  DE // German language
+  IT // Italian language
+  PT // Portuguese language
+  ZH // Chinese language
+}
+
+enum Currency {
+  USD // USD currency
+  BDT // BDT currency
+  GBP // GBP currency
+  AUD // AUD currency
+  CAD // CAD currency
+  CNY // CNY currency
+  JPY // JPY currency
+  KRW // KRW currency
+  NZD // NZD currency
+  SGD // SGD currency
+  ZAR // ZAR currency
+  INR // INR currency
+  TRY // TRY currency
+}

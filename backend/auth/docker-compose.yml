@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: postgres_db
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432" # Ensure no other container runs on this port
+    environment:
+      POSTGRES_DB: the.shoaib023
+      POSTGRES_USER: the.shoaib023
+      POSTGRES_PASSWORD: the.shoaib023
+
+  adminer:
+    image: adminer:latest
+    container_name: adminer_ui
+    restart: always
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres_data:

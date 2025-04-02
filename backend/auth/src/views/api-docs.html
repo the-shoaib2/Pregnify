@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Documentation - Authentication Service</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-json.min.js"></script>
+    <script>
+        function copyToClipboard(text, type = 'text') {
+            let content = text;
+            if (type === 'json') {
+                try {
+                    content = typeof text === 'string' ? text : JSON.stringify(JSON.parse(text), null, 2);
+                } catch (err) {
+                    console.error('Failed to parse JSON:', err);
+                    content = text;
+                }
+            }
+            navigator.clipboard.writeText(content).then(() => {
+                showToast('Copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+                showToast('Failed to copy text');
+            });
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.textContent = message;
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: #4f46e5;
+                color: white;
+                padding: 12px 24px;
+                border-radius: 6px;
+                font-size: 14px;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                z-index: 1000;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            `;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.style.opacity = '1', 10);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => document.body.removeChild(toast), 300);
+            }, 2000);
+        }
+
+        function filterEndpoints(type = null) {
+            const methodFilter = document.getElementById('methodFilter').value;
+            const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
+            const typeFilter = type || 'all';
+            
+            document.querySelectorAll('.endpoint').forEach(endpoint => {
+                const methods = Array.from(endpoint.querySelectorAll('.method-badge')).map(m => m.textContent);
+                const path = endpoint.querySelector('.path').textContent.toLowerCase();
+                const description = endpoint.querySelector('.endpoint-description').textContent.toLowerCase();
+                const endpointType = endpoint.getAttribute('data-type');
+                const isProtected = endpoint.querySelector('.protected-badge') !== null;
+                
+                const matchesMethod = methodFilter === 'all' || methods.includes(methodFilter);
+                const matchesSearch = path.includes(searchFilter) || description.includes(searchFilter);
+                const matchesType = typeFilter === 'all' || 
+                                  (typeFilter === 'protected' && isProtected) ||
+                                  endpointType === typeFilter;
+                
+                endpoint.style.display = matchesMethod && matchesSearch && matchesType ? 'block' : 'none';
+            });
+
+            // Show/hide empty groups
+            document.querySelectorAll('.endpoint-group').forEach(group => {
+                const hasVisibleEndpoints = Array.from(group.querySelectorAll('.endpoint'))
+                    .some(e => e.style.display !== 'none');
+                group.style.display = hasVisibleEndpoints ? 'block' : 'none';
+            });
+
+            // Update active type filter
+            document.querySelectorAll('.type-filter').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-type') === typeFilter);
+            });
+        }
+
+        function toggleEndpointDetails(endpointId) {
+            const details = document.getElementById(endpointId);
+            const isExpanded = details.style.maxHeight !== '0px' && details.style.maxHeight !== '';
+            
+            if (!isExpanded) {
+                // Close all other details
+                document.querySelectorAll('.endpoint-details').forEach(d => {
+                    if (d.id !== endpointId) {
+                        d.style.maxHeight = '0px';
+                        d.style.opacity = '0';
+                    }
+                });
+                
+                details.style.maxHeight = details.scrollHeight + 'px';
+                details.style.opacity = '1';
+            } else {
+                details.style.maxHeight = '0px';
+                details.style.opacity = '0';
+            }
+        }
+
+        window.onload = function() {
+            try {
+                // Initialize Prism.js
+                Prism.highlightAll();
+                
+                // Add click listeners to endpoints
+                document.querySelectorAll('.endpoint').forEach(endpoint => {
+                    endpoint.addEventListener('click', (e) => {
+                        if (!e.target.classList.contains('copy-button')) {
+                            const detailsId = endpoint.getAttribute('data-details');
+                            toggleEndpointDetails(detailsId);
+                        }
+                    });
+                });
+
+                // Format all JSON code blocks
+                document.querySelectorAll('code.language-json').forEach(block => {
+                    try {
+                        const content = block.textContent;
+                        const formatted = JSON.stringify(JSON.parse(content), null, 2);
+                        block.textContent = formatted;
+                    } catch (err) {
+                        console.warn('Failed to format JSON block:', err);
+                    }
+                });
+
+                // Re-highlight after formatting
+                Prism.highlightAll();
+            } catch (err) {
+                console.error('Error during initialization:', err);
+            }
+        };
+    </script>
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --secondary-color: #6366f1;
+            --success-color: #22c55e;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --background-color: #f9fafb;
+            --card-background: #ffffff;
+            --text-primary: #111827;
+            --text-secondary: #4b5563;
+            --border-color: #e5e7eb;
+            --code-background: #1f2937;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 2rem;
+            background: var(--card-background);
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        .header h1 {
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .nav-filters {
+            background: var(--card-background);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .nav-filters select,
+        .nav-filters input {
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .type-filters {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .type-filter {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            cursor: pointer;
+            background: white;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+
+        .type-filter:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .type-filter.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .endpoint {
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: var(--card-background);
+        }
+
+        .endpoint:hover {
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            border-color: var(--primary-color);
+        }
+
+        .endpoint-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .endpoint-title {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .endpoint-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .endpoint-details {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+            border-top: 1px solid var(--border-color);
+            margin-top: 1rem;
+        }
+
+        .details-section {
+            margin: 1.5rem 0;
+        }
+
+        .details-section:first-child {
+            margin-top: 1rem;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .code-block {
+            background: var(--code-background);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            position: relative;
+            margin-top: 0.5rem;
+        }
+
+        .code-block pre {
+            margin: 0;
+            padding: 0;
+        }
+
+        .copy-button {
+            padding: 0.25rem 0.75rem;
+            border: none;
+            border-radius: 0.25rem;
+            background: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: background 0.2s ease;
+        }
+
+        .copy-button:hover {
+            background: var(--secondary-color);
+        }
+
+        .method-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .badge-get { background: #dbeafe; color: #1e40af; }
+        .badge-post { background: #dcfce7; color: #166534; }
+        .badge-put { background: #fef3c7; color: #92400e; }
+        .badge-delete { background: #fee2e2; color: #991b1b; }
+        .badge-patch { background: #f3e8ff; color: #6b21a8; }
+
+        .path {
+            font-family: monospace;
+            font-size: 1rem;
+            color: var(--text-primary);
+            padding: 0.25rem 0.5rem;
+            background: #f3f4f6;
+            border-radius: 0.25rem;
+        }
+
+        .protected-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            background: var(--warning-color);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .endpoint-description {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin: 0.5rem 0;
+            padding-left: 0.5rem;
+            border-left: 3px solid var(--border-color);
+        }
+
+        .group-title {
+            font-size: 1.25rem;
+            color: var(--text-primary);
+            margin: 2rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            .filter-row {
+                flex-direction: column;
+            }
+            .nav-filters select,
+            .nav-filters input {
+                width: 100%;
+            }
+            .endpoint-header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            .endpoint-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>API Documentation</h1>
+            <div class="server-info">
+                <p>Version: <strong>{{version}}</strong></p>
+                <p>Base URL: <code>{{baseUrl}}</code></p>
+            </div>
+        </div>
+
+        <div class="nav-filters">
+            <div class="filter-row">
+                <select id="methodFilter" onchange="filterEndpoints()">
+                    <option value="all">All Methods</option>
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="DELETE">DELETE</option>
+                    <option value="PATCH">PATCH</option>
+                </select>
+                <input type="text" id="searchFilter" placeholder="Search endpoints..." oninput="filterEndpoints()">
+            </div>
+            <div class="filter-row">
+                <div class="type-filters">
+                    <button class="type-filter active" data-type="all" onclick="filterEndpoints('all')">All</button>
+                    <button class="type-filter" data-type="auth" onclick="filterEndpoints('auth')">Authentication</button>
+                    <button class="type-filter" data-type="admin" onclick="filterEndpoints('admin')">Admin</button>
+                    <button class="type-filter" data-type="public" onclick="filterEndpoints('public')">Public</button>
+                    <button class="type-filter" data-type="protected" onclick="filterEndpoints('protected')">Protected</button>
+                </div>
+            </div>
+        </div>
+
+        {{#each endpoints}}
+        <div class="endpoint-group">
+            <h2 class="group-title">{{@key}}</h2>
+            {{#each this}}
+            <div class="endpoint" data-details="details-{{@../key}}-{{@index}}" data-type="{{type}}">
+                <div class="endpoint-header">
+                    <div class="endpoint-title">
+                        {{#each methods}}
+                        <span class="method-badge badge-{{toLowerCase this}}">{{this}}</span>
+                        {{/each}}
+                        <span class="path">{{path}}</span>
+                        {{#if protected}}
+                        <span class="protected-badge">🔒 Protected</span>
+                        {{/if}}
+                    </div>
+                    <div class="endpoint-actions">
+                        <button class="copy-button" onclick="event.stopPropagation(); copyToClipboard('{{../../../baseUrl}}{{path}}')">Copy URL</button>
+                        <button class="copy-button" onclick="event.stopPropagation(); copyToClipboard('curl -X {{methods.[0]}} {{../../../baseUrl}}{{path}}')">Copy cURL</button>
+                    </div>
+                </div>
+                <div class="endpoint-description">{{description}}</div>
+                <div class="endpoint-details" id="details-{{@../key}}-{{@index}}">
+                    {{#if headers}}
+                    <div class="details-section">
+                        <div class="section-header">
+                            <span class="section-title">Headers</span>
+                            <button class="copy-button" onclick="event.stopPropagation(); copyToClipboard('{{json headers}}', 'json')">Copy Headers</button>
+                        </div>
+                        <div class="code-block">
+                            <pre><code class="language-json">{{json headers}}</code></pre>
+                        </div>
+                    </div>
+                    {{/if}}
+                    
+                    {{#if request}}
+                    <div class="details-section">
+                        <div class="section-header">
+                            <span class="section-title">Request Body</span>
+                            <button class="copy-button" onclick="event.stopPropagation(); copyToClipboard('{{json request}}', 'json')">Copy Request</button>
+                        </div>
+                        <div class="code-block">
+                            <pre><code class="language-json">{{json request}}</code></pre>
+                        </div>
+                    </div>
+                    {{/if}}
+                    
+                    {{#if response}}
+                    <div class="details-section">
+                        <div class="section-header">
+                            <span class="section-title">Response</span>
+                            <button class="copy-button" onclick="event.stopPropagation(); copyToClipboard('{{json response}}', 'json')">Copy Response</button>
+                        </div>
+                        <div class="code-block">
+                            <pre><code class="language-json">{{json response}}</code></pre>
+                        </div>
+                    </div>
+                    {{/if}}
+                </div>
+            </div>
+            {{/each}}
+        </div>
+        {{/each}}
+
+        <div class="endpoint-group">
+            <h2 class="group-title">Verification</h2>
+            
+            <!-- Find User for Forgot Password -->
+            <div class="endpoint" data-details="details-verification-0" data-type="public">
+                <div class="endpoint-header">
+                    <span class="method-badge method-post">POST</span>
+                    <span class="path">/verification/forgot-password/find-user</span>
+                    <span class="endpoint-description">Find user for forgot password flow</span>
+                </div>
+                <div class="endpoint-details" id="details-verification-0">
+                    <div class="request-details">
+                        <h3>Request Body</h3>
+                        <pre><code class="language-json">{
+    "email": "user@example.com"
+}</code></pre>
+                    </div>
+                    <div class="response-details">
+                        <h3>Success Response</h3>
+                        <pre><code class="language-json">{
+    "statusCode": 200,
+    "data": {
+        "user": {
+            "name": "John Doe",
+            "email": "user@example.com",
+            "username": "johndoe",
+            "avatar": "path/to/avatar.jpg"
+        }
+    },
+    "message": "User found"
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Send OTP -->
+            <div class="endpoint" data-details="details-verification-1" data-type="public">
+                <div class="endpoint-header">
+                    <span class="method-badge method-post">POST</span>
+                    <span class="path">/verification/forgot-password/send-otp</span>
+                    <span class="endpoint-description">Send OTP for password reset</span>
+                </div>
+                <div class="endpoint-details" id="details-verification-1">
+                    <div class="request-details">
+                        <h3>Request Body</h3>
+                        <pre><code class="language-json">{
+    "email": "user@example.com"
+}</code></pre>
+                    </div>
+                    <div class="response-details">
+                        <h3>Success Response</h3>
+                        <pre><code class="language-json">{
+    "statusCode": 200,
+    "data": {
+        "code": "123456"
+    },
+    "message": "Verification code sent successfully"
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Verify OTP -->
+            <div class="endpoint" data-details="details-verification-2" data-type="public">
+                <div class="endpoint-header">
+                    <span class="method-badge method-post">POST</span>
+                    <span class="path">/verification/forgot-password/verify-otp</span>
+                    <span class="endpoint-description">Verify OTP for password reset</span>
+                </div>
+                <div class="endpoint-details" id="details-verification-2">
+                    <div class="request-details">
+                        <h3>Request Body</h3>
+                        <pre><code class="language-json">{
+    "email": "user@example.com",
+    "otp": "123456"
+}</code></pre>
+                    </div>
+                    <div class="response-details">
+                        <h3>Success Response</h3>
+                        <pre><code class="language-json">{
+    "statusCode": 200,
+    "data": {
+        "isActive": true
+    },
+    "message": "Your account is now activated successfully."
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reset Password -->
+            <div class="endpoint" data-details="details-verification-3" data-type="public">
+                <div class="endpoint-header">
+                    <span class="method-badge method-post">POST</span>
+                    <span class="path">/verification/forgot-password/reset-password</span>
+                    <span class="endpoint-description">Reset user password</span>
+                </div>
+                <div class="endpoint-details" id="details-verification-3">
+                    <div class="request-details">
+                        <h3>Request Body</h3>
+                        <pre><code class="language-json">{
+    "email": "user@example.com",
+    "newPassword": "newSecurePassword123!"
+}</code></pre>
+                    </div>
+                    <div class="response-details">
+                        <h3>Success Response</h3>
+                        <pre><code class="language-json">{
+    "statusCode": 200,
+    "data": null,
+    "message": "Password reset successfully"
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

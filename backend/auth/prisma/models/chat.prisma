@@ -1,0 +1,250 @@
+// // // This is your Prisma schema file,
+// // // learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// // // npx prisma generate
+// // // npx prisma db push
+// // // npx prisma migrate dev --name init
+
+
+// /// ============================
+// /// GENERATOR
+// /// ============================
+// generator client {
+//   provider = "prisma-client-js"
+// }
+
+// datasource db {
+//   provider = "mysql"
+//   url      = env("MYSQL_DATABASE_URL")
+// }
+
+
+
+// model User {
+//   id           String   @id @default(uuid())
+//   userId       String   @unique
+//   email        String   @unique
+//   name         String
+
+//   chatRooms    ChatParticipant[]
+//   blockedUsers BlockedUsers[] @relation("BlockedUsers")
+
+//   @@index([userId]) // Index for faster lookups
+// }
+
+// model ChatRoom {
+//   id             String   @id @default(uuid())
+//   isGroup        Boolean  @default(false)
+//   groupChat      GroupChat?
+//   createdAt      DateTime @default(now())
+
+//   participants   ChatParticipant[]
+//   messages       ChatMessage[]
+//   calls          CallSession[]
+//   pinnedMessages PinnedMessage[]
+
+//   @@index([isGroup]) // Optimization for group queries
+// }
+
+// model GroupChat {
+//   id             String   @id @default(uuid())
+//   chatRoomId     String   @unique
+//   chatRoom       ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+//   name           String
+//   description    String?
+//   admins         User[] @relation("GroupChatAdmins")
+//   createdAt      DateTime @default(now())
+// }
+
+// model ChatParticipant {
+//   id             String   @id @default(uuid())
+//   userId         String
+//   chatRoomId     String
+//   joinedAt       DateTime @default(now())
+//   isAdmin        Boolean  @default(false)
+
+//   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   chatRoom       ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+
+//   @@unique([userId, chatRoomId]) // Prevent duplicate joins
+// }
+
+// model ChatMessage {
+//   id                  String   @id @default(uuid())
+//   chatRoomId          String
+//   senderId            String
+//   receiverId          String?
+//   content             String?
+//   cipherText          String?
+//   encryptionKey       String?
+//   encryptionAlgorithm String?
+//   messageType         MessageType @default(TEXT)
+//   status              MessageStatus @default(SENT)
+//   createdAt           DateTime @default(now())
+//   editedAt            DateTime?
+//   bumpedAt            DateTime?
+//   repliedMessageId    String?
+//   disappearingAt      DateTime?
+//   unsentAt            DateTime?
+//   vanishMode          Boolean @default(false)
+
+//   chatRoom       ChatRoom  @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+//   sender         User      @relation("SenderRelation", fields: [senderId], references: [id], onDelete: Cascade)
+//   receiver       User?     @relation("ReceiverRelation", fields: [receiverId], references: [id], onDelete: SetNull)
+//   reactions      ChatReaction[]
+//   pinnedMessage  PinnedMessage?
+//   seenBy         MessageSeen[]
+//   media          MediaAttachment[]
+//   mentionedUsers MentionedUser[]
+
+//   @@index([chatRoomId, senderId]) // Faster queries in chats
+// }
+
+
+
+
+// model MentionedUser {
+//   id          String   @id @default(uuid())
+//   messageId   String
+//   userId      String
+//   mentionedAt DateTime @default(now())
+
+//   message     ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+//   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+//   @@unique([messageId, userId]) // Prevent duplicate mentions
+// }
+
+// model MessageSeen {
+//   id        String   @id @default(uuid())
+//   messageId String
+//   userId    String
+//   seenAt    DateTime @default(now())
+
+//   message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+//   user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+//   @@unique([messageId, userId])
+// }
+
+// model ChatReaction {
+//   id        String   @id @default(uuid())
+//   messageId String
+//   userId    String
+//   emoji     String
+//   createdAt DateTime @default(now())
+
+//   message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+//   user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+//   @@unique([messageId, userId, emoji]) // One reaction per user per message
+// }
+
+
+
+// model MediaAttachment {
+//   id        String   @id @default(uuid())
+//   messageId String?
+//   senderId  String
+//   type      MediaType
+//   url       String
+//   createdAt DateTime @default(now())
+
+//   message   ChatMessage? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+//   sender    User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+//   @@index([type]) // Optimize media queries
+// }
+
+
+
+// model CallSession {
+//   id          String   @id @default(uuid())
+//   chatRoomId  String
+//   initiatorId String
+//   callType    CallType
+//   startedAt   DateTime @default(now())
+//   endedAt     DateTime?
+//   isMissed    Boolean  @default(false)
+//   recordingUrl String?
+
+//   chatRoom    ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+//   initiator   User     @relation(fields: [initiatorId], references: [id], onDelete: Cascade)
+//   participants CallParticipant[]
+
+//   @@index([chatRoomId, initiatorId])
+// }
+
+// model CallParticipant {
+//   id            String   @id @default(uuid())
+//   callSessionId String
+//   userId        String
+//   joinedAt      DateTime @default(now())
+//   leftAt        DateTime?
+
+//   callSession   CallSession @relation(fields: [callSessionId], references: [id], onDelete: Cascade)
+//   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+//   @@unique([callSessionId, userId])
+// }
+
+
+
+// model PinnedMessage {
+//   id         String   @id @default(uuid())
+//   chatRoomId String
+//   messageId  String
+//   pinnedById String
+//   pinnedAt   DateTime @default(now())
+
+//   chatRoom   ChatRoom    @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+//   message    ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+//   pinnedBy   User        @relation(fields: [pinnedById], references: [id], onDelete: Cascade)
+// }
+
+
+// model BlockedUsers {
+//   id         String   @id @default(uuid())
+//   blockerId  String
+//   blockedId  String
+//   blockedAt  DateTime @default(now())
+
+//   blocker    User @relation("BlockedUsers", fields: [blockerId], references: [id], onDelete: Cascade)
+//   blocked    User @relation("BlockedUsers", fields: [blockedId], references: [id], onDelete: Cascade)
+
+//   @@unique([blockerId, blockedId])
+// }
+
+// //============================
+// /// ENUMS
+// //============================
+
+
+// enum MessageType {
+//   TEXT
+//   IMAGE
+//   VIDEO
+//   AUDIO
+//   FILE
+//   GIF
+//   STICKER
+// }
+
+// enum MessageStatus {
+//   SENT
+//   DELIVERED
+//   READ
+// }
+
+// enum MediaType {
+//   IMAGE
+//   VIDEO
+//   AUDIO
+//   DOCUMENT
+//   GIF
+// }
+
+// enum CallType {
+//   AUDIO
+//   VIDEO
+// }

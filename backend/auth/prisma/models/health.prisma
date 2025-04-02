@@ -1,0 +1,36 @@
+// // This is your Prisma schema file,
+// // learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// // npx prisma generate
+// // npx prisma db push
+// // npx prisma migrate dev --name init
+
+// generator client {
+//   provider = "prisma-client-js"
+// }
+
+// datasource db {
+//   provider = "mysql"
+//   url      = env("MYSQL_DATABASE_URL")
+// }
+
+
+// model HealthData {
+//   id             String   @id @default(uuid())
+//   patientId      String
+//   patient        Patient  @relation(fields: [patientId], references: [id])
+//   heartRate      Int
+//   bloodPressure  String?
+//   bloodOxygen    Float?
+//   glucoseLevel   Float?
+//   temperature    Float?
+//   recordedAt     DateTime @default(now())
+// }
+
+// model AiPrediction {
+//   id                 String   @id @default(uuid())
+//   patientId          String
+//   patient            Patient  @relation(fields: [patientId], references: [id])
+//   predictionResult   Json
+//   createdAt          DateTime @default(now())
+// }
