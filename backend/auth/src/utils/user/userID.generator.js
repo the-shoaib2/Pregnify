@@ -15,10 +15,12 @@ export const generateUserID = async (role) => {
         const rolePrefix = getRolePrefix(role);
 
         const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth();
+        const currentDay = new Date().getDate();
         const paddedCount = (userCount + 1).toString().padStart(6, '0');
         // Generate the ID with format: ROLE-CURRENTYEAR-SEQUENTIAL_NUMBER
 
-        const userID = `${rolePrefix}-${currentYear}-${paddedCount}`;
+        const userID = `${rolePrefix}-${currentYear}-${currentMonth}-${currentDay}-${paddedCount}`;
 
         return userID;
     } catch (error) {

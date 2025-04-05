@@ -74,6 +74,7 @@ CREATE TABLE `users` (
     UNIQUE INDEX `users_username_key`(`username`),
     UNIQUE INDEX `users_email_key`(`email`),
     UNIQUE INDEX `users_phoneNumber_key`(`phoneNumber`),
+    UNIQUE INDEX `users_verificationToken_key`(`verificationToken`),
     INDEX `users_email_password_hash_idx`(`email`, `password_hash`),
     INDEX `users_username_password_hash_idx`(`username`, `password_hash`),
     INDEX `users_email_isAccountLocked_failedLoginCount_idx`(`email`, `isAccountLocked`, `failedLoginCount`),
@@ -113,6 +114,11 @@ CREATE TABLE `personal_information` (
     `placeOfBirth` VARCHAR(191) NULL,
     `countryOfBirth` VARCHAR(191) NULL,
     `nationality` VARCHAR(191) NULL,
+    `location` VARCHAR(191) NULL,
+    `education` VARCHAR(191) NULL,
+    `incomeLevel` VARCHAR(191) NULL,
+    `livingConditions` VARCHAR(191) NULL,
+    `accessToHealthcare` VARCHAR(191) NULL,
     `passportNumber` VARCHAR(191) NULL,
     `passportExpiry` DATETIME(3) NULL,
     `maritalStatus` ENUM('SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED', 'OTHER') NULL,
@@ -204,8 +210,13 @@ CREATE TABLE `education_qualifications` (
 CREATE TABLE `medical_information` (
     `id` VARCHAR(191) NOT NULL,
     `userId` VARCHAR(191) NOT NULL,
-    `bloodGroup` VARCHAR(191) NULL,
+    `bloodGroup` ENUM('A_POSITIVE', 'A_NEGATIVE', 'B_POSITIVE', 'B_NEGATIVE', 'AB_POSITIVE', 'AB_NEGATIVE', 'O_POSITIVE', 'O_NEGATIVE', 'UNKNOWN') NULL,
     `organDonor` BOOLEAN NOT NULL DEFAULT false,
+    `height` DOUBLE NULL,
+    `prePregnancyWeight` DOUBLE NULL,
+    `currentWeight` DOUBLE NULL,
+    `bmi` DOUBLE NULL,
+    `bloodPressure` VARCHAR(191) NULL,
     `medicalHistory` JSON NULL,
     `chronicDiseases` JSON NULL,
     `cancerHistory` BOOLEAN NOT NULL DEFAULT false,
@@ -1350,6 +1361,329 @@ CREATE TABLE `analytics_data` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
+CREATE TABLE `pregnancy_profiles` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `dueDate` DATETIME(3) NOT NULL,
+    `pregnancyWeek` INTEGER NOT NULL,
+    `lastMenstrualDate` DATETIME(3) NOT NULL,
+    `isActive` BOOLEAN NOT NULL DEFAULT true,
+    `status` ENUM('ACTIVE', 'COMPLETED', 'TERMINATED', 'LOST', 'ON_HOLD') NOT NULL DEFAULT 'ACTIVE',
+    `height` DOUBLE NULL,
+    `prePregnancyWeight` DOUBLE NULL,
+    `currentWeight` DOUBLE NULL,
+    `bmi` DOUBLE NULL,
+    `bloodPressure` VARCHAR(191) NULL,
+    `bloodGroup` ENUM('A_POSITIVE', 'A_NEGATIVE', 'B_POSITIVE', 'B_NEGATIVE', 'AB_POSITIVE', 'AB_NEGATIVE', 'O_POSITIVE', 'O_NEGATIVE', 'UNKNOWN') NULL,
+    `isFirstPregnancy` BOOLEAN NULL DEFAULT false,
+    `previousPregnancies` INTEGER NULL DEFAULT 0,
+    `previousComplications` JSON NULL,
+    `pregnancyType` VARCHAR(191) NULL,
+    `conceptionMethod` VARCHAR(191) NULL,
+    `hasGestationalDiabetes` BOOLEAN NULL DEFAULT false,
+    `hasPreeclampsia` BOOLEAN NULL DEFAULT false,
+    `hasAnemia` BOOLEAN NULL DEFAULT false,
+    `otherConditions` JSON NULL,
+    `smokingStatus` VARCHAR(191) NULL,
+    `alcoholConsumption` VARCHAR(191) NULL,
+    `exerciseFrequency` VARCHAR(191) NULL,
+    `dietaryRestrictions` JSON NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `pregnancy_profiles_userId_key`(`userId`),
+    INDEX `pregnancy_profiles_userId_idx`(`userId`),
+    INDEX `pregnancy_profiles_isActive_idx`(`isActive`),
+    INDEX `pregnancy_profiles_status_idx`(`status`),
+    INDEX `pregnancy_profiles_pregnancyWeek_idx`(`pregnancyWeek`),
+    INDEX `pregnancy_profiles_dueDate_idx`(`dueDate`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `risk_assessments` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `pregnancyId` VARCHAR(191) NOT NULL,
+    `riskScore` DOUBLE NOT NULL,
+    `assessmentDate` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `recommendations` TEXT NOT NULL,
+    `vitalSigns` JSON NOT NULL,
+    `symptoms` JSON NOT NULL,
+    `bangladeshFactors` JSON NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `risk_assessments_userId_key`(`userId`),
+    UNIQUE INDEX `risk_assessments_pregnancyId_key`(`pregnancyId`),
+    INDEX `risk_assessments_userId_idx`(`userId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `health_metrics` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `pregnancyId` VARCHAR(191) NOT NULL,
+    `type` VARCHAR(191) NOT NULL,
+    `value` DOUBLE NOT NULL,
+    `unit` VARCHAR(191) NOT NULL,
+    `measuredAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `notes` VARCHAR(191) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `health_metrics_userId_key`(`userId`),
+    INDEX `health_metrics_userId_idx`(`userId`),
+    INDEX `health_metrics_pregnancyId_idx`(`pregnancyId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `symptom_logs` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `pregnancyId` VARCHAR(191) NOT NULL,
+    `symptom` VARCHAR(191) NOT NULL,
+    `severity` VARCHAR(191) NOT NULL,
+    `onsetDate` DATETIME(3) NOT NULL,
+    `resolutionDate` DATETIME(3) NULL,
+    `notes` VARCHAR(191) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `symptom_logs_userId_key`(`userId`),
+    INDEX `symptom_logs_userId_idx`(`userId`),
+    INDEX `symptom_logs_pregnancyId_idx`(`pregnancyId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `medical_appointments` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `pregnancyId` VARCHAR(191) NOT NULL,
+    `doctorId` VARCHAR(191) NOT NULL,
+    `type` VARCHAR(191) NOT NULL,
+    `date` DATETIME(3) NOT NULL,
+    `time` VARCHAR(191) NOT NULL,
+    `location` VARCHAR(191) NOT NULL,
+    `status` VARCHAR(191) NOT NULL,
+    `notes` VARCHAR(191) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `medical_appointments_userId_key`(`userId`),
+    INDEX `medical_appointments_userId_idx`(`userId`),
+    INDEX `medical_appointments_pregnancyId_idx`(`pregnancyId`),
+    INDEX `medical_appointments_doctorId_idx`(`doctorId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `doctors` (
+    `id` VARCHAR(191) NOT NULL,
+    `name` VARCHAR(191) NOT NULL,
+    `specialty` VARCHAR(191) NOT NULL,
+    `hospital` VARCHAR(191) NOT NULL,
+    `contact` VARCHAR(191) NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    INDEX `doctors_specialty_idx`(`specialty`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `medical_records` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `pregnancyId` VARCHAR(191) NOT NULL,
+    `type` VARCHAR(191) NOT NULL,
+    `date` DATETIME(3) NOT NULL,
+    `results` JSON NOT NULL,
+    `notes` VARCHAR(191) NULL,
+    `file` VARCHAR(191) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `medical_records_userId_key`(`userId`),
+    INDEX `medical_records_userId_idx`(`userId`),
+    INDEX `medical_records_pregnancyId_idx`(`pregnancyId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `baby_kicks` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `pregnancyId` VARCHAR(191) NOT NULL,
+    `count` INTEGER NOT NULL,
+    `duration` DOUBLE NOT NULL,
+    `notes` VARCHAR(191) NULL,
+    `recordedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `baby_kicks_userId_key`(`userId`),
+    INDEX `baby_kicks_userId_idx`(`userId`),
+    INDEX `baby_kicks_pregnancyId_idx`(`pregnancyId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `nutrition_logs` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `pregnancyId` VARCHAR(191) NOT NULL,
+    `mealType` VARCHAR(191) NOT NULL,
+    `foodItems` JSON NOT NULL,
+    `notes` VARCHAR(191) NULL,
+    `recordedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `nutrition_logs_userId_key`(`userId`),
+    INDEX `nutrition_logs_userId_idx`(`userId`),
+    INDEX `nutrition_logs_pregnancyId_idx`(`pregnancyId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `exercise_logs` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `pregnancyId` VARCHAR(191) NOT NULL,
+    `type` VARCHAR(191) NOT NULL,
+    `duration` DOUBLE NOT NULL,
+    `intensity` VARCHAR(191) NOT NULL,
+    `notes` VARCHAR(191) NULL,
+    `recordedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `exercise_logs_userId_key`(`userId`),
+    INDEX `exercise_logs_userId_idx`(`userId`),
+    INDEX `exercise_logs_pregnancyId_idx`(`pregnancyId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `mental_health_logs` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `pregnancyId` VARCHAR(191) NOT NULL,
+    `mood` VARCHAR(191) NOT NULL,
+    `stressLevel` INTEGER NOT NULL DEFAULT 0,
+    `notes` VARCHAR(191) NULL,
+    `recordedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `mental_health_logs_userId_key`(`userId`),
+    INDEX `mental_health_logs_userId_idx`(`userId`),
+    INDEX `mental_health_logs_pregnancyId_idx`(`pregnancyId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `medications` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `pregnancyId` VARCHAR(191) NOT NULL,
+    `name` VARCHAR(191) NOT NULL,
+    `dosage` VARCHAR(191) NOT NULL,
+    `frequency` VARCHAR(191) NOT NULL,
+    `startDate` DATETIME(3) NOT NULL,
+    `endDate` DATETIME(3) NULL,
+    `notes` VARCHAR(191) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `medications_userId_key`(`userId`),
+    INDEX `medications_userId_idx`(`userId`),
+    INDEX `medications_pregnancyId_idx`(`pregnancyId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `health_alerts` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `pregnancyId` VARCHAR(191) NOT NULL,
+    `type` VARCHAR(191) NOT NULL,
+    `message` VARCHAR(191) NOT NULL,
+    `severity` VARCHAR(191) NOT NULL,
+    `triggeredAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `isRead` BOOLEAN NOT NULL DEFAULT false,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `health_alerts_userId_key`(`userId`),
+    INDEX `health_alerts_userId_idx`(`userId`),
+    INDEX `health_alerts_pregnancyId_idx`(`pregnancyId`),
+    INDEX `health_alerts_severity_idx`(`severity`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `emergency_services` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `pregnancyId` VARCHAR(191) NOT NULL,
+    `type` VARCHAR(191) NOT NULL,
+    `status` VARCHAR(191) NOT NULL,
+    `location` VARCHAR(191) NOT NULL,
+    `notes` VARCHAR(191) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    INDEX `emergency_services_userId_idx`(`userId`),
+    INDEX `emergency_services_pregnancyId_idx`(`pregnancyId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `telemedicine_consultations` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `pregnancyId` VARCHAR(191) NOT NULL,
+    `doctorId` VARCHAR(191) NOT NULL,
+    `type` VARCHAR(191) NOT NULL,
+    `status` VARCHAR(191) NOT NULL,
+    `startTime` DATETIME(3) NOT NULL,
+    `endTime` DATETIME(3) NULL,
+    `notes` VARCHAR(191) NULL,
+    `paymentId` VARCHAR(191) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    INDEX `telemedicine_consultations_userId_idx`(`userId`),
+    INDEX `telemedicine_consultations_pregnancyId_idx`(`pregnancyId`),
+    INDEX `telemedicine_consultations_doctorId_idx`(`doctorId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `payment_transactions` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `amount` DOUBLE NOT NULL,
+    `currency` VARCHAR(191) NOT NULL DEFAULT 'BDT',
+    `status` VARCHAR(191) NOT NULL,
+    `type` VARCHAR(191) NOT NULL,
+    `method` VARCHAR(191) NOT NULL,
+    `referenceId` VARCHAR(191) NULL,
+    `metadata` JSON NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    INDEX `payment_transactions_userId_idx`(`userId`),
+    INDEX `payment_transactions_status_idx`(`status`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
 CREATE TABLE `_FileCollections` (
     `A` VARCHAR(191) NOT NULL,
     `B` VARCHAR(191) NOT NULL,
@@ -1389,7 +1723,7 @@ ALTER TABLE `addresses` ADD CONSTRAINT `addresses_userId_fkey` FOREIGN KEY (`use
 ALTER TABLE `websites` ADD CONSTRAINT `websites_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `personal_information`(`userId`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `education_qualifications` ADD CONSTRAINT `education_qualifications_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `education_qualifications` ADD CONSTRAINT `education_qualifications_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `medical_information` ADD CONSTRAINT `medical_information_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -1407,10 +1741,10 @@ ALTER TABLE `prescription` ADD CONSTRAINT `prescription_fileId_fkey` FOREIGN KEY
 ALTER TABLE `prescription` ADD CONSTRAINT `prescription_medicalInfoId_fkey` FOREIGN KEY (`medicalInfoId`) REFERENCES `medical_information`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `account_preferences` ADD CONSTRAINT `account_preferences_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `account_preferences` ADD CONSTRAINT `account_preferences_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `notification_preferences` ADD CONSTRAINT `notification_preferences_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `notification_preferences` ADD CONSTRAINT `notification_preferences_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `ip_whitelist` ADD CONSTRAINT `ip_whitelist_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -1609,6 +1943,99 @@ ALTER TABLE `user_metrics` ADD CONSTRAINT `user_metrics_userId_fkey` FOREIGN KEY
 
 -- AddForeignKey
 ALTER TABLE `analytics_data` ADD CONSTRAINT `analytics_data_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `pregnancy_profiles` ADD CONSTRAINT `pregnancy_profiles_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `risk_assessments` ADD CONSTRAINT `risk_assessments_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `risk_assessments` ADD CONSTRAINT `risk_assessments_pregnancyId_fkey` FOREIGN KEY (`pregnancyId`) REFERENCES `pregnancy_profiles`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `health_metrics` ADD CONSTRAINT `health_metrics_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `health_metrics` ADD CONSTRAINT `health_metrics_pregnancyId_fkey` FOREIGN KEY (`pregnancyId`) REFERENCES `pregnancy_profiles`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `symptom_logs` ADD CONSTRAINT `symptom_logs_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `symptom_logs` ADD CONSTRAINT `symptom_logs_pregnancyId_fkey` FOREIGN KEY (`pregnancyId`) REFERENCES `pregnancy_profiles`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `medical_appointments` ADD CONSTRAINT `medical_appointments_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `medical_appointments` ADD CONSTRAINT `medical_appointments_pregnancyId_fkey` FOREIGN KEY (`pregnancyId`) REFERENCES `pregnancy_profiles`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `medical_appointments` ADD CONSTRAINT `medical_appointments_doctorId_fkey` FOREIGN KEY (`doctorId`) REFERENCES `doctors`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `medical_records` ADD CONSTRAINT `medical_records_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `medical_records` ADD CONSTRAINT `medical_records_pregnancyId_fkey` FOREIGN KEY (`pregnancyId`) REFERENCES `pregnancy_profiles`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `baby_kicks` ADD CONSTRAINT `baby_kicks_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `baby_kicks` ADD CONSTRAINT `baby_kicks_pregnancyId_fkey` FOREIGN KEY (`pregnancyId`) REFERENCES `pregnancy_profiles`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `nutrition_logs` ADD CONSTRAINT `nutrition_logs_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `nutrition_logs` ADD CONSTRAINT `nutrition_logs_pregnancyId_fkey` FOREIGN KEY (`pregnancyId`) REFERENCES `pregnancy_profiles`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `exercise_logs` ADD CONSTRAINT `exercise_logs_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `exercise_logs` ADD CONSTRAINT `exercise_logs_pregnancyId_fkey` FOREIGN KEY (`pregnancyId`) REFERENCES `pregnancy_profiles`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `mental_health_logs` ADD CONSTRAINT `mental_health_logs_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `mental_health_logs` ADD CONSTRAINT `mental_health_logs_pregnancyId_fkey` FOREIGN KEY (`pregnancyId`) REFERENCES `pregnancy_profiles`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `medications` ADD CONSTRAINT `medications_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `medications` ADD CONSTRAINT `medications_pregnancyId_fkey` FOREIGN KEY (`pregnancyId`) REFERENCES `pregnancy_profiles`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `health_alerts` ADD CONSTRAINT `health_alerts_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `health_alerts` ADD CONSTRAINT `health_alerts_pregnancyId_fkey` FOREIGN KEY (`pregnancyId`) REFERENCES `pregnancy_profiles`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `emergency_services` ADD CONSTRAINT `emergency_services_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `emergency_services` ADD CONSTRAINT `emergency_services_pregnancyId_fkey` FOREIGN KEY (`pregnancyId`) REFERENCES `pregnancy_profiles`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `telemedicine_consultations` ADD CONSTRAINT `telemedicine_consultations_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `telemedicine_consultations` ADD CONSTRAINT `telemedicine_consultations_pregnancyId_fkey` FOREIGN KEY (`pregnancyId`) REFERENCES `pregnancy_profiles`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `telemedicine_consultations` ADD CONSTRAINT `telemedicine_consultations_doctorId_fkey` FOREIGN KEY (`doctorId`) REFERENCES `doctors`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `telemedicine_consultations` ADD CONSTRAINT `telemedicine_consultations_paymentId_fkey` FOREIGN KEY (`paymentId`) REFERENCES `payment_transactions`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `payment_transactions` ADD CONSTRAINT `payment_transactions_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `_FileCollections` ADD CONSTRAINT `_FileCollections_A_fkey` FOREIGN KEY (`A`) REFERENCES `collections`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

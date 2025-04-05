@@ -22,9 +22,14 @@ import adminRoutes from './v1/admin-routes/admin.routes.js';
 // Accounts Router 
 import accountRoutes from './v1/account-routes/index.js';
 
-//Media Router 
+// Media Router 
 import mediaRoutes from './v1/media-routes/media.routes.js';
 
+// AI Router 
+import aiRoutes from './v1/ai/index.js';
+
+// Pregnify Router
+import pregnifyRoutes from '../pregnify/routes/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -82,6 +87,7 @@ const API_PREFIX = `/api/${API_VERSION}`;
 // Apply general rate limiting to all API routes
 router.use('/api', apiLimiter);
 
+// System routes
 router.use(`${API_PREFIX}/health`, healthRoutes);
 router.use(`${API_PREFIX}/enums`, enumRoutes);
 
@@ -97,5 +103,7 @@ router.use(`${API_PREFIX}/verification`, verificationRoutes);
 router.use(`${API_PREFIX}/admin`, adminRoutes);
 router.use(`${API_PREFIX}/media`, mediaRoutes);
 router.use(`${API_PREFIX}/account`, accountRoutes);
+router.use(`${API_PREFIX}/ai`, aiRoutes);
+router.use(`${API_PREFIX}/pregnify`, pregnifyRoutes);
 
 export default router;

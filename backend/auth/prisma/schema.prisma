@@ -28,8 +28,8 @@ model User {
   // ==========================
   // Primary Identification
   // ==========================
-  id          String  @id @default(uuid())
-  userID      String  @unique // Unique ID for the user
+  id          String  @id   @default(uuid())
+  userID      String  @unique 
   username    String  @unique
   email       String  @unique
   phoneNumber String? @unique
@@ -41,7 +41,7 @@ model User {
   passwordChangedAt    DateTime?
   passwordResetToken   String?
   passwordResetExpires DateTime?
-  verificationToken    String?
+  verificationToken    String?   @unique
   verificationExpires  DateTime?
   isVerified           Boolean   @default(false)
   isEmailVerified      Boolean   @default(false)
@@ -54,14 +54,14 @@ model User {
   firstName   String?
   lastName    String?
   description String?
-  avatar         String?
-  avatarThumb    String?
-  cover          String?
-  coverThumb     String?
-  bio            String?
-  location       String?
-  isPublic       Boolean @default(true)
-  isPrivate      Boolean @default(false)
+  avatar      String?
+  avatarThumb String?
+  cover       String?
+  coverThumb  String?
+  bio         String?
+  location    String?
+  isPublic    Boolean @default(true)
+  isPrivate   Boolean @default(false)
 
   // ==========================
   // Account Role
@@ -71,7 +71,7 @@ model User {
   // ==========================
   // Personal Information
   // ==========================
-  personalInformation PersonalInformation[]
+  personalInformation PersonalInformation? // optional one-to-one
 
   // ==========================
   // Education Qualification
@@ -81,7 +81,7 @@ model User {
   // ==========================
   // Medical Information
   // ==========================
-  medicalInformation MedicalInformation[]
+  medicalInformation MedicalInformation?
 
   // ==========================
   // Account Status & Lockout
@@ -97,7 +97,7 @@ model User {
   // ==========================
   // Preferences & UI Settings
   // ==========================
-  preferences             AccountPreferences[]
+  preferences             AccountPreferences?
   darkModeEnabled         Boolean                  @default(false)
   languagePreference      String? // Preferred language
   notificationPreferences NotificationPreferences? @relation("UserNotificationPreferences")
@@ -152,8 +152,8 @@ model User {
   // ==========================
   // Password Management
   // ==========================
-  passwordPolicyId String         @default("default")
-  passwordPolicy   PasswordPolicy @relation(fields: [passwordPolicyId], references: [id])
+  passwordPolicyId        String                  @default("default")
+  passwordPolicy          PasswordPolicy          @relation(fields: [passwordPolicyId], references: [id])
   passwordHistory         PasswordHistory[]
   passwordResetActivities PasswordResetActivity[]
   passwordSecurityLogs    PasswordSecurityLog[]
@@ -197,6 +197,22 @@ model User {
   // Storage
   // ==========================
   storage Storage? // Change from Storage[] to Storage? since it's a one-to-one relationship
+
+  // ==========================
+  // PREGNIFY RELATIONS
+  // ==========================
+  pregnancyProfile    PregnancyProfile?
+  riskAssessments     RiskAssessment?
+  healthMetrics       HealthMetric?
+  symptomLogs         SymptomLog?
+  medicalAppointments MedicalAppointment?
+  medicalRecords      MedicalRecord?
+  medications         Medication?
+  babyKicks           BabyKick?
+  healthAlerts        HealthAlert?
+  nutritionLogs       NutritionLog?
+  exerciseLogs        ExerciseLog?
+  mentalHealthLogs    MentalHealthLog?
 
   // ==========================
   // Files & Documents & Images & Albums & Collections & Comments & Reactions & Shares & Likes & Tags
@@ -266,6 +282,11 @@ model User {
   userMetrics      UserMetrics?
   analyticsData    AnalyticsData[]
 
+  // Emergency Services
+  emergencyServices         EmergencyService[]
+  telemedicineConsultations TelemedicineConsultation[]
+  paymentTransactions       PaymentTransaction[]
+
   // ==========================
   // Composite Indexes
   // ==========================
@@ -317,6 +338,13 @@ model PersonalInformation {
   placeOfBirth   String?
   countryOfBirth String?
   nationality    String?
+
+  // Bangladesh-specific fields
+  location           String? // Urban/Rural
+  education          String? // Education level
+  incomeLevel        String? // Low/Medium/High
+  livingConditions   String? // Housing type and conditions
+  accessToHealthcare String? // Easy/Moderate/Difficult
 
   // Contact Information
   contactNumbers ContactNumber[]
@@ -461,7 +489,7 @@ enum MaritalStatus {
 model EducationQualification {
   id     String @id @default(uuid())
   userId String
-
+  
   // Education Details
   degree        String?
   fieldOfStudy  String?
@@ -475,7 +503,7 @@ model EducationQualification {
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("education_qualifications")
@@ -486,13 +514,22 @@ model EducationQualification {
 /// ============================
 
 model MedicalInformation {
-  id                 String          @id @default(uuid())
-  userId             String          @unique
-  bloodGroup         String? // e.g., "A+", "O-", etc.
-  organDonor         Boolean         @default(false)
+  id         String      @id @default(uuid())
+  userId     String      @unique
+  bloodGroup BloodGroup? // e.g., "A+", "O-", etc.
+  organDonor Boolean     @default(false)
+
+  // Physical Parameters
+  height             Float? // in cm
+  prePregnancyWeight Float? // in kg
+  currentWeight      Float? // in kg
+  bmi                Float? // Body Mass Index
+  bloodPressure      String? // e.g., "120/80"
+
+  // Medical History
   medicalHistory     Json?
   chronicDiseases    Json?
-  cancerHistory      Boolean         @default(false)
+  cancerHistory      Boolean @default(false)
   cancerType         String?
   allergies          String?
   medications        String?
@@ -501,8 +538,9 @@ model MedicalInformation {
   disabilities       Json? // Any physical/mental disabilities
   emergencyContact   String? // Emergency contact number
   primaryPhysician   String? // Doctor's name or hospital
-  medicalReports     MedicalReport[]
-  prescriptions      Prescription[]
+
+  medicalReports MedicalReport[]
+  prescriptions  Prescription[]
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -628,7 +666,7 @@ model AccountPreferences {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("account_preferences")
@@ -642,7 +680,7 @@ model NotificationPreferences {
   smsNotifications   Boolean  @default(false)
   createdAt          DateTime @default(now())
 
-  user User @relation("UserNotificationPreferences", fields: [userId], references: [id])
+  user User @relation("UserNotificationPreferences", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([emailNotifications])
   @@index([pushNotifications])
@@ -2347,4 +2385,375 @@ enum Currency {
   ZAR // ZAR currency
   INR // INR currency
   TRY // TRY currency
+}
+
+/// ============================
+/// PREGNIFY MODELS
+/// ============================
+
+enum PregnancyStatus {
+  ACTIVE
+  COMPLETED
+  TERMINATED
+  LOST
+  ON_HOLD
+}
+
+model PregnancyProfile {
+  id                String          @id @default(uuid())
+  userId            String          @unique
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dueDate           DateTime
+  pregnancyWeek     Int
+  lastMenstrualDate DateTime
+  isActive          Boolean         @default(true)
+  status            PregnancyStatus @default(ACTIVE)
+
+  // Physical Parameters
+  height             Float? // in cm
+  prePregnancyWeight Float? // in kg
+  currentWeight      Float? // in kg
+  bmi                Float? // Body Mass Index
+  bloodPressure      String? // e.g., "120/80"
+  bloodGroup         BloodGroup?
+
+  // Pregnancy Details
+  isFirstPregnancy      Boolean? @default(false)
+  previousPregnancies   Int?     @default(0)
+  previousComplications Json? // Store previous pregnancy complications
+  pregnancyType         String? // Single, Twins, etc.
+  conceptionMethod      String? // Natural, IVF, etc.
+
+  // Health Status
+  hasGestationalDiabetes Boolean? @default(false)
+  hasPreeclampsia        Boolean? @default(false)
+  hasAnemia              Boolean? @default(false)
+  otherConditions        Json? // Store other medical conditions
+
+  // Lifestyle
+  smokingStatus       String? // Never, Former, Current
+  alcoholConsumption  String? // None, Occasional, Regular
+  exerciseFrequency   String? // None, Rare, Regular
+  dietaryRestrictions Json? // Store dietary restrictions/allergies
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  riskAssessments           RiskAssessment[]
+  healthMetrics             HealthMetric[]
+  symptomLogs               SymptomLog[]
+  medicalAppointments       MedicalAppointment[]
+  medicalRecords            MedicalRecord[]
+  medications               Medication[]
+  babyKicks                 BabyKick[]
+  healthAlerts              HealthAlert[]
+  nutritionLogs             NutritionLog[]
+  exerciseLogs              ExerciseLog[]
+  mentalHealthLogs          MentalHealthLog[]
+  emergencyServices         EmergencyService[]
+  telemedicineConsultations TelemedicineConsultation[]
+
+  @@index([userId])
+  @@index([isActive])
+  @@index([status])
+  @@index([pregnancyWeek])
+  @@index([dueDate])
+  @@map("pregnancy_profiles")
+}
+
+model RiskAssessment {
+  id                String           @id @default(uuid())
+  userId            String           @unique
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pregnancyId       String           @unique
+  pregnancy         PregnancyProfile @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  riskScore         Float
+  assessmentDate    DateTime         @default(now())
+  recommendations   String           @db.Text
+  vitalSigns        Json
+  symptoms          Json
+  bangladeshFactors Json // Store Bangladesh-specific risk factors
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([userId])
+  @@map("risk_assessments")
+}
+
+model HealthMetric {
+  id          String           @id @default(uuid())
+  userId      String           @unique
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pregnancyId String
+  pregnancy   PregnancyProfile @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  type        String // bloodPressure, heartRate, temperature, etc.
+  value       Float
+  unit        String
+  measuredAt  DateTime         @default(now())
+  notes       String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([pregnancyId])
+  @@map("health_metrics")
+}
+
+model SymptomLog {
+  id             String           @id @default(uuid())
+  userId         String           @unique
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pregnancyId    String
+  pregnancy      PregnancyProfile @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  symptom        String
+  severity       String // mild, moderate, severe
+  onsetDate      DateTime
+  resolutionDate DateTime?
+  notes          String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([pregnancyId])
+  @@map("symptom_logs")
+}
+
+model MedicalAppointment {
+  id          String           @id @default(uuid())
+  userId      String           @unique
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pregnancyId String
+  pregnancy   PregnancyProfile @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  doctorId    String
+  doctor      Doctor           @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  type        String // prenatal, ultrasound, etc.
+  date        DateTime
+  time        String
+  location    String
+  status      String // scheduled, completed, cancelled
+  notes       String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([pregnancyId])
+  @@index([doctorId])
+  @@map("medical_appointments")
+}
+
+model Doctor {
+  id        String   @id @default(uuid())
+  name      String
+  specialty String
+  hospital  String
+  contact   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  appointments              MedicalAppointment[]
+  telemedicineConsultations TelemedicineConsultation[]
+
+  @@index([specialty])
+  @@map("doctors")
+}
+
+model MedicalRecord {
+  id          String           @id @default(uuid())
+  userId      String           @unique
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pregnancyId String
+  pregnancy   PregnancyProfile @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  type        String // ultrasound, bloodTest, etc.
+  date        DateTime
+  results     Json
+  notes       String?
+  file        String? // Reference to File model
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([pregnancyId])
+  @@map("medical_records")
+}
+
+model BabyKick {
+  id          String           @id @default(uuid())
+  userId      String           @unique
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pregnancyId String
+  pregnancy   PregnancyProfile @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  count       Int
+  duration    Float // in minutes
+  notes       String?
+  recordedAt  DateTime         @default(now())
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([pregnancyId])
+  @@map("baby_kicks")
+}
+
+model NutritionLog {
+  id          String           @id @default(uuid())
+  userId      String           @unique
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pregnancyId String
+  pregnancy   PregnancyProfile @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  mealType    String // breakfast, lunch, dinner, snack
+  foodItems   Json
+  notes       String?
+  recordedAt  DateTime         @default(now())
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([pregnancyId])
+  @@map("nutrition_logs")
+}
+
+model ExerciseLog {
+  id          String           @id @default(uuid())
+  userId      String           @unique
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pregnancyId String
+  pregnancy   PregnancyProfile @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  type        String // walking, yoga, swimming, etc.
+  duration    Float // in minutes
+  intensity   String // low, moderate, high
+  notes       String?
+  recordedAt  DateTime         @default(now())
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([pregnancyId])
+  @@map("exercise_logs")
+}
+
+model MentalHealthLog {
+  id          String           @id @default(uuid())
+  userId      String           @unique
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pregnancyId String
+  pregnancy   PregnancyProfile @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  mood        String // happy, anxious, stressed, etc.
+  stressLevel Int              @default(0) // 0-10 scale
+  notes       String?
+  recordedAt  DateTime         @default(now())
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([pregnancyId])
+  @@map("mental_health_logs")
+}
+
+model Medication {
+  id          String           @id @default(uuid())
+  userId      String           @unique
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pregnancyId String
+  pregnancy   PregnancyProfile @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  name        String
+  dosage      String
+  frequency   String
+  startDate   DateTime
+  endDate     DateTime?
+  notes       String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([pregnancyId])
+  @@map("medications")
+}
+
+model HealthAlert {
+  id          String           @id @default(uuid())
+  userId      String           @unique
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pregnancyId String
+  pregnancy   PregnancyProfile @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  type        String // vitalSigns, symptoms, medication, etc.
+  message     String
+  severity    String // low, medium, high
+  triggeredAt DateTime         @default(now())
+  isRead      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([pregnancyId])
+  @@index([severity])
+  @@map("health_alerts")
+}
+
+// Emergency Service Model
+model EmergencyService {
+  id          String           @id @default(uuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pregnancyId String
+  pregnancy   PregnancyProfile @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  type        String // ambulance, hospital, doctor
+  status      String // requested, dispatched, completed
+  location    String
+  notes       String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([pregnancyId])
+  @@map("emergency_services")
+}
+
+// Telemedicine Consultation Model
+model TelemedicineConsultation {
+  id          String              @id @default(uuid())
+  userId      String
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pregnancyId String
+  pregnancy   PregnancyProfile    @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  doctorId    String
+  doctor      Doctor              @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  type        String // video, audio, chat
+  status      String // scheduled, in-progress, completed, cancelled
+  startTime   DateTime
+  endTime     DateTime?
+  notes       String?
+  paymentId   String?
+  payment     PaymentTransaction? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([userId])
+  @@index([pregnancyId])
+  @@index([doctorId])
+  @@map("telemedicine_consultations")
+}
+
+// Payment Transaction Model
+model PaymentTransaction {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Float
+  currency    String   @default("BDT")
+  status      String // pending, completed, failed
+  type        String // consultation, emergency, subscription
+  method      String // card, mobile_payment, bank_transfer
+  referenceId String? // Reference to related service (consultation, emergency)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  consultations TelemedicineConsultation[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("payment_transactions")
 }

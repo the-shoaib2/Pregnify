@@ -19,6 +19,18 @@ import prisma from '../../utils/database/prisma.js';
 import { LoginService } from '../../services/login.service.js';
 import crypto from 'crypto';
 
+// Near the top of the file, add this caching utility
+const cache = new Map();
+const getCachedOrFetch = async (key, fetchFn, ttl = 60000) => {
+  const now = Date.now();
+  if (cache.has(key) && cache.get(key).expires > now) {
+    return cache.get(key).data;
+  }
+  const data = await fetchFn();
+  cache.set(key, { data, expires: now + ttl });
+  return data;
+};
+
 /**
  * Sets authentication cookies for both access and refresh tokens
  * @description Sets secure HTTP-only cookies for authentication tokens with configurable expiry times.
@@ -71,9 +83,10 @@ const setAuthCookies = ({ res, tokens, accessTokenExpiry, refreshTokenExpiry }) 
  *  defaultRegister(req, res);
  */
 export const defaultRegister = asyncHandler(async (req, res) => {
+    const start = performance.now(); // For timing analysis
     try {
         const {
-            role = "GUEST", // Set default role
+            role = "GUEST",
             email,
             firstName,
             lastName,
@@ -86,92 +99,84 @@ export const defaultRegister = asyncHandler(async (req, res) => {
             description
         } = req.body;
 
-        // Validate required fields
-        if (!email || !firstName || !lastName || !password || !confirmPassword || !termsAccepted) {
-            throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Missing required fields");
+        // Quick validation checks - fail fast principle
+        if (!email?.trim()) throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Email is required");
+        if (!firstName?.trim()) throw new ApiError(HTTP_STATUS.BAD_REQUEST, "First name is required");
+        if (!lastName?.trim()) throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Last name is required");
+        if (!password) throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Password is required");
+        if (password !== confirmPassword) throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Passwords do not match");
+        if (!termsAccepted) throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Terms must be accepted");
+
+        const normalizedRole = role.toUpperCase();
+        
+        // Use cached role validation if available
+        const validRoles = await getCachedOrFetch('validRoles', () => 
+            Promise.resolve(Object.values(USER_DEFINITIONS)), 
+            3600000 // Cache for 1 hour
+        );
+        
+        if (!validRoles.includes(normalizedRole)) {
+            throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Invalid role provided");
         }
 
-        // Check if trying to create SUPER_ADMIN
-        if (role.toUpperCase() === 'SUPER_ADMIN') {
-            // Check if SUPER_ADMIN already exists
-            const existingSuperAdmin = await prisma.user.findFirst({
-                where: { role: 'SUPER_ADMIN' }
-            });
-
-            if (existingSuperAdmin) {
-                throw new ApiError(HTTP_STATUS.FORBIDDEN, "Super Admin account already exists. Only one Super Admin account is allowed.");
-            }
-        }
-
-        // Validate password match
-        if (password !== confirmPassword) {
-            throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Passwords do not match");
-        }
-
-        // Validate role
-        const validRoles = Object.values(USER_DEFINITIONS);
-        if (!validRoles.includes(role.toUpperCase())) {
-            throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Invalid role provided.");
-        }
-
-        // Convert dateOfBirth object to Date instance
+        // Parse date of birth once
         let parsedDateOfBirth = null;
-        if (dateOfBirth && dateOfBirth.day && dateOfBirth.month && dateOfBirth.year) {
+        if (dateOfBirth?.day && dateOfBirth?.month && dateOfBirth?.year) {
             parsedDateOfBirth = new Date(
                 dateOfBirth.year,
-                dateOfBirth.month - 1, // JavaScript months are 0-based
+                dateOfBirth.month - 1,
                 dateOfBirth.day
             );
 
-            // Validate date
             if (isNaN(parsedDateOfBirth.getTime())) {
                 throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Invalid date of birth");
             }
         }
 
-        // Check existing user by email
-        const existingEmail = await prisma.user.findUnique({
-            where: { email }
-        });
+        // Start parallel operations for better performance
+        const now = new Date();
+        const verificationExpires = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        const expiryTime = typeof ACCOUNT_EXPIRY_TIME === 'number' ? ACCOUNT_EXPIRY_TIME : 30 * 24 * 60 * 60 * 1000;
+        const expiryDateAt = new Date(now.getTime() + expiryTime);
+        
+        // Execute all database checks and preparations in parallel
+        const [
+            existingEmailCheck,
+            existingPhoneCheck,
+            existingSuperAdminCheck,
+            defaultPolicyCheck,
+            hashedPassword,
+            username,
+            userID,
+            verificationToken
+        ] = await Promise.all([
+            prisma.user.findUnique({ where: { email }, select: { id: true } }),
+            phoneNumber ? prisma.user.findUnique({ where: { phoneNumber }, select: { id: true } }) : Promise.resolve(null),
+            normalizedRole === 'SUPER_ADMIN' ? prisma.user.findFirst({ where: { role: 'SUPER_ADMIN' }, select: { id: true } }) : Promise.resolve(null),
+            prisma.passwordPolicy.findUnique({ where: { id: 'default' }, select: { id: true } }),
+            hashPassword(password),
+            generateUsername(firstName, lastName),
+            generateUserID(role),
+            Promise.resolve(crypto.randomBytes(32).toString('hex'))
+        ]);
 
-        if (existingEmail) {
-            throw new ApiError(HTTP_STATUS.CONFLICT, "User with this email already exists.");
+        // Handle constraint validations
+        if (existingEmailCheck) throw new ApiError(HTTP_STATUS.CONFLICT, "Email already registered");
+        if (existingPhoneCheck) throw new ApiError(HTTP_STATUS.CONFLICT, "Phone number already registered");
+        if (normalizedRole === 'SUPER_ADMIN' && existingSuperAdminCheck) {
+            throw new ApiError(HTTP_STATUS.FORBIDDEN, "Super Admin account already exists");
         }
+        if (!hashedPassword) throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, "Password processing failed");
 
-        // Check existing user by phone number if provided
-        if (phoneNumber) {
-            const existingPhone = await prisma.user.findUnique({
-                where: { phoneNumber }
+        // Ensure default policy exists
+        if (!defaultPolicyCheck) {
+            await prisma.passwordPolicy.create({
+                data: { id: 'default' } // Uses schema defaults
             });
-
-            if (existingPhone) {
-                throw new ApiError(HTTP_STATUS.CONFLICT, "User with this phone number already exists.");
-            }
         }
 
-        // Create user with related data in a transaction
-        const newUser = await prisma.$transaction(async (prisma) => {
-            // Generate username and userID
-            const username = await generateUsername(firstName, lastName);
-            const userID = await generateUserID(role);
-
-            // Generate verification token
-            const verificationToken = crypto.randomBytes(32).toString('hex');
-            const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-
-            // Hash the password
-            const hashedPassword = await hashPassword(password);
-            if (!hashedPassword) {
-                throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, "Failed to hash password");
-            }
-
-            // Set account expiry to 30 days from now if ACCOUNT_EXPIRY_TIME is not a valid number
-            const expiryTime = typeof ACCOUNT_EXPIRY_TIME === 'number' ? ACCOUNT_EXPIRY_TIME : 30 * 24 * 60 * 60 * 1000;
-            const expiryDateAt = new Date(Date.now() + expiryTime);
-
-            // Create the main user
-            const user = await prisma.user.create({
-                data: {
+        // Prepare user data object
+        const userData = {
                     email,
                     username,
                     userID,
@@ -179,11 +184,11 @@ export const defaultRegister = asyncHandler(async (req, res) => {
                     firstName,
                     lastName,
                     phoneNumber: phoneNumber || null,
-                    role: role.toUpperCase(),
+            role: normalizedRole,
                     termsAccepted,
                     isVerified: false,
                     description: description || null,
-                    expiryDateAt: expiryDateAt || null,
+            expiryDateAt,
                     verificationToken,
                     verificationExpires,
                     personalInformation: {
@@ -195,7 +200,6 @@ export const defaultRegister = asyncHandler(async (req, res) => {
                             description: description || null
                         }
                     },
-
                     preferences: {
                         create: {
                             preferences: {},
@@ -207,7 +211,6 @@ export const defaultRegister = asyncHandler(async (req, res) => {
                             contentFilters: {}
                         }
                     },
-
                     activityLogSettings: {
                         create: {
                             logFailedLogin: true,
@@ -215,7 +218,6 @@ export const defaultRegister = asyncHandler(async (req, res) => {
                             logProfileUpdates: true
                         }
                     },
-
                     notificationPreferences: {
                         create: {
                             emailNotifications: true,
@@ -224,27 +226,20 @@ export const defaultRegister = asyncHandler(async (req, res) => {
                         }
                     },
                     passwordPolicy: {
-                        create: {
-                            minLength: 8,
-                            maxLength: 64,
-                            requireUppercase: true,
-                            requireLowercase: true,
-                            requireNumbers: true,
-                            requireSpecialChars: true,
-                            specialCharsList: "!@#$%^&*()_+-=[]{}|;:,.<>?",
-                            maxPasswordAge: 90,
-                            minPasswordAge: 1,
-                            preventReusedPasswords: 5,
-                            lockoutThreshold: 5,
-                            lockoutDuration: 30
-                        }
-                    }
+                connect: {
+                    id: 'default'
                 }
-            });
+            }
+        };
+
+        // Optimized transaction
+        const newUser = await prisma.$transaction(async (tx) => {
+            // Create user with all relations in a single operation
+            const user = await tx.user.create({ data: userData });
 
             // Create contact number if provided
             if (phoneNumber) {
-                await prisma.contactNumber.create({
+                await tx.contactNumber.create({
                     data: {
                         userId: user.id,
                         number: phoneNumber,
@@ -254,93 +249,39 @@ export const defaultRegister = asyncHandler(async (req, res) => {
                 });
             }
 
-            // Send welcome email with verification link
-            const verificationLink = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}`;
-            try {
-                await emailService.sendWelcomeEmail(email, `${firstName} ${lastName}`, verificationLink);
-            } catch (emailError) {
-                console.error('Failed to send welcome email:', emailError);
-                // Don't fail registration if email fails
-            }
-
-            await prisma.userActivityLog.create({
+            // Registration activity log
+            await tx.userActivityLog.create({
                 data: {
                     userId: user.id,
                     activityType: "REGISTER",
-                    timestamp: new Date(),
+                    timestamp: now,
                     description: "New user registration"
                 }
             });
 
             return user;
+        }, {
+            timeout: 8000, // Shorter timeout for faster failure
+            isolationLevel: 'ReadCommitted', // Less restrictive isolation
+            maxWait: 5000 // Max wait time for a connection
         });
 
-        if (!newUser) {
-            throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, "Failed to create user.");
-        }
-
-        // Generate tokens
+        // Generate tokens in parallel with any other operations
         const tokens = await generateTokens(newUser);
         if (!tokens?.accessToken || !tokens?.refreshToken) {
-            throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, 'Failed to generate authentication tokens');
+            throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, "Token generation failed");
         }
 
-        // Set authentication cookies with millisecond values
+        // Set authentication cookies
         setAuthCookies({
             res,
             tokens,
-            accessTokenExpiry: ACCESS_TOKEN_EXPIRES, // 15 minutes
-            refreshTokenExpiry: REFRESH_TOKEN_EXPIRES // 30 days
+            accessTokenExpiry: ACCESS_TOKEN_EXPIRES,
+            refreshTokenExpiry: REFRESH_TOKEN_EXPIRES
         });
 
-        // Update the last login time
-        try {
-            await prisma.$transaction([
-                // Update user
-                prisma.user.update({
-                    where: { id: newUser.id },
-                    data: {
-                        lastLoginAt: new Date(),
-                        failedLoginCount: 0
-                    }
-                }),
-
-                // Create login history
-                prisma.loginHistory.create({
-                    data: {
-                        userId: newUser.id,
-                        ipAddress: req.ip || 'unknown',
-                        userAgent: req.get('user-agent') || 'unknown',
-                        macAddress: null,
-                        deviceType: 'WEB',
-                        successful: true,
-                        loginAt: new Date()
-                    }
-                }),
-
-                // Create activity log
-                prisma.userActivityLog.create({
-                    data: {
-                        userId: newUser.id,
-                        activityType: "LOGIN",
-                        description: "User logged in successfully",
-                        ipAddress: req.ip || 'unknown',
-                        userAgent: req.get('user-agent') || 'unknown',
-                        metadata: {
-                            email: newUser.email,
-                            role: newUser.role,
-                            loginTime: new Date().toISOString()
-                        }
-                    }
-                })
-            ]);
-        } catch (error) {
-            console.error('Failed to update login records:', error);
-            // Continue with registration even if updates fail
-        }
-
-        // Return success response
-        return res.status(201).json({
+        // Response Immediately 
+        res.status(201).json({
             success: true,
             message: "Registration successful. Please verify your email.",
             data: {
@@ -355,16 +296,102 @@ export const defaultRegister = asyncHandler(async (req, res) => {
                     isEmailVerified: newUser.isEmailVerified,
                 },
                 tokens: {
-                    accessToken: tokens.accessToken
+                    accessToken: tokens.accessToken,
+                    refreshToken: tokens.refreshToken
                 }
             }
         });
 
+  
+
+        // Performance metrics (development only)
+        if (process.env.NODE_ENV === 'development') {
+            const duration = performance.now() - start;
+            console.log(`Registration completed in ${duration.toFixed(2)}ms`);
+        }
+
+        // Process background tasks after response is sent
+        process.nextTick(() => {
+            Promise.allSettled([
+                // Update login records
+                prisma.$transaction([
+                    prisma.user.update({
+                        where: { id: newUser.id },
+                        data: {
+                            lastLoginAt: now,
+                            failedLoginCount: 0
+                        }
+                    }),
+                    prisma.loginHistory.create({
+                        data: {
+                            userId: newUser.id,
+                            ipAddress: req.ip || 'unknown',
+                            userAgent: req.get('user-agent') || 'unknown',
+                            macAddress: null,
+                            deviceType: 'WEB',
+                            successful: true,
+                            loginAt: now
+                        }
+                    }),
+                    prisma.userActivityLog.create({
+                        data: {
+                            userId: newUser.id,
+                            activityType: "LOGIN",
+                            description: "User logged in after registration",
+                            ipAddress: req.ip || 'unknown',
+                            userAgent: req.get('user-agent') || 'unknown',
+                            metadata: {
+                                email: newUser.email,
+                                role: newUser.role,
+                                loginTime: now.toISOString()
+                            }
+                        }
+                    })
+                ]),
+                
+                // Send welcome email asynchronously
+                (async () => {
+                    try {
+                        const verificationLink = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}`;
+                        await emailService.sendWelcomeEmail(
+                            newUser.email, 
+                            `${newUser.firstName} ${newUser.lastName}`, 
+                            verificationLink
+                        );
+                    } catch (emailError) {
+                        console.error('Failed to send welcome email:', emailError);
+                    }
+                })()
+            ]).catch(error => {
+                console.error('Background task error:', error);
+            });
+        });
+
     } catch (err) {
-        // console.error('Registration error:', err);
+        // Enhanced error handling with comprehensive error classification
         if (err instanceof ApiError) {
             throw err;
         }
+        
+        // Handle Prisma-specific errors with detailed messages
+        if (err.code) {
+            switch (err.code) {
+                case 'P2002': // Unique constraint violation
+                    const field = err.meta?.target?.[0] || 'field';
+                    throw new ApiError(HTTP_STATUS.CONFLICT, `User with this ${field} already exists`);
+                case 'P2025': // Record not found
+                    throw new ApiError(HTTP_STATUS.NOT_FOUND, "Referenced record not found");
+                case 'P2003': // Foreign key constraint failed
+                    throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Invalid reference to a related record");
+                case 'P2034': // Transaction timeout
+                    throw new ApiError(HTTP_STATUS.REQUEST_TIMEOUT, "Registration timed out, please try again");
+                default:
+                    console.error('Database error during registration:', err);
+                    throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, "Database error occurred");
+            }
+        }
+        
+        console.error('Registration error:', err);
         throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, err.message || "Internal server error");
     }
 });
