@@ -17,6 +17,8 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
 import AppLayout from "@/app/layout"
+import { useAuth } from "@/contexts/auth-context/auth-context"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 // Import icons
 import {
@@ -98,6 +100,10 @@ const settingsNavGroups = [
 export default function SettingsLayout() {
   const location = useLocation()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const { user } = useAuth()
+  const userRole = user?.basicInfo?.role
+  const isMobile = useIsMobile()
+  const isRestrictedUser = userRole === 'PATIENT' || userRole === 'GUEST'
 
   const currentGroup = settingsNavGroups.find(group => 
     group.items.some(item => item.href === location.pathname)
@@ -106,9 +112,21 @@ export default function SettingsLayout() {
     item.href === location.pathname
   )?.title || "Settings"
 
+  if (isRestrictedUser) {
+    return (
+      <AppLayout>
+        <main className="flex-1 overflow-y-auto">
+          <div className="container max-w-3xl px-4 py-6">
+            <Outlet />
+          </div>
+        </main>
+      </AppLayout>
+    )
+  }
+
   return (
     <AppLayout>
-      {/* The PageHeader will be hidden if TopNav is active */}
+      <PageHeader title={currentPage} className="sticky top-0 z-20 bg-background" />
       <div className="flex flex-1 overflow-hidden">
         {/* Navigation Sidebar - Desktop */}
         <aside className="hidden w-56 shrink-0 overflow-y-auto border-r bg-muted/40 lg:block">

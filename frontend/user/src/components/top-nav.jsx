@@ -17,7 +17,22 @@ import {
   HeartPulse,
   ClipboardList,
   BrainCircuit,
-  Bell
+  Bell,
+  Home,
+  Loader,
+  UserCircle,
+  Lock,
+  Shield,
+  Moon,
+  Languages,
+  Accessibility,
+  FileText,
+  Cog,
+  LayoutGrid,
+  Save,
+  HelpCircle,
+  Info,
+  ChevronRight
 } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -28,10 +43,29 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { useAuth } from "@/contexts/auth-context/auth-context"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 const navItems = [
+  {
+    title: "Home",
+    href: "/",
+    icon: Home,
+  },
   {
     title: "Health",
     href: "/health",
@@ -64,56 +98,212 @@ const navItems = [
   },
 ]
 
-const userMenuItems = [
+const settingsNavGroups = [
   {
     title: "Account",
-    href: "/settings/account/profile",
+    description: "Manage your account settings and preferences",
     icon: User,
+    items: [
+      { title: "Profile", href: "/settings/account/profile", icon: UserCircle },
+      { title: "Accounts", href: "/settings/account/accounts", icon: User },
+      { title: "Security", href: "/settings/account/security", icon: Lock },
+      { title: "Privacy", href: "/settings/account/privacy", icon: Shield }
+    ]
   },
   {
     title: "Preferences",
-    href: "/settings/preferences",
+    description: "Customize your application experience",
     icon: Settings,
+    items: [
+      { title: "Appearance", href: "/settings/preferences/appearance", icon: Moon },
+      { title: "Notifications", href: "/settings/preferences/notifications", icon: Bell },
+      { title: "Language", href: "/settings/preferences/language", icon: Languages },
+      { title: "Accessibility", href: "/settings/preferences/accessibility", icon: Accessibility }
+    ]
   },
   {
     title: "Billing",
-    href: "/settings/billing",
+    description: "Manage your billing and subscriptions",
     icon: CreditCard,
+    items: [
+      { title: "Payment", href: "/settings/billing/payment", icon: CreditCard },
+      { title: "Subscription", href: "/settings/billing/subscription", icon: FileText }
+    ]
   },
   {
     title: "System",
-    href: "/settings/system",
-    icon: Database,
+    description: "System settings and maintenance",
+    icon: Cog,
+    items: [
+      { title: "Storage", href: "/settings/system/storage", icon: Database },
+      { title: "Connected Apps", href: "/settings/system/apps", icon: LayoutGrid },
+      { title: "Backup", href: "/settings/system/backup", icon: Save },
+      { title: "Data Management", href: "/settings/system/data", icon: FileText },
+      { title: "Audit Logs", href: "/settings/system/logs", icon: FileText }
+    ]
   },
   {
     title: "Help & Legal",
-    href: "/settings/help",
-    icon: LifeBuoy,
-  },
+    description: "Get help and learn more about Pregnify",
+    icon: HelpCircle,
+    items: [
+      { title: "Support", href: "/settings/help/support", icon: LifeBuoy },
+      { title: "About", href: "/settings/help/about", icon: Info }
+    ]
+  }
 ]
 
 export function TopNav() {
   const location = useLocation()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [expandedGroup, setExpandedGroup] = useState(null)
   const { user, logout } = useAuth()
+  const isMobile = useIsMobile()
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true)
+    try {
+      await logout()
+    } catch (error) {
+      console.error('Logout failed:', error)
+    } finally {
+      setIsLoggingOut(false)
+      setIsLogoutDialogOpen(false)
+    }
+  }
 
   const getInitials = (user) => {
     if (!user || !user?.basicInfo?.name?.firstName || !user?.basicInfo?.name?.lastName) return 'GU'
     return `${user.basicInfo?.name?.firstName.charAt(0)}${user.basicInfo?.name?.lastName.charAt(0)}`.toUpperCase()
   }
 
-  return (
-    <nav className="fixed top-0 left-0 z-50 w-full h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-full items-center px-8">
-        {/* Logo */}
-        <div className="flex w-40 items-center gap-4">
-          <Activity className="h-8 w-8 text-primary" />
-          <span className="text-sm font-medium">Pregnify</span>
-        </div>
+  const handleGroupClick = (groupTitle) => {
+    setExpandedGroup(expandedGroup === groupTitle ? null : groupTitle)
+  }
 
-        {/* Desktop Navigation */}
-        <div className="flex flex-1 items-center justify-center space-x-1">
-          {navItems.map((item) => {
+  const renderUserMenu = () => (
+    <DropdownMenuContent align="end" className={`w-64 ${isMobile ? 'max-h-[80vh] overflow-y-auto' : ''}`}>
+      <div className="p-2">
+        {settingsNavGroups.map((group) => (
+          <div key={group.title} className="space-y-1">
+            <button
+              onClick={() => handleGroupClick(group.title)}
+              className="flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            >
+              <div className="flex items-center gap-2">
+                <group.icon className="h-4 w-4" />
+                <span>{group.title}</span>
+              </div>
+              <ChevronRight 
+                className={`h-4 w-4 transition-transform duration-200 ${
+                  expandedGroup === group.title ? 'rotate-90' : ''
+                }`}
+              />
+            </button>
+            {expandedGroup === group.title && (
+              <div className="grid gap-1 pl-6">
+                {group.items.map((item) => {
+                  const Icon = item.icon
+                  return (
+                    <DropdownMenuItem key={item.href} asChild>
+                      <Link 
+                        to={item.href} 
+                        className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )
+                })}
+              </div>
+            )}
+            {group.title !== settingsNavGroups[settingsNavGroups.length - 1].title && (
+              <div className="my-1 h-px bg-border" />
+            )}
+          </div>
+        ))}
+      </div>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem 
+        onClick={() => setIsLogoutDialogOpen(true)}
+        className="flex items-center gap-2 px-2 py-1.5 text-sm text-red-600 bg-red-600/10 hover:bg-red-600 focus:bg-red-600 focus:text-white hover:text-white transition-colors duration-200"
+      >
+        <LogOut className="h-4 w-4" />
+        <span>Logout</span>
+      </DropdownMenuItem>
+    </DropdownMenuContent>
+  )
+
+  return (
+    <>
+      <AlertDialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You will be redirected to the login page.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLogout}
+              className="bg-red-600 text-white hover:bg-red-700 focus:ring-red-600"
+              disabled={isLoggingOut}>
+              {isLoggingOut ? (
+                <>
+                  Logging out..
+                  <Loader className="mr-2 h-4 w-4 animate-spin" />
+                </>
+              ) : (
+                'Log out'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Top Bar - Mobile Only */}
+      <nav className="fixed top-0 left-0 z-50 w-full h-12 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden">
+        <div className="flex h-full items-center justify-between px-4">
+          <div className="flex items-center gap-2">
+            <Activity className="h-6 w-6 text-primary" />
+            <span className="text-sm font-medium">Pregnify</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="h-8 w-8 rounded-full p-0"
+                >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                    {user?.basicInfo?.avatar ? (
+                      <img
+                        src={user.basicInfo.avatar}
+                        alt="User avatar"
+                        className="h-full w-full rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-xs font-medium">{getInitials(user)}</span>
+                    )}
+                  </div>
+                </Button>
+              </DropdownMenuTrigger>
+              {renderUserMenu()}
+            </DropdownMenu>
+          </div>
+        </div>
+      </nav>
+
+      {/* Bottom Navigation - Mobile Only */}
+      <nav className="fixed bottom-0 left-0 z-50 w-full border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden">
+        <div className="flex h-16 items-center justify-around">
+          {navItems.slice(0, 5).map((item) => {
             const Icon = item.icon
             return (
               <Link
@@ -132,89 +322,63 @@ export function TopNav() {
             )
           })}
         </div>
+      </nav>
 
-        {/* User Menu */}
-        <div className="flex w-40 items-center justify-end gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon"
-                className="h-10 w-10 rounded-full p-0"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                  {user?.basicInfo?.avatar ? (
-                    <img
-                      src={user.basicInfo.avatar}
-                      alt="User avatar"
-                      className="h-full w-full rounded-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-sm font-medium">{getInitials(user)}</span>
+      {/* Desktop Navigation */}
+      <nav className="fixed top-0 left-0 z-50 hidden w-full h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:block">
+        <div className="flex h-full items-center px-8">
+          <div className="flex w-40 items-center gap-4">
+            <Activity className="h-8 w-8 text-primary" />
+            <span className="text-sm font-medium">Pregnify</span>
+          </div>
+
+          <div className="flex flex-1 items-center justify-center space-x-1">
+            {navItems.map((item) => {
+              const Icon = item.icon
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className={cn(
+                    "flex flex-col items-center gap-1 rounded-md px-3 py-2 text-[10px] font-medium transition-colors",
+                    location.pathname === item.href
+                      ? "text-primary"
+                      : "text-muted-foreground hover:text-foreground"
                   )}
-                </div>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              {userMenuItems.map((item) => {
-                const Icon = item.icon
-                return (
-                  <DropdownMenuItem key={item.href} asChild>
-                    <Link to={item.href} className="flex items-center gap-3">
-                      <Icon className="h-5 w-5" />
-                      <span className="text-sm">{item.title}</span>
-                    </Link>
-                  </DropdownMenuItem>
-                )
-              })}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={logout} className="flex items-center gap-3 text-red-600">
-                <LogOut className="h-5 w-5" />
-                <span className="text-sm">Logout</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                >
+                  <Icon className="h-6 w-6" />
+                  <span className="whitespace-nowrap">{item.title}</span>
+                </Link>
+              )
+            })}
+          </div>
 
-          {/* Mobile Menu Button */}
-          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden"
-              >
-                <Menu className="h-6 w-6" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] p-0">
-              <div className="flex h-16 items-center border-b px-4">
-                <h2 className="text-lg font-semibold">Menu</h2>
-              </div>
-              <div className="flex flex-col space-y-2 p-4">
-                {navItems.map((item) => {
-                  const Icon = item.icon
-                  return (
-                    <Link
-                      key={item.href}
-                      to={item.href}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className={cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
-                        location.pathname === item.href
-                          ? "bg-primary text-primary-foreground"
-                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                      )}
-                    >
-                      <Icon className="h-5 w-5" />
-                      <span>{item.title}</span>
-                    </Link>
-                  )
-                })}
-              </div>
-            </SheetContent>
-          </Sheet>
+          <div className="flex w-40 items-center justify-end gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="h-10 w-10 rounded-full p-0"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                    {user?.basicInfo?.avatar ? (
+                      <img
+                        src={user.basicInfo.avatar}
+                        alt="User avatar"
+                        className="h-full w-full rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-sm font-medium">{getInitials(user)}</span>
+                    )}
+                  </div>
+                </Button>
+              </DropdownMenuTrigger>
+              {renderUserMenu()}
+            </DropdownMenu>
+          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+    </>
   )
 }
