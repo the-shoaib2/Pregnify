@@ -11,25 +11,39 @@ import { CurrentCare } from './components/current-care';
 import { AdditionalInfo } from './components/additional-info';
 import MedicalReports from './components/medical-reports';
 
-export default function MedicalSection({ profile, loading }) {
-  const [formValues, setFormValues] = useState({
-    medicalHistory: { condition: '', details: '' },
-    chronicDiseases: { condition: '', details: '' },
-    cancerHistory: false,
-    cancerType: '',
-    allergies: '',
-    medications: '',
-    bloodGroup: '',
-    organDonor: false,
-    vaccinationRecords: { 'COVID-19': '' },
-    geneticDisorders: { condition: '' },
-    disabilities: { physical: '', mental: '' },
-    emergencyContact: '',
-    primaryPhysician: '',
-    documents: [],
-    reports: []
-  });
+const initialFormValues = {
+  medicalHistory: {
+    condition: '',
+    details: ''
+  },
+  chronicDiseases: {
+    condition: '',
+    details: ''
+  },
+  cancerHistory: false,
+  cancerType: '',
+  allergies: '',
+  medications: '',
+  bloodGroup: '',
+  organDonor: false,
+  vaccinationRecords: {
+    'COVID-19': ''
+  },
+  geneticDisorders: {
+    condition: ''
+  },
+  disabilities: {
+    physical: '',
+    mental: ''
+  },
+  emergencyContact: '',
+  primaryPhysician: '',
+  documents: [],
+  reports: []
+};
 
+export default function MedicalSection({ profile, loading }) {
+  const [formValues, setFormValues] = useState(initialFormValues);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -42,17 +56,30 @@ export default function MedicalSection({ profile, loading }) {
 
     const medicalData = profile?.medical || {};
     setFormValues({
-      medicalHistory: medicalData.medicalHistory || { condition: '', details: '' },
-      chronicDiseases: medicalData.chronicDiseases || { condition: '', details: '' },
+      medicalHistory: {
+        condition: medicalData.medicalHistory?.condition || '',
+        details: medicalData.medicalHistory?.details || ''
+      },
+      chronicDiseases: {
+        condition: medicalData.chronicDiseases?.condition || '',
+        details: medicalData.chronicDiseases?.details || ''
+      },
       cancerHistory: medicalData.cancerHistory || false,
       cancerType: medicalData.cancerType || '',
       allergies: medicalData.allergies || '',
       medications: medicalData.medications || '',
       bloodGroup: medicalData.bloodGroup || '',
       organDonor: medicalData.organDonor || false,
-      vaccinationRecords: medicalData.vaccinationRecords || { 'COVID-19': '' },
-      geneticDisorders: medicalData.geneticDisorders || { condition: '' },
-      disabilities: medicalData.disabilities || { physical: '', mental: '' },
+      vaccinationRecords: {
+        'COVID-19': medicalData.vaccinationRecords?.['COVID-19'] || ''
+      },
+      geneticDisorders: {
+        condition: medicalData.geneticDisorders?.condition || ''
+      },
+      disabilities: {
+        physical: medicalData.disabilities?.physical || '',
+        mental: medicalData.disabilities?.mental || ''
+      },
       emergencyContact: medicalData.emergencyContact || '',
       primaryPhysician: medicalData.primaryPhysician || '',
       documents: medicalData.documents || [],
@@ -168,13 +195,8 @@ export default function MedicalSection({ profile, loading }) {
         </Button>
       </div>
 
-      
       <div className="space-y-6">
-
-        
         <MedicalReports reports={formValues.reports} />
-
-
         <MedicalDocuments documents={formValues.documents} onUpload={handleFileUpload} />
       </div>
     </form>

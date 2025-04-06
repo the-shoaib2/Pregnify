@@ -34,6 +34,10 @@ import SystemPage from "@/app/settings/system/page"
 import SupportPage from "@/app/settings/help/support/page"
 import AboutPage from "@/app/settings/help/about/page"
 
+// Pregnify Routes
+// import PregnifyPage from "@/app/pregnify/page"
+import HealthPage from "@/app/pregnify/health/page"
+
 // Configure future flags
 const routerOptions = {
   future: {
@@ -45,15 +49,15 @@ const routerOptions = {
 // Protected route component
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
-  
+
   if (loading) {
     return <LoadingScreen />
   }
-  
+
   if (!user) {
     return <Navigate to="/login" replace />
   }
-  
+
   return children
 }
 
@@ -80,46 +84,56 @@ function App() {
           <ThemeProvider>
             <Routes>
               {/* Public Routes */}
-              <Route 
-                path="/login" 
+              <Route
+                path="/login"
                 element={
                   <PublicRoute>
                     <LoginPage />
                   </PublicRoute>
-                } 
+                }
               />
-              
-              <Route 
-                path="/register" 
+
+              <Route
+                path="/register"
                 element={
                   <PublicRoute>
                     <RegisterPage />
                   </PublicRoute>
-                } 
+                }
               />
 
-              <Route 
-                path="/forgot-password" 
+              <Route
+                path="/forgot-password"
                 element={
                   <PublicRoute>
                     <ForgotPasswordPage />
                   </PublicRoute>
-                } 
+                }
               />
 
               {/* Protected Routes */}
-              <Route 
-                path="/" 
+              <Route
+                path="/"
                 element={
                   <ProtectedRoute>
                     <DashboardPage />
                   </ProtectedRoute>
-                } 
+                }
+              />
+
+              {/* Pregnify Routes */}
+              <Route
+                path="/health"
+                element={
+                  <ProtectedRoute>
+                    <HealthPage />
+                  </ProtectedRoute>
+                }
               />
 
               {/* Settings Routes */}
-              <Route 
-                path="/settings" 
+              <Route
+                path="/settings"
                 element={
                   <ProtectedRoute>
                     <SettingsLayout />
@@ -127,7 +141,7 @@ function App() {
                 }
               >
                 <Route index element={<SettingsPage />} />
-                
+
                 {/* Account Settings */}
                 <Route path="account">
                   <Route index element={<AccountPage />} />

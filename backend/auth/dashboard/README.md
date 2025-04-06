@@ -67,7 +67,7 @@ A powerful and dynamic admin dashboard with full CRUD operations, role-based acc
    # Development
    npm run dev
 
-   # Production
+   # development
    npm start
    ```
 
@@ -102,7 +102,7 @@ A powerful and dynamic admin dashboard with full CRUD operations, role-based acc
 The application includes a centralized error handling system that:
 - Logs errors with stack traces
 - Returns appropriate HTTP status codes
-- Sanitizes error messages in production
+- Sanitizes error messages in development
 - Handles validation errors
 - Manages authentication/authorization errors
 

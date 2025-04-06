@@ -99,7 +99,7 @@ export const AUTH_CONSTANTS = {
     REFRESH_TOKEN_EXPIRY: process.env.REFRESH_TOKEN_EXPIRY || '30d', // Refresh token expiry (default to 30 days)
     COOKIE_OPTIONS: {
         httpOnly: true, // Ensure cookies are only accessible via HTTP(S) requests
-        secure: process.env.NODE_ENV === 'production', // Secure cookies in production (over HTTPS)
+        secure: process.env.NODE_ENV === 'development', // Secure cookies in development (over HTTPS)
         sameSite: 'strict', // Prevent cross-site request forgery (CSRF)
         maxAge: parseDuration(process.env.COOKIE_EXPIRY || '30d') // Set cookie expiry (default to 30 days)
     }

@@ -370,6 +370,9 @@ export const findUser = asyncHandler(async (req, res) => {
             });
         }
 
+        // Set user ID in response locals for activity tracking
+        res.locals.userId = user.id;
+
         // Check rate limiting for reset attempts
         const MAX_RESET_ATTEMPTS = 5;
         const RESET_ATTEMPT_WINDOW = 60 * 60 * 1000; // 1 hour
@@ -578,7 +581,7 @@ export const sendVerificationCode = asyncHandler(async (req, res) => {
         }
 
         // Log the code/link in development
-        if (process.env.NODE_ENV !== 'production') {
+        if (process.env.NODE_ENV !== 'development') {
             console.log('Verification details:', {
                 type,
                 code,

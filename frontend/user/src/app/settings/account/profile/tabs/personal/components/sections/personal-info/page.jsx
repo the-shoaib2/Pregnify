@@ -9,15 +9,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
 import { format } from "date-fns"
 import {
   User,
-  CalendarIcon,
   Save,
   Loader,
   Heart,
@@ -29,7 +23,6 @@ import {
   Code,
   Bookmark
 } from "lucide-react"
-import { cn } from "@/lib/utils"
 import toast from "react-hot-toast"
 import { SettingsService } from '@/services/settings/account/personal'
 import { Switch } from "@/components/ui/switch"
@@ -94,11 +87,11 @@ const initializeFormValues = (rawFormValues) => {
   try {
     if (typeof parsedValues.additionalInfo === 'string' && parsedValues.additionalInfo) {
       const additionalInfo = JSON.parse(parsedValues.additionalInfo)
-      parsedValues.languages = additionalInfo.languages || []
-      parsedValues.skills = additionalInfo.skills || []
+      parsedValues.languages = additionalInfo?.languages || []
+      parsedValues.skills = additionalInfo?.skills || []
     } else if (typeof parsedValues.additionalInfo === 'object' && parsedValues.additionalInfo) {
-      parsedValues.languages = parsedValues.additionalInfo.languages || []
-      parsedValues.skills = parsedValues.additionalInfo.skills || []
+      parsedValues.languages = parsedValues.additionalInfo?.languages || []
+      parsedValues.skills = parsedValues.additionalInfo?.skills || []
     } else {
       parsedValues.languages = []
       parsedValues.skills = []
@@ -319,7 +312,6 @@ export default function BasicInfoPersonalSection({
               }}
               className="w-full"
             />
-            <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           </div>
         </div>
         <div className="grid w-full items-center gap-1.5">

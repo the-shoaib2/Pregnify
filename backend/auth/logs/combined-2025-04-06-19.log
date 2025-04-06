@@ -1,0 +1,28 @@
+{"level":"info","message":"SMS service initialized in development mode","service":"PREGNIFY","timestamp":"2025-04-06 19:02:30"}
+{"level":"info","message":"SMS service initialized in development mode","service":"PREGNIFY","timestamp":"2025-04-06 19:03:17"}
+{"level":"info","message":"SMS service initialized in development mode","service":"PREGNIFY","timestamp":"2025-04-06 19:04:52"}
+{"level":"info","message":"SMS service initialized in development mode","service":"PREGNIFY","timestamp":"2025-04-06 19:06:05"}
+{"level":"info","message":"SMS service initialized in development mode","service":"PREGNIFY","timestamp":"2025-04-06 19:06:10"}
+{"level":"info","message":"SMS service initialized in development mode","service":"PREGNIFY","timestamp":"2025-04-06 19:06:35"}
+{"level":"info","message":"SMS service initialized in development mode","service":"PREGNIFY","timestamp":"2025-04-06 19:06:42"}
+{"level":"info","message":"SMS service initialized in development mode","service":"PREGNIFY","timestamp":"2025-04-06 19:07:37"}
+{"level":"info","message":"SMS service initialized in development mode","service":"PREGNIFY","timestamp":"2025-04-06 19:07:42"}
+{"level":"info","message":"SMS service initialized in development mode","service":"PREGNIFY","timestamp":"2025-04-06 19:07:53"}
+{"level":"info","message":"SMS service initialized in development mode","service":"PREGNIFY","timestamp":"2025-04-06 19:08:27"}
+{"level":"info","message":"SMS service initialized in development mode","service":"PREGNIFY","timestamp":"2025-04-06 19:09:10"}
+{"level":"info","message":"SMS service initialized in development mode","service":"PREGNIFY","timestamp":"2025-04-06 19:10:24"}
+{"level":"info","message":"SMS service initialized in development mode","service":"PREGNIFY","timestamp":"2025-04-06 19:10:40"}
+{"level":"info","message":"SMS service initialized in development mode","service":"PREGNIFY","timestamp":"2025-04-06 19:11:01"}
+{"level":"info","message":"SMS service initialized in development mode","service":"PREGNIFY","timestamp":"2025-04-06 19:18:32"}
+{"level":"info","message":"SMS service initialized in development mode","service":"PREGNIFY","timestamp":"2025-04-06 19:18:59"}
+{"level":"info","message":"SMS service initialized in development mode","service":"PREGNIFY","timestamp":"2025-04-06 19:19:26"}
+{"level":"info","message":"SMS service initialized in development mode","service":"PREGNIFY","timestamp":"2025-04-06 19:19:57"}
+{"level":"info","message":"SMS service initialized in development mode","service":"PREGNIFY","timestamp":"2025-04-06 19:20:35"}
+{"level":"info","message":"SMS service initialized in development mode","service":"PREGNIFY","timestamp":"2025-04-06 19:29:30"}
+{"level":"info","message":"SMS service initialized in development mode","service":"PREGNIFY","timestamp":"2025-04-06 19:29:53"}
+{"level":"info","message":"SMS service initialized in development mode","service":"PREGNIFY","timestamp":"2025-04-06 19:30:21"}
+{"0":"r","1":"e","2":"a","3":"s","4":"o","5":"n","6":":","isOperational":true,"level":"error","message":"Unhandled Rejection at:","service":"PREGNIFY","status":"fail","statusCode":401,"timestamp":"2025-04-06 19:45:04"}
+{"level":"info","message":"SMS service initialized in development mode","service":"PREGNIFY","timestamp":"2025-04-06 19:48:53"}
+{"level":"info","message":"SMS service initialized in development mode","service":"PREGNIFY","timestamp":"2025-04-06 19:49:04"}
+{"level":"info","message":"SMS service initialized in development mode","service":"PREGNIFY","timestamp":"2025-04-06 19:49:23"}
+{"0":"r","1":"e","2":"a","3":"s","4":"o","5":"n","6":":","isOperational":true,"level":"error","message":"Unhandled Rejection at:","service":"PREGNIFY","status":"fail","statusCode":401,"timestamp":"2025-04-06 19:57:34"}

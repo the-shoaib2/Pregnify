@@ -93,9 +93,10 @@ export const validateVerificationSession = async (req, res, next) => {
 
 export const trackPasswordResetActivity = async (req, res, next) => {
     try {
-        const { userId } = req.body;
+        // Get userId from response if available, otherwise from request body
+        const userId = res.locals.userId || req.body.userId;
         
-        // Skip tracking if no userId (initial search)
+        // Skip tracking if no userId
         if (!userId) {
             return next();
         }
@@ -129,7 +130,9 @@ export const trackPasswordResetActivity = async (req, res, next) => {
         req.activityId = activity.id;
         next();
     } catch (error) {
-        next(error);
+        // Log the error but don't fail the request
+        console.error('Failed to track password reset activity:', error);
+        next();
     }
 };
 

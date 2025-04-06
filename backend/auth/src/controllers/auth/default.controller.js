@@ -34,7 +34,7 @@ const getCachedOrFetch = async (key, fetchFn, ttl = 60000) => {
 /**
  * Sets authentication cookies for both access and refresh tokens
  * @description Sets secure HTTP-only cookies for authentication tokens with configurable expiry times.
- *              The cookies are secure in production and use strict same-site policy.
+ *              The cookies are secure in development and use strict same-site policy.
  * 
  * @param {Object} params - The parameters object
  * @param {Express.Response} params.res - Express response object
@@ -749,14 +749,14 @@ export const defaultLogout = asyncHandler(async (req, res) => {
         // Clear auth cookies immediately
         res.clearCookie('accessToken', {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: process.env.NODE_ENV === 'development',
             sameSite: 'strict',
             path: '/'
         });
 
         res.clearCookie('refreshToken', {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: process.env.NODE_ENV === 'development',
             sameSite: 'strict',
             path: '/'
         });

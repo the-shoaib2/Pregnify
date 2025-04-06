@@ -292,7 +292,7 @@ export const verifyPasskeyAuthentication = asyncHandler(async (req, res) => {
     // Set cookies
     const cookieOptions = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: process.env.NODE_ENV === 'development',
         sameSite: 'strict',
         path: '/',
         maxAge: process.env.ACCESS_TOKEN_EXPIRY_TIME

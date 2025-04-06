@@ -31,6 +31,7 @@ router.post(
     authLimiter,  // Rate limiting
     searchUserValidation, // Input validation
     searchUser, // Search middleware
+    findUser, // Find user controller
     trackPasswordResetActivity // Activity tracking
 );
 
@@ -57,6 +58,7 @@ router.post(
     '/forgot-password/reset-password',
     authLimiter,
     resetPasswordValidation,
+    validateVerificationSession,
     trackPasswordResetActivity,
     resetPassword,
     updatePasswordResetActivity

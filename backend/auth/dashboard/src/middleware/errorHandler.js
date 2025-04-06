@@ -29,7 +29,7 @@ const errorHandler = (err, req, res, next) => {
     // Default error
     res.status(500).json({
         error: 'Internal Server Error',
-        message: process.env.NODE_ENV === 'production' ? 
+        message: process.env.NODE_ENV === 'development' ? 
             'An unexpected error occurred' : 
             err.message
     });
