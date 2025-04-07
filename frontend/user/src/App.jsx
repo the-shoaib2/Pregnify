@@ -37,6 +37,11 @@ import AboutPage from "@/app/settings/help/about/page"
 // Pregnify Routes
 // import PregnifyPage from "@/app/pregnify/page"
 import HealthPage from "@/app/pregnify/health/page"
+import MessagesPage from "@/app/pregnify/messages/page"
+import CarePage from "@/app/pregnify/care/page"
+import EmergencyPage from "@/app/pregnify/emergency/page"
+import AIAssistantPage from "@/app/pregnify/ai-assistant/page"
+import DoctorsPage from "@/app/pregnify/doctors/page"
 
 // Configure future flags
 const routerOptions = {
@@ -127,6 +132,46 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <HealthPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/messages"
+                element={
+                  <ProtectedRoute>
+                    <MessagesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/care"
+                element={
+                  <ProtectedRoute>
+                    <CarePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/emergency"
+                element={
+                  <ProtectedRoute>
+                    <EmergencyPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/ai-assistant"
+                element={
+                  <ProtectedRoute>
+                    <AIAssistantPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/doctors"
+                element={
+                  <ProtectedRoute>
+                    <DoctorsPage />
                   </ProtectedRoute>
                 }
               />

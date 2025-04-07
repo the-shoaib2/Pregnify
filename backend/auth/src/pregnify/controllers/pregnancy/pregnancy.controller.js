@@ -1,6 +1,6 @@
-import prisma from '../../utils/database/prisma.js';
-import ApiError from '../../utils/error/api.error.js';
-import ApiResponse from '../../utils/error/api.response.js';
+import prisma from '../../../utils/database/prisma.js';
+import ApiError from '../../../utils/error/api.error.js';
+import ApiResponse from '../../../utils/error/api.response.js';
 
 export const pregnancyController = {
   async createPregnancyProfile(req, res) {
@@ -91,14 +91,54 @@ export const pregnancyController = {
         data: {
           userId,
           pregnancyId: pregnancy.id,
+          // Personal Information
+          age: 0,
+          bmi: 0,
+          nutritionStatus: 'unknown',
+          exerciseHabits: 'unknown',
+          psychologicalHealth: 'unknown',
+          sleepPatterns: 'unknown',
+          // Chronic Conditions
+          chronicConditions: {},
+          // Lifestyle Factors
+          isSmoker: false,
+          alcoholConsumption: false,
+          substanceUse: false,
+          dietQuality: 'unknown',
+          // Medical History
+          familyPlanningHistory: false,
+          previousPregnancies: 0,
+          hasAllergies: false,
+          infectionHistory: false,
+          medicationUsage: false,
+          // Vital Signs
+          bloodPressureStatus: 'unknown',
+          bloodSugarStatus: 'unknown',
+          medicalCheckups: 'unknown',
+          // Environmental and Social Factors
+          occupationalHazards: false,
+          environmentalExposure: false,
+          partnerHealthStatus: 'unknown',
+          socialSupportLevel: 'unknown',
+          financialStability: 'unknown',
+          educationLevel: 'unknown',
+          // Additional Health Factors
+          currentMedications: {},
+          surgicalHistory: {},
+          mentalHealthStatus: 'unknown',
+          sleepQuality: 'unknown',
+          weight: weight,
+          height: height,
+          allergies: {},
+          // Family History
+          geneticDisorders: {},
+          pregnancyComplications: {},
+          // Assessment Results
           riskScore: 0,
           recommendations: 'Initial assessment pending',
-          vitalSigns: {
-            bloodPressure: bloodPressure || medicalInfo?.bloodPressure,
-            height,
-            weight
-          },
-          symptoms: {}
+          assessmentDate: new Date(),
+          createdAt: new Date(),
+          updatedAt: new Date()
         }
       });
 
@@ -284,16 +324,18 @@ export const pregnancyController = {
       const user = await prisma.user.findUnique({
         where: { id: userId },
         include: {
-          medicalInformation: {
-            orderBy: { createdAt: 'desc' },
-            take: 1
-          },
-          personalInformation: {
-            orderBy: { createdAt: 'desc' },
-            take: 1
-          }
+          medicalInformation: true,
+          personalInformation: true
         }
       });
+
+      // Get the most recent medical and personal information
+      const recentMedicalInfo = user?.medicalInformation?.length > 0 
+        ? user.medicalInformation[user.medicalInformation.length - 1] 
+        : null;
+      const recentPersonalInfo = user?.personalInformation?.length > 0 
+        ? user.personalInformation[user.personalInformation.length - 1] 
+        : null;
 
       // Format the response data
       const formattedPregnancies = pregnancies.map(pregnancy => ({
@@ -313,23 +355,23 @@ export const pregnancyController = {
         hasPreeclampsia: pregnancy.hasPreeclampsia,
         hasAnemia: pregnancy.hasAnemia,
         otherConditions: pregnancy.otherConditions,
-        medicalInformation: user?.medicalInformation[0] ? {
-          bloodGroup: user.medicalInformation[0].bloodGroup,
-          height: user.medicalInformation[0].height,
-          prePregnancyWeight: user.medicalInformation[0].prePregnancyWeight,
-          currentWeight: user.medicalInformation[0].currentWeight,
-          bmi: user.medicalInformation[0].bmi,
-          bloodPressure: user.medicalInformation[0].bloodPressure,
-          medicalHistory: user.medicalInformation[0].medicalHistory,
-          chronicDiseases: user.medicalInformation[0].chronicDiseases,
-          allergies: user.medicalInformation[0].allergies,
-          medications: user.medicalInformation[0].medications,
-          geneticDisorders: user.medicalInformation[0].geneticDisorders
+        medicalInformation: recentMedicalInfo ? {
+          bloodGroup: recentMedicalInfo.bloodGroup,
+          height: recentMedicalInfo.height,
+          prePregnancyWeight: recentMedicalInfo.prePregnancyWeight,
+          currentWeight: recentMedicalInfo.currentWeight,
+          bmi: recentMedicalInfo.bmi,
+          bloodPressure: recentMedicalInfo.bloodPressure,
+          medicalHistory: recentMedicalInfo.medicalHistory,
+          chronicDiseases: recentMedicalInfo.chronicDiseases,
+          allergies: recentMedicalInfo.allergies,
+          medications: recentMedicalInfo.medications,
+          geneticDisorders: recentMedicalInfo.geneticDisorders
         } : null,
-        personalInformation: user?.personalInformation[0] ? {
-          age: user.personalInformation[0].age,
-          genderIdentity: user.personalInformation[0].genderIdentity,
-          occupation: user.personalInformation[0].occupation
+        personalInformation: recentPersonalInfo ? {
+          age: recentPersonalInfo.age,
+          genderIdentity: recentPersonalInfo.genderIdentity,
+          occupation: recentPersonalInfo.occupation
         } : null,
         latestRiskAssessment: pregnancy.riskAssessments[0] ? {
           riskScore: pregnancy.riskAssessments[0].riskScore,

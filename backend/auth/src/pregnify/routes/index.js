@@ -1,48 +1,67 @@
 import express from 'express';
-import { pregnancyController } from '../controllers/pregnancy.controller.js';
-import { riskPredictionController } from '../controllers/risk-prediction.controller.js';
-import { emergencyController } from '../controllers/emergency.controller.js';
-import { telemedicineController } from '../controllers/telemedicine.controller.js';
 import { isAuthenticated } from '../../middlewares/auth/auth.middleware.js';
-import { pregnancyCareController } from '../controllers/pregnancy-care.controller.js';
-import testRoutes from './test.routes.js';
+import pregnancyRoutes from './pregnancy/pregnancy.routes.js';
+
+// Import all pregnancy-related routes
+import pregnancyTrackingRoutes from './pregnancy/pregnancy-tracking.routes.js';
+import healthMonitoringRoutes from './pregnancy/health-monitoring.routes.js';
+import riskAssessmentRoutes from './pregnancy/risk-assessment.routes.js';
+import nutritionTrackingRoutes from './pregnancy/nutrition-tracking.routes.js';
+import exerciseTrackingRoutes from './pregnancy/exercise-tracking.routes.js';
+import mentalHealthTrackingRoutes from './pregnancy/mental-health-tracking.routes.js';
+import babyDevelopmentTrackingRoutes from './pregnancy/baby-development-tracking.routes.js';
 
 const router = express.Router();
 
 // Apply authentication middleware to all routes
 router.use(isAuthenticated);
 
-// Pregnancy Profile Routes
-router.post('/pregnancy', pregnancyController.createPregnancyProfile);
-router.get('/pregnancy/active', pregnancyController.getActivePregnancy);
-router.get('/pregnancy', pregnancyController.getUserPregnancy);
-router.patch('/pregnancy/:id', pregnancyController.updatePregnancyProfile);
-router.put('/pregnancy/:id', pregnancyController.updatePregnancyProfile);
-router.get('/pregnancy/history', pregnancyController.getPregnancyHistory);
+// ============================================
+// 1. Pregnancy Routes
+// ============================================
+router.use('/pregnancy', pregnancyRoutes);
 
-// Risk Prediction Routes
-router.post('/risk-prediction/calculate', riskPredictionController.calculateRiskScore);
-router.get('/risk-prediction/recommendations', riskPredictionController.getRecommendations);
+// ============================================
+// 3. Pregnancy Tracking Routes
+// ============================================
+router.use('/pregnancy/tracking', pregnancyTrackingRoutes);
 
-// Emergency Services Routes
-router.post('/emergency/request', emergencyController.requestEmergencyService);
-router.get('/emergency/:id/status', emergencyController.getEmergencyStatus);
-router.patch('/emergency/:id/status', emergencyController.updateEmergencyStatus);
-router.get('/emergency/history', emergencyController.getEmergencyHistory);
+// ============================================
+// 4. Health Monitoring Routes
+// ============================================
+router.use('/pregnancy/health', healthMonitoringRoutes);
 
-// Telemedicine Routes
-router.post('/telemedicine/schedule', telemedicineController.scheduleConsultation);
-router.get('/telemedicine/:id', telemedicineController.getConsultationDetails);
-router.patch('/telemedicine/:id/status', telemedicineController.updateConsultationStatus);
-router.get('/telemedicine/history', telemedicineController.getConsultationHistory);
-router.get('/telemedicine/doctors', telemedicineController.getAvailableDoctors);
+// ============================================
+// 5. Baby Development Routes
+// ============================================
+router.use('/pregnancy/baby', babyDevelopmentTrackingRoutes);
 
-// Pregnancy Care Plan Routes
-router.post('/pregnancy-care/generate', pregnancyCareController.generateCarePlan);
-router.get('/pregnancy-care/plan', pregnancyCareController.getCarePlan);
+// ============================================
+// 6. Wellness & Lifestyle Routes
+// ============================================
+router.use('/pregnancy/nutrition', nutritionTrackingRoutes);
+router.use('/pregnancy/exercise', exerciseTrackingRoutes);
+router.use('/pregnancy/mental-health', mentalHealthTrackingRoutes);
 
-// Test Routes
-router.use('/test', testRoutes);
+// ============================================
+// 7. Risk Assessment & Prediction Routes
+// ============================================
+router.use('/pregnancy/risk', riskAssessmentRoutes);
+
+// ============================================
+// 8. Emergency Services Routes
+// ============================================
+// TODO: Implement emergency routes
+
+// ============================================
+// 9. Telemedicine Routes
+// ============================================
+// TODO: Implement telemedicine routes
+
+// ============================================
+// 10. Pregnancy Care Plan Routes
+// ============================================
+// TODO: Implement pregnancy care plan routes
 
 export default router;
 

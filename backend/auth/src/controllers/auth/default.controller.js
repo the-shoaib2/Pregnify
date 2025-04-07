@@ -22,13 +22,13 @@ import crypto from 'crypto';
 // Near the top of the file, add this caching utility
 const cache = new Map();
 const getCachedOrFetch = async (key, fetchFn, ttl = 60000) => {
-  const now = Date.now();
-  if (cache.has(key) && cache.get(key).expires > now) {
-    return cache.get(key).data;
-  }
-  const data = await fetchFn();
-  cache.set(key, { data, expires: now + ttl });
-  return data;
+    const now = Date.now();
+    if (cache.has(key) && cache.get(key).expires > now) {
+        return cache.get(key).data;
+    }
+    const data = await fetchFn();
+    cache.set(key, { data, expires: now + ttl });
+    return data;
 };
 
 /**
@@ -108,13 +108,13 @@ export const defaultRegister = asyncHandler(async (req, res) => {
         if (!termsAccepted) throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Terms must be accepted");
 
         const normalizedRole = role.toUpperCase();
-        
+
         // Use cached role validation if available
-        const validRoles = await getCachedOrFetch('validRoles', () => 
-            Promise.resolve(Object.values(USER_DEFINITIONS)), 
+        const validRoles = await getCachedOrFetch('validRoles', () =>
+            Promise.resolve(Object.values(USER_DEFINITIONS)),
             3600000 // Cache for 1 hour
         );
-        
+
         if (!validRoles.includes(normalizedRole)) {
             throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Invalid role provided");
         }
@@ -138,7 +138,7 @@ export const defaultRegister = asyncHandler(async (req, res) => {
         const verificationExpires = new Date(now.getTime() + 24 * 60 * 60 * 1000);
         const expiryTime = typeof ACCOUNT_EXPIRY_TIME === 'number' ? ACCOUNT_EXPIRY_TIME : 30 * 24 * 60 * 60 * 1000;
         const expiryDateAt = new Date(now.getTime() + expiryTime);
-        
+
         // Execute all database checks and preparations in parallel
         const [
             existingEmailCheck,
@@ -177,55 +177,97 @@ export const defaultRegister = asyncHandler(async (req, res) => {
 
         // Prepare user data object
         const userData = {
-                    email,
-                    username,
-                    userID,
-                    password_hash: hashedPassword,
+            email,
+            username,
+            userID,
+            password_hash: hashedPassword,
+            firstName,
+            lastName,
+            phoneNumber: phoneNumber || null,
+            role: normalizedRole,
+            termsAccepted,
+            isVerified: false,
+            description: description || null,
+            expiryDateAt,
+            verificationToken,
+            verificationExpires,
+            
+            // Personal Information
+            personalInformation: {
+                create: {
                     firstName,
                     lastName,
-                    phoneNumber: phoneNumber || null,
-            role: normalizedRole,
-                    termsAccepted,
-                    isVerified: false,
+                    genderIdentity: gender || null,
+                    dateOfBirth: parsedDateOfBirth,
                     description: description || null,
-            expiryDateAt,
-                    verificationToken,
-                    verificationExpires,
-                    personalInformation: {
-                        create: {
-                            firstName,
-                            lastName,
-                            genderIdentity: gender || null,
-                            dateOfBirth: parsedDateOfBirth,
-                            description: description || null
-                        }
-                    },
-                    preferences: {
-                        create: {
-                            preferences: {},
-                            notifications: {},
-                            settings: {},
-                            customization: {},
-                            privacySettings: {},
-                            securityQuestions: {},
-                            contentFilters: {}
-                        }
-                    },
-                    activityLogSettings: {
-                        create: {
-                            logFailedLogin: true,
-                            logAccountChanges: true,
-                            logProfileUpdates: true
-                        }
-                    },
-                    notificationPreferences: {
-                        create: {
-                            emailNotifications: true,
-                            pushNotifications: true,
-                            smsNotifications: false
-                        }
-                    },
-                    passwordPolicy: {
+                    // Add default values for required fields
+                    location: 'UNKNOWN',
+                    education: 'UNKNOWN',
+                    incomeLevel: 'UNKNOWN',
+                    livingConditions: 'UNKNOWN',
+                    accessToHealthcare: 'UNKNOWN',
+                    maritalStatus: 'SINGLE',
+                    citizenship: 'UNKNOWN',
+                    occupation: {},
+                    religion: 'PREFER_NOT_TO_SAY',
+                    hobbies: [],
+                    additionalInfo: {}
+                }
+            },
+
+            // Medical Information
+            medicalInformation: {
+                create: {
+                    bloodGroup: null,
+                    organDonor: false,
+                    height: null,
+                    prePregnancyWeight: null,
+                    currentWeight: null,
+                    bmi: null,
+                    bloodPressure: null,
+                    medicalHistory: {},
+                    chronicDiseases: {},
+                    cancerHistory: false,
+                    allergies: null,
+                    medications: null,
+                    vaccinationRecords: {},
+                    geneticDisorders: {},
+                    disabilities: {},
+                    emergencyContact: null,
+                    primaryPhysician: null
+                }
+            },
+
+            // Preferences
+            preferences: {
+                create: {
+                    preferences: {},
+                    notifications: {},
+                    settings: {},
+                    customization: {},
+                    privacySettings: {},
+                    securityQuestions: {},
+                    contentFilters: {}
+                }
+            },
+            // Activity Log Settings
+            activityLogSettings: {
+                create: {
+                    logFailedLogin: true,
+                    logAccountChanges: true,
+                    logProfileUpdates: true
+                }
+            },
+            // Notification Preferences
+            notificationPreferences: {
+                create: {
+                    emailNotifications: true,
+                    pushNotifications: true,
+                    smsNotifications: false
+                }
+            },
+            // Password Policy
+            passwordPolicy: {
                 connect: {
                     id: 'default'
                 }
@@ -302,7 +344,7 @@ export const defaultRegister = asyncHandler(async (req, res) => {
             }
         });
 
-  
+
 
         // Performance metrics (development only)
         if (process.env.NODE_ENV === 'development') {
@@ -348,14 +390,14 @@ export const defaultRegister = asyncHandler(async (req, res) => {
                         }
                     })
                 ]),
-                
+
                 // Send welcome email asynchronously
                 (async () => {
                     try {
                         const verificationLink = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}`;
                         await emailService.sendWelcomeEmail(
-                            newUser.email, 
-                            `${newUser.firstName} ${newUser.lastName}`, 
+                            newUser.email,
+                            `${newUser.firstName} ${newUser.lastName}`,
                             verificationLink
                         );
                     } catch (emailError) {
@@ -372,7 +414,7 @@ export const defaultRegister = asyncHandler(async (req, res) => {
         if (err instanceof ApiError) {
             throw err;
         }
-        
+
         // Handle Prisma-specific errors with detailed messages
         if (err.code) {
             switch (err.code) {
@@ -390,7 +432,7 @@ export const defaultRegister = asyncHandler(async (req, res) => {
                     throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, "Database error occurred");
             }
         }
-        
+
         console.error('Registration error:', err);
         throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, err.message || "Internal server error");
     }

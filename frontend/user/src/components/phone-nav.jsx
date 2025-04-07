@@ -2,6 +2,7 @@ import { Link, useLocation } from "react-router-dom"
 import { cn } from "@/lib/utils"
 import {
   Activity,
+  Menu,
   User,
   LogOut,
   Loader,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,8 +36,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useAuth } from "@/contexts/auth-context/auth-context"
-import { PhoneNav } from "@/components/phone-nav"
-import { useIsMobile } from "@/hooks/use-is-mobile"
 
 const navItems = [
   {
@@ -130,22 +130,19 @@ const settingsNavGroups = [
   }
 ]
 
-export function TopNav() {
+export function PhoneNav() {
   const location = useLocation()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [expandedGroup, setExpandedGroup] = useState(null)
   const { user, logout } = useAuth()
-  const isMobile = useIsMobile()
   const userRole = user?.basicInfo?.role
 
-  // Only show mobile nav for roles that should have it
-  const shouldShowMobileNav = isMobile && (
-    userRole === 'DOCTOR' || 
-    userRole === 'PATIENT' || 
-    userRole === 'GUEST' || 
-    !userRole
-  )
+  // Don't render if user is admin or super admin
+  if (userRole === 'ADMIN' || userRole === 'SUPER_ADMIN') {
+    return null
+  }
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
@@ -169,7 +166,7 @@ export function TopNav() {
   }
 
   const renderUserMenu = () => (
-    <DropdownMenuContent align="end" className="w-64">
+    <DropdownMenuContent align="end" className="w-64 max-h-[80vh] overflow-y-auto">
       <div className="p-2">
         {settingsNavGroups.map((group) => (
           <div key={group.title} className="space-y-1">
@@ -251,47 +248,22 @@ export function TopNav() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Mobile Navigation - Only show for appropriate roles */}
-      {shouldShowMobileNav && <PhoneNav />}
-
-      {/* Desktop Navigation */}
-      <nav className="fixed top-0 left-0 z-50 hidden w-full h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:block">
-        <div className="flex h-full items-center px-8">
-          <div className="flex w-40 items-center gap-4">
-            <Activity className="h-8 w-8 text-primary" />
+      {/* Top Bar - Mobile Only */}
+      <nav className="fixed top-0 left-0 z-50 w-full h-12 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden">
+        <div className="flex h-full items-center justify-between px-4">
+          <div className="flex items-center gap-2">
+            <Activity className="h-6 w-6 text-primary" />
             <span className="text-sm font-medium">Pregnify</span>
           </div>
-
-          <div className="flex flex-1 items-center justify-center space-x-1">
-            {navItems.map((item) => {
-              const Icon = item.icon
-              return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={cn(
-                    "flex flex-col items-center gap-1 rounded-md px-3 py-2 text-[10px] font-medium transition-colors",
-                    location.pathname === item.href
-                      ? "text-primary"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <Icon className="h-6 w-6" />
-                  <span className="whitespace-nowrap">{item.title}</span>
-                </Link>
-              )
-            })}
-          </div>
-
-          <div className="flex w-40 items-center justify-end gap-2">
+          <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button 
                   variant="ghost" 
                   size="icon"
-                  className="h-10 w-10 rounded-full p-0"
+                  className="h-8 w-8 rounded-full p-0"
                 >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
                     {user?.basicInfo?.avatar ? (
                       <img
                         src={user.basicInfo.avatar}
@@ -299,7 +271,7 @@ export function TopNav() {
                         className="h-full w-full rounded-full object-cover"
                       />
                     ) : (
-                      <span className="text-sm font-medium">{getInitials(user)}</span>
+                      <span className="text-xs font-medium">{getInitials(user)}</span>
                     )}
                   </div>
                 </Button>
@@ -309,6 +281,30 @@ export function TopNav() {
           </div>
         </div>
       </nav>
+
+      {/* Bottom Navigation - Mobile Only */}
+      <nav className="fixed bottom-0 left-0 z-50 w-full border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden">
+        <div className="flex h-16 items-center justify-around">
+          {navItems.slice(0, 5).map((item) => {
+            const Icon = item.icon
+            return (
+              <Link
+                key={item.href}
+                to={item.href}
+                className={cn(
+                  "flex flex-col items-center gap-1 rounded-md px-2 py-2 text-[10px] font-medium transition-colors",
+                  location.pathname === item.href
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Icon className="h-6 w-6" />
+                <span className="whitespace-nowrap">{item.title}</span>
+              </Link>
+            )
+          })}
+        </div>
+      </nav>
     </>
   )
-}
+} 

@@ -15,42 +15,48 @@ const roleLayoutConfig = {
     showTopNav: false,
     showHeader: true,
     showSettingsNav: true,
-    layoutType: 'sidebar'
+    layoutType: 'sidebar',
+    showMobileNav: false // Don't show mobile nav for super admin
   },
   ADMIN: {
     showSidebar: true,
     showTopNav: false,
     showHeader: true,
     showSettingsNav: true,
-    layoutType: 'sidebar'
+    layoutType: 'sidebar',
+    showMobileNav: false // Don't show mobile nav for admin
   },
   DOCTOR: {
     showSidebar: false,
     showTopNav: true,
     showHeader: false,
     showSettingsNav: true,
-    layoutType: 'top-nav'
+    layoutType: 'top-nav',
+    showMobileNav: true // Show mobile nav for doctor
   },
   PATIENT: {
     showSidebar: false,
     showTopNav: true,
     showHeader: false,
     showSettingsNav: false,
-    layoutType: 'top-nav'
+    layoutType: 'top-nav',
+    showMobileNav: true // Show mobile nav for patient
   },
   GUEST: {
     showSidebar: false,
     showTopNav: true,
     showHeader: false,
     showSettingsNav: false,
-    layoutType: 'top-nav'
+    layoutType: 'top-nav',
+    showMobileNav: true // Show mobile nav for guest
   },
   default: {
     showSidebar: false,
     showTopNav: true,
     showHeader: false,
     showSettingsNav: false,
-    layoutType: 'top-nav'
+    layoutType: 'top-nav',
+    showMobileNav: true // Show mobile nav by default
   }
 }
 
@@ -71,7 +77,7 @@ export function RoleBasedLayout({
 
   // Override layout for mobile devices
   const showSidebar = !isMobile && layoutConfig.showSidebar
-  const showTopNav = isMobile || layoutConfig.showTopNav
+  const showTopNav = isMobile ? layoutConfig.showMobileNav : layoutConfig.showTopNav
   const showSettingsNav = layoutConfig.showSettingsNav && isSettingsPage
   
   // Determine header visibility based on role and showHeader prop

@@ -2,7 +2,7 @@ import { useState, useMemo, lazy, Suspense, useEffect, useCallback } from "react
 import { Button } from "@/components/ui/button"
 import { format } from "date-fns"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { 
+import {
   ChevronUp,
   ChevronDown,
   User,
@@ -69,7 +69,7 @@ const preloadSectionComponents = () => {
     import("./components/sections/education/education"),
     import("./components/sections/medical/page"),
   ]
-  
+
   // Execute all preloads
   return Promise.all(preloads).catch(error => {
     console.error("Error preloading section components:", error)
@@ -84,7 +84,7 @@ export default function PersonalTab({
   // Track component preloading state
   const [componentsPreloaded, setComponentsPreloaded] = useState(false)
   const [isDataReady, setIsDataReady] = useState(false)
-  
+
   // Preload all section components when the component mounts
   useEffect(() => {
     const preloadComponents = async () => {
@@ -95,23 +95,23 @@ export default function PersonalTab({
         console.error("Error during component preloading:", error)
       }
     }
-    
+
     preloadComponents()
   }, [])
 
   // Set data ready when profile is available
   useEffect(() => {
-    if (profile && profile.personal) {
+    if (profile) {
       setIsDataReady(true)
     }
   }, [profile])
-  
+
   // Memoize personal data extraction with error handling
   const personal = useMemo(() => {
     try {
       // Get the personal data from the profile
       const personalData = profile?.personal || {};
-      
+
       // Map the nested structure to a flattened structure
       const mappedData = {
         id: personalData?.id || "",
@@ -120,54 +120,54 @@ export default function PersonalTab({
         middleName: personalData?.name?.middleName || "",
         lastName: personalData?.name?.lastName || "",
         nickName: personalData?.name?.nickName || "",
-        
+
         // Identity fields
         dateOfBirth: personalData?.identity?.dateOfBirth || "",
         genderIdentity: personalData?.identity?.gender || "",
         age: personalData?.identity?.age || "",
         isDeceased: personalData?.identity?.isDeceased || false,
-        
+
         // Origin fields
         placeOfBirth: personalData?.origin?.placeOfBirth || "",
         countryOfBirth: personalData?.origin?.countryOfBirth || "",
         nationality: personalData?.origin?.nationality || "",
-        
+
         // Contact fields
         contactNumber: personalData?.contact?.phone || "",
-        
+
         // Address information - preserve structure but ensure it exists
         address: personalData?.addresses?.current || {},
         presentAddress: personalData?.addresses?.current || {},
         permanentAddress: personalData?.addresses?.permanent || {},
-        
+
         // Identification fields
         passportNumber: personalData?.identification?.passport?.number || "",
         passportExpiry: personalData?.identification?.passport?.expiry || "",
         citizenship: personalData?.identification?.citizenship || "",
         bloodGroup: personalData?.identification?.bloodGroup || "",
         maritalStatus: personalData?.identification?.maritalStatus || "",
-        
+
         // Occupation
         occupation: personalData?.occupation || {},
-        
+
         // Other fields
         religion: personalData?.religion || "",
         hobbies: Array.isArray(personalData?.hobbies) ? personalData.hobbies.join(", ") : "",
-        additionalInfo: typeof personalData?.additionalInfo === 'object' ? 
+        additionalInfo: typeof personalData?.additionalInfo === 'object' ?
           JSON.stringify(personalData.additionalInfo) : (personalData?.additionalInfo || ""),
-        
+
         // Description
         description: personalData?.description || "",
-        
+
         // Emergency contacts
         emergencyContact: personalData?.emergencyContacts || [],
-        
+
         // System timestamps
         createdAt: personalData?.timestamps?.created || "",
         updatedAt: personalData?.timestamps?.updated || "",
         deletedAt: null,
       };
-      
+
       return mappedData;
     } catch (error) {
       console.error("Error processing personal data:", error)
@@ -179,7 +179,7 @@ export default function PersonalTab({
   const education = useMemo(() => {
     try {
       const educationData = profile?.education || []; // Ensure we get an array
-      
+
       return educationData.map(edu => ({
         id: edu?.id || "",
         degree: edu?.degree || "",
@@ -196,7 +196,7 @@ export default function PersonalTab({
       return []
     }
   }, [profile?.education])
-  
+
   // Add this for medical data
   const medical = useMemo(() => {
     try {
@@ -205,7 +205,7 @@ export default function PersonalTab({
         id: data?.id || "",
         allergies: data?.allergies || "",
         medications: data?.medications || "",
-        chronicConditions: Array.isArray(data?.chronicDiseases?.condition) ? 
+        chronicConditions: Array.isArray(data?.chronicDiseases?.condition) ?
           data.chronicDiseases.condition.join(", ") : "",
         medicalNotes: "",
         medicalReports: data?.reports || [],
@@ -226,10 +226,10 @@ export default function PersonalTab({
       return {};
     }
   }, [profile?.medical]);
-  
+
   // Memoize form values with error handling
   const [formValues, setFormValues] = useState({});
-  
+
   // Update form values when personal data changes
   useEffect(() => {
     try {
@@ -247,27 +247,27 @@ export default function PersonalTab({
           description: personal?.description || "",
           age: personal?.age || "",
           isDeceased: personal?.isDeceased || false,
-          
+
           // Location Information
           placeOfBirth: personal?.placeOfBirth || "",
           countryOfBirth: personal?.countryOfBirth || "",
           nationality: personal?.nationality || "",
-          
+
           // Documents & Identity
           passportNumber: personal?.passportNumber || "",
           passportExpiry: personal?.passportExpiry || "",
           citizenship: personal?.citizenship || "",
-          
+
           // Personal Details
           maritalStatus: personal?.maritalStatus || "",
           occupation: personal?.occupation || {},
           religion: personal?.religion || "",
           hobbies: personal?.hobbies || "",
           additionalInfo: personal?.additionalInfo || "",
-          
+
           // Contact information
           contactNumber: personal?.contactNumber || "",
-          
+
           // Address information
           address: personal?.address || {},
           presentAddress: personal?.presentAddress || {},
@@ -277,8 +277,8 @@ export default function PersonalTab({
           education: education || [], // Ensure this is an array
 
           // Medical Information
-medical: medical || [],
-        
+          medical: medical || [],
+
 
           // System Fields
           createdAt: personal?.createdAt || "",
@@ -292,7 +292,7 @@ medical: medical || [],
       console.error("Error updating form values:", error);
     }
   }, [personal, education, medical]);
-  
+
   // Memoized handlers with error handling
   const handleLocalChange = useMemo(() => (field, value) => {
     try {
@@ -305,10 +305,10 @@ medical: medical || [],
       toast.error(`Failed to update ${field}`)
     }
   }, [])
-  
+
   // Set up date state
   const [date, setDate] = useState(null)
-  
+
   // Initialize date from profile data when it's available
   useEffect(() => {
     try {
@@ -327,7 +327,7 @@ medical: medical || [],
     }
   }, [profile]);
 
-  
+
   // Track loading states for each section
   const [sectionLoading, setSectionLoading] = useState({
     basicPersonal: false,
@@ -336,7 +336,7 @@ medical: medical || [],
     medical: false,
     medicalReports: false
   })
-  
+
   // Memoize section states
   const [expandedSections, setExpandedSections] = useState({
     basicPersonal: true,
@@ -412,10 +412,10 @@ medical: medical || [],
 
 
   // Memoized card header component with command menu
-  const CardWithCollapse = useMemo(() => ({ 
-    section, 
-    title, 
-    description, 
+  const CardWithCollapse = useMemo(() => ({
+    section,
+    title,
+    description,
     children,
     isLoading,
     icon: Icon = User
@@ -461,7 +461,7 @@ medical: medical || [],
       </ContextMenuTrigger>
       <ContextMenuContent className="w-64">
 
-      <ContextMenuItem inset onClick={handleReload}>
+        <ContextMenuItem inset onClick={handleReload}>
           Reload
           <ContextMenuShortcut>⌘R</ContextMenuShortcut>
         </ContextMenuItem>
@@ -496,12 +496,12 @@ medical: medical || [],
             </ContextMenuItem>
             <ContextMenuSeparator />
             <ContextMenuItem>Developer Tools
-               <ContextMenuShortcut>⌘I</ContextMenuShortcut>
+              <ContextMenuShortcut>⌘I</ContextMenuShortcut>
             </ContextMenuItem>
           </ContextMenuSubContent>
         </ContextMenuSub>
         <ContextMenuSeparator />
-        <ContextMenuCheckboxItem checked={true} onCheckedChange={() => {}}>
+        <ContextMenuCheckboxItem checked={true} onCheckedChange={() => { }}>
           Show Bookmarks Bar
           <ContextMenuShortcut>⌘⇧B</ContextMenuShortcut>
         </ContextMenuCheckboxItem>

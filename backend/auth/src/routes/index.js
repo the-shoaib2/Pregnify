@@ -25,8 +25,6 @@ import accountRoutes from './v1/account-routes/index.js';
 // Media Router 
 import mediaRoutes from './v1/media-routes/media.routes.js';
 
-// AI Router 
-import aiRoutes from './v1/ai/index.js';
 
 // Pregnify Router
 import pregnifyRoutes from '../pregnify/routes/index.js';
@@ -103,7 +101,8 @@ router.use(`${API_PREFIX}/verification`, verificationRoutes);
 router.use(`${API_PREFIX}/admin`, adminRoutes);
 router.use(`${API_PREFIX}/media`, mediaRoutes);
 router.use(`${API_PREFIX}/account`, accountRoutes);
-router.use(`${API_PREFIX}/ai`, aiRoutes);
+
+// Pregnify routes
 router.use(`${API_PREFIX}/pregnify`, pregnifyRoutes);
 
 export default router;

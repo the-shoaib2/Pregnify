@@ -71,7 +71,7 @@ model User {
   // ==========================
   // Personal Information
   // ==========================
-  personalInformation PersonalInformation? // optional one-to-one
+  personalInformation PersonalInformation[] // one-to-one
 
   // ==========================
   // Education Qualification
@@ -81,7 +81,7 @@ model User {
   // ==========================
   // Medical Information
   // ==========================
-  medicalInformation MedicalInformation?
+  medicalInformation MedicalInformation[]
 
   // ==========================
   // Account Status & Lockout
@@ -202,7 +202,7 @@ model User {
   // PREGNIFY RELATIONS
   // ==========================
   pregnancyProfile    PregnancyProfile?
-  riskAssessments     RiskAssessment?
+  riskAssessments     RiskAssessment[]
   healthMetrics       HealthMetric?
   symptomLogs         SymptomLog?
   medicalAppointments MedicalAppointment?
@@ -2387,6 +2387,16 @@ enum Currency {
   TRY // TRY currency
 }
 
+
+
+
+
+
+
+
+
+
+
 /// ============================
 /// PREGNIFY MODELS
 /// ============================
@@ -2463,21 +2473,71 @@ model PregnancyProfile {
 }
 
 model RiskAssessment {
-  id                String           @id @default(uuid())
-  userId            String           @unique
-  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  pregnancyId       String           @unique
-  pregnancy         PregnancyProfile @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
-  riskScore         Float
-  assessmentDate    DateTime         @default(now())
-  recommendations   String           @db.Text
-  vitalSigns        Json
-  symptoms          Json
-  bangladeshFactors Json // Store Bangladesh-specific risk factors
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pregnancyId String
+  pregnancy PregnancyProfile @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  
+  // Personal Information
+  age Int
+  bmi Float
+  nutritionStatus String
+  exerciseHabits String
+  psychologicalHealth String
+  sleepPatterns String
+
+  // Chronic Conditions
+  chronicConditions Json
+
+  // Lifestyle Factors
+  isSmoker Boolean
+  alcoholConsumption Boolean
+  substanceUse Boolean
+  dietQuality String
+
+  // Medical History
+  familyPlanningHistory Boolean
+  previousPregnancies Int
+  hasAllergies Boolean
+  infectionHistory Boolean
+  medicationUsage Boolean
+
+  // Vital Signs
+  bloodPressureStatus String
+  bloodSugarStatus String
+  medicalCheckups String
+
+  // Environmental and Social Factors
+  occupationalHazards Boolean
+  environmentalExposure Boolean
+  partnerHealthStatus String
+  socialSupportLevel String
+  financialStability String
+  educationLevel String
+
+  // Additional Health Factors
+  currentMedications Json
+  surgicalHistory Json
+  mentalHealthStatus String
+  sleepQuality String
+  weight Float
+  height Float
+  allergies Json
+
+  // Family History
+  geneticDisorders Json
+  pregnancyComplications Json
+
+  // Assessment Results
+  riskScore Float
+  assessmentDate DateTime @default(now())
+  recommendations String @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
+  @@index([pregnancyId])
   @@map("risk_assessments")
 }
 
@@ -2757,3 +2817,4 @@ model PaymentTransaction {
   @@index([status])
   @@map("payment_transactions")
 }
+
