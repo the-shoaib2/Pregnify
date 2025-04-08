@@ -201,6 +201,8 @@ model User {
   // ==========================
   // PREGNIFY RELATIONS
   // ==========================
+  aiPredictionResponses AiPredictionResponse[]
+
   pregnancyProfile    PregnancyProfile?
   riskAssessments     RiskAssessment[]
   healthMetrics       HealthMetric?
@@ -315,6 +317,7 @@ model User {
   // Indexes
   // ==========================
   @@map("users")
+
 }
 
 /// ============================
@@ -2470,6 +2473,8 @@ model PregnancyProfile {
   @@index([pregnancyWeek])
   @@index([dueDate])
   @@map("pregnancy_profiles")
+
+  aiPredictions AiPredictionResponse[]
 }
 
 model RiskAssessment {
@@ -2529,10 +2534,13 @@ model RiskAssessment {
   geneticDisorders Json
   pregnancyComplications Json
 
+  aiPredictionResponses AiPredictionResponse[]
+
   // Assessment Results
   riskScore Float
   assessmentDate DateTime @default(now())
   recommendations String @db.Text
+  referenceRanges Json? 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -2816,5 +2824,92 @@ model PaymentTransaction {
   @@index([userId])
   @@index([status])
   @@map("payment_transactions")
+}
+
+enum PredictionType {
+  PREGNANCY
+  HEALTH
+  SECURITY
+  NUTRITION
+  MENTAL_HEALTH
+  EXERCISE
+  MEDICATION
+  EMERGENCY
+  OTHER
+}
+
+enum PredictionCategory {
+  RISK_ASSESSMENT
+  RECOMMENDATION
+  WARNING
+  ANALYSIS
+  TREND
+  ALERT
+  GUIDANCE
+  PROTOCOL
+  OTHER
+}
+
+model AiPredictionResponse {
+  id          String   @id @default(uuid())
+  userId      String
+  pregnancyId String?
+  assessmentId String?
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pregnancy   PregnancyProfile? @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  assessment  RiskAssessment? @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  // Type and Category
+  type        PredictionType
+  category    PredictionCategory
+  subCategory String? // For more specific categorization
+
+  // Dynamic Data Storage
+  data        Json     // Stores the complete prediction data
+  summary     String?  // Brief summary of the prediction
+  priority    String?  // High, Medium, Low
+  status      String?  // Active, Resolved, Pending
+
+  // Risk Assessment Data (if applicable)
+  riskScore       Float?
+  riskLevel       String?
+  riskTrend       String?
+  previousScore   Float?
+  scoreChange     Float?
+
+  // Risk Factors (if applicable)
+  medicalRisks    Json?
+  lifestyleRisks  Json?
+  environmentalRisks Json?
+
+  // Recommendations (if applicable)
+  recommendations Json?
+
+  // Warning System (if applicable)
+  warnings        Json?
+
+  // Location Specific (if applicable)
+  locationData    Json?
+
+  // Follow Up (if applicable)
+  followUp        Json?
+
+  // Metadata
+  metadata        Json
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@index([pregnancyId])
+  @@index([assessmentId])
+  @@index([type])
+  @@index([category])
+  @@index([status])
+  @@index([userId, type, category])
+  @@index([userId, pregnancyId, assessmentId])
+  @@index([userId, pregnancyId])
+  @@index([userId, assessmentId])
+  @@index([userId, createdAt])
+  @@map("ai_prediction_responses")
 }
 

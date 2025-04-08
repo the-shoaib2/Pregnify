@@ -1714,6 +1714,49 @@ CREATE TABLE `payment_transactions` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
+CREATE TABLE `ai_prediction_responses` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `pregnancyId` VARCHAR(191) NULL,
+    `assessmentId` VARCHAR(191) NULL,
+    `type` ENUM('PREGNANCY', 'HEALTH', 'SECURITY', 'NUTRITION', 'MENTAL_HEALTH', 'EXERCISE', 'MEDICATION', 'EMERGENCY', 'OTHER') NOT NULL,
+    `category` ENUM('RISK_ASSESSMENT', 'RECOMMENDATION', 'WARNING', 'ANALYSIS', 'TREND', 'ALERT', 'GUIDANCE', 'PROTOCOL', 'OTHER') NOT NULL,
+    `subCategory` VARCHAR(191) NULL,
+    `data` JSON NOT NULL,
+    `summary` VARCHAR(191) NULL,
+    `priority` VARCHAR(191) NULL,
+    `status` VARCHAR(191) NULL,
+    `riskScore` DOUBLE NULL,
+    `riskLevel` VARCHAR(191) NULL,
+    `riskTrend` VARCHAR(191) NULL,
+    `previousScore` DOUBLE NULL,
+    `scoreChange` DOUBLE NULL,
+    `medicalRisks` JSON NULL,
+    `lifestyleRisks` JSON NULL,
+    `environmentalRisks` JSON NULL,
+    `recommendations` JSON NULL,
+    `warnings` JSON NULL,
+    `locationData` JSON NULL,
+    `followUp` JSON NULL,
+    `metadata` JSON NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    INDEX `ai_prediction_responses_userId_idx`(`userId`),
+    INDEX `ai_prediction_responses_pregnancyId_idx`(`pregnancyId`),
+    INDEX `ai_prediction_responses_assessmentId_idx`(`assessmentId`),
+    INDEX `ai_prediction_responses_type_idx`(`type`),
+    INDEX `ai_prediction_responses_category_idx`(`category`),
+    INDEX `ai_prediction_responses_status_idx`(`status`),
+    INDEX `ai_prediction_responses_userId_type_category_idx`(`userId`, `type`, `category`),
+    INDEX `ai_prediction_responses_userId_pregnancyId_assessmentId_idx`(`userId`, `pregnancyId`, `assessmentId`),
+    INDEX `ai_prediction_responses_userId_pregnancyId_idx`(`userId`, `pregnancyId`),
+    INDEX `ai_prediction_responses_userId_assessmentId_idx`(`userId`, `assessmentId`),
+    INDEX `ai_prediction_responses_userId_createdAt_idx`(`userId`, `createdAt`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
 CREATE TABLE `_FileCollections` (
     `A` VARCHAR(191) NOT NULL,
     `B` VARCHAR(191) NOT NULL,
@@ -2066,6 +2109,15 @@ ALTER TABLE `telemedicine_consultations` ADD CONSTRAINT `telemedicine_consultati
 
 -- AddForeignKey
 ALTER TABLE `payment_transactions` ADD CONSTRAINT `payment_transactions_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `ai_prediction_responses` ADD CONSTRAINT `ai_prediction_responses_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `ai_prediction_responses` ADD CONSTRAINT `ai_prediction_responses_pregnancyId_fkey` FOREIGN KEY (`pregnancyId`) REFERENCES `pregnancy_profiles`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `ai_prediction_responses` ADD CONSTRAINT `ai_prediction_responses_assessmentId_fkey` FOREIGN KEY (`assessmentId`) REFERENCES `risk_assessments`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `_FileCollections` ADD CONSTRAINT `_FileCollections_A_fkey` FOREIGN KEY (`A`) REFERENCES `collections`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

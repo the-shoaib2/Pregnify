@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useAuth } from "@/contexts/auth-context/auth-context"
 import { PhoneNav } from "@/components/phone-nav"
-import { useIsMobile } from "@/hooks/use-is-mobile"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 const navItems = [
   {
@@ -137,15 +137,6 @@ export function TopNav() {
   const [expandedGroup, setExpandedGroup] = useState(null)
   const { user, logout } = useAuth()
   const isMobile = useIsMobile()
-  const userRole = user?.basicInfo?.role
-
-  // Only show mobile nav for roles that should have it
-  const shouldShowMobileNav = isMobile && (
-    userRole === 'DOCTOR' || 
-    userRole === 'PATIENT' || 
-    userRole === 'GUEST' || 
-    !userRole
-  )
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
@@ -222,6 +213,11 @@ export function TopNav() {
     </DropdownMenuContent>
   )
 
+  // If on mobile, render the phone navigation
+  if (isMobile) {
+    return <PhoneNav />
+  }
+
   return (
     <>
       <AlertDialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
@@ -250,9 +246,6 @@ export function TopNav() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Mobile Navigation - Only show for appropriate roles */}
-      {shouldShowMobileNav && <PhoneNav />}
 
       {/* Desktop Navigation */}
       <nav className="fixed top-0 left-0 z-50 hidden w-full h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:block">

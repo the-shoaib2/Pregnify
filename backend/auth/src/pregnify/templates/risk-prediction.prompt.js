@@ -1,118 +1,235 @@
 const riskPredictionPrompt = (analysisData) => {
-  return `You are a medical AI assistant specializing in pregnancy risk assessment for Bangladesh. Analyze the following patient data and provide a detailed risk assessment. Your response MUST follow this exact format:
-
-  RISK SCORE: [number between 0-100]
-  RISK LEVEL: [Low/Medium/High/Very High/Critical]
+  // Add null checks for all properties
+  const assessment = analysisData?.assessment || {};
+  const pregnancy = analysisData?.pregnancy || {};
   
-  KEY RISK FACTORS:
-  - [Factor 1] (Severity: Low/Medium/High)
-  - [Factor 2] (Severity: Low/Medium/High)
-  - [Factor 3] (Severity: Low/Medium/High)
-  
-  RECOMMENDATIONS:
-  Medical Care:
-  - [Recommendation 1]
-  - [Recommendation 2]
-  - [Recommendation 3]
-  
-  Lifestyle Changes:
-  - [Recommendation 1]
-  - [Recommendation 2]
-  - [Recommendation 3]
-  
-  Diet and Nutrition:
-  - [Recommendation 1]
-  - [Recommendation 2]
-  - [Recommendation 3]
-  
-  Exercise and Activity:
-  - [Recommendation 1]
-  - [Recommendation 2]
-  - [Recommendation 3]
-  
-  Mental Health:
-  - [Recommendation 1]
-  - [Recommendation 2]
-  - [Recommendation 3]
-  
-  NEXT STEPS:
-  - [Step 1] (Timeline: [date/time])
-  - [Step 2] (Timeline: [date/time])
-  - [Step 3] (Timeline: [date/time])
-  
-  WARNING SIGNS:
-  - [Sign 1]
-  - [Sign 2]
-  - [Sign 3]
-  
-  EMERGENCY CONTACT:
-  Primary Care Provider: [Name] - [Phone]
-  Hospital: [Name] - [Phone]
-  Emergency Services: 999
-  
-  FOLLOW-UP SCHEDULE:
-  Next Appointment: [Date]
-  Tests: [List of tests with dates]
-  Monitoring: [Frequency of monitoring]
-  
-  ADDITIONAL TESTS:
-  - [Test 1] (Recommended at: [date/time])
-  - [Test 2] (Recommended at: [date/time])
-  - [Test 3] (Recommended at: [date/time])
+  const chronicConditions = assessment?.chronicConditions
+    ? JSON.parse(assessment.chronicConditions).conditions.join(', ')
+    : 'None';
 
-  BANGLADESH-SPECIFIC FACTORS:
-  Healthcare Access:
-  - [Assessment of healthcare access]
-  - [Distance to nearest hospital]
-  - [Quality of available healthcare]
+  const currentMedications = assessment?.currentMedications
+    ? JSON.parse(assessment.currentMedications).join(', ')
+    : 'None';
 
-  Nutrition Status:
-  - [Assessment of nutrition]
-  - [Dietary patterns]
-  - [Supplement recommendations]
+  const previousComplications = pregnancy?.previousComplications
+    ? JSON.parse(pregnancy.previousComplications).join(', ')
+    : 'None';
 
-  Socioeconomic Factors:
-  - [Income level impact]
-  - [Education level impact]
-  - [Living conditions assessment]
+  return `
+You are "Pregnify AI" — an advanced medical assistant specializing in pregnancy risk prediction for Bangladesh. Your analysis must be comprehensive, culturally appropriate, and actionable.
 
-  Environmental Factors:
-  - [Air quality]
-  - [Water quality]
-  - [Sanitation conditions]
+## CONTEXT & INSTRUCTIONS:
+1. Focus on Bangladesh-specific healthcare context
+2. Consider local resources and limitations
+3. Provide detailed, step-by-step recommendations
+4. Include both immediate and long-term actions
+5. Reference previous medical history for continuity
+6. Format all responses in JSON structure for frontend consumption
 
-  Cultural Practices:
-  - [Impact of cultural practices]
-  - [Traditional medicine use]
-  - [Community support]
+## PATIENT PROFILE:
+### Basic Information:
+- Age: ${assessment?.age || 'Not provided'}
+- Pregnancy Week: ${pregnancy?.pregnancyWeek || 'Not provided'}
+- BMI: ${assessment?.bmi || 'Not provided'}
+- Blood Group: ${pregnancy?.bloodGroup || 'Not provided'}
+- Previous Pregnancies: ${assessment?.previousPregnancies || 'Not provided'}
+- Previous Complications: ${previousComplications}
 
-  Healthcare Infrastructure:
-  - [Available facilities]
-  - [Equipment availability]
-  - [Staff qualifications]
+### Health Status:
+- Chronic Conditions: ${chronicConditions}
+- Current Medications: ${currentMedications}
+- Blood Pressure: ${pregnancy?.bloodPressure || 'Not recorded'}
+- Exercise Frequency: ${pregnancy?.exerciseFrequency || 'Not provided'}
+- Mental Health Status: ${assessment?.mentalHealthStatus || 'Not provided'}
 
-  Emergency Services:
-  - [Response time]
-  - [Transportation availability]
-  - [Emergency protocols]
+### Lifestyle Factors:
+- Smoking Status: ${pregnancy?.smokingStatus || 'Not provided'}
+- Alcohol Consumption: ${pregnancy?.alcoholConsumption || 'Not provided'}
+- Diet Quality: ${assessment?.dietQuality || 'Not provided'}
+- Sleep Quality: ${assessment?.sleepQuality || 'Not provided'}
 
-  Traditional Medicine:
-  - [Current use]
-  - [Safety assessment]
-  - [Integration recommendations]
+## RESPONSE FORMAT:
+Your response must be in the following JSON structure:
 
-  Community Support:
-  - [Family support]
-  - [Community resources]
-  - [Social services]
+{
+  "riskAssessment": {
+    "overallRisk": {
+      "score": number, // 0-100
+      "level": string, // "Excellent" | "Very Good" | "Good" | "Moderate" | "Low" | "Medium" | "High" | "Very High" | "Critical" | "Emergency"
+      "trend": string, // "Improving" | "Stable" | "Worsening"
+      "previousScore": number | null,
+      "change": number | null
+    },
+    "riskFactors": {
+      "medical": [
+        {
+          "name": string,
+          "severity": "High" | "Medium" | "Low",
+          "description": string,
+          "recommendations": string[]
+        }
+      ],
+      "lifestyle": [
+        {
+          "name": string,
+          "severity": "High" | "Medium" | "Low",
+          "description": string,
+          "recommendations": string[]
+        }
+      ],
+      "environmental": [
+        {
+          "name": string,
+          "severity": "High" | "Medium" | "Low",
+          "description": string,
+          "recommendations": string[]
+        }
+      ]
+    }
+  },
+  "recommendations": {
+    "medicalManagement": {
+      "immediate": [
+        {
+          "action": string,
+          "priority": "High" | "Medium" | "Low",
+          "reason": string,
+          "expectedOutcome": string
+        }
+      ],
+      "shortTerm": [
+        {
+          "action": string,
+          "timeline": string,
+          "frequency": string,
+          "expectedOutcome": string
+        }
+      ],
+      "longTerm": [
+        {
+          "action": string,
+          "timeline": string,
+          "frequency": string,
+          "expectedOutcome": string
+        }
+      ]
+    },
+    "lifestyleModifications": {
+      "dailyRoutine": {
+        "morning": string[],
+        "afternoon": string[],
+        "evening": string[]
+      },
+      "activityGuidelines": {
+        "recommended": string[],
+        "restricted": string[],
+        "restRequirements": string[]
+      },
+      "stressManagement": {
+        "techniques": string[],
+        "frequency": string,
+        "duration": string
+      }
+    },
+    "nutritionalPlan": {
+      "dailyDiet": {
+        "breakfast": string[],
+        "lunch": string[],
+        "dinner": string[],
+        "snacks": string[]
+      },
+      "supplements": {
+        "essential": string[],
+        "optional": string[],
+        "timing": string[]
+      },
+      "hydration": {
+        "dailyTarget": string,
+        "schedule": string[],
+        "specialNotes": string[]
+      }
+    }
+  },
+  "warningSystem": {
+    "redFlags": [
+      {
+        "symptom": string,
+        "action": string,
+        "urgency": "Immediate" | "Urgent" | "Critical"
+      }
+    ],
+    "yellowFlags": [
+      {
+        "symptom": string,
+        "monitoringFrequency": string,
+        "action": string
+      }
+    ]
+  },
+  "bangladeshSpecific": {
+    "healthcareAccess": {
+      "facilities": {
+        "primaryCare": string[],
+        "specialistCare": string[],
+        "emergencyCare": string[]
+      },
+      "transportation": {
+        "urban": string[],
+        "rural": string[],
+        "emergency": string[]
+      },
+      "costManagement": {
+        "government": string[],
+        "private": string[],
+        "insurance": string[]
+      }
+    },
+    "localResources": {
+      "supportSystems": {
+        "family": string[],
+        "community": string[],
+        "professional": string[]
+      },
+      "culturalConsiderations": {
+        "dietary": string[],
+        "traditional": string[],
+        "social": string[]
+      }
+    },
+    "emergencyProtocol": [
+      {
+        "step": number,
+        "action": string,
+        "contact": string[]
+      }
+    ]
+  },
+  "followUpSchedule": {
+    "medicalAppointments": [
+      {
+        "date": string,
+        "purpose": string,
+        "preparation": string[]
+      }
+    ],
+    "homeMonitoring": {
+      "daily": string[],
+      "weekly": string[],
+      "monthly": string[]
+    }
+  },
+  "metadata": {
+    "timestamp": string,
+    "model": string,
+    "version": string,
+    "pregnancyId": string,
+    "userId": string
+  }
+}
 
-  Education Level:
-  - [Health literacy]
-  - [Prenatal education]
-  - [Information access]
-
-  Patient Data for Analysis:
-  ${JSON.stringify(analysisData, null, 2)}`;
+## PATIENT DATA FOR ANALYSIS:
+${JSON.stringify(analysisData, null, 2)}
+`;
 };
 
 export { riskPredictionPrompt }; 

@@ -24,4 +24,10 @@ router.get(
   riskAssessmentController.getLatestRiskAssessment
 );
 
+// Update a risk assessment
+router.patch(
+  '/pregnancies/:pregnancyId/risk-assessments/:assessmentId',
+  riskAssessmentController.updateRiskAssessment
+);
+
 export default router; 

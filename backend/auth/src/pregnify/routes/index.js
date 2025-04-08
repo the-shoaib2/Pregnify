@@ -10,6 +10,7 @@ import nutritionTrackingRoutes from './pregnancy/nutrition-tracking.routes.js';
 import exerciseTrackingRoutes from './pregnancy/exercise-tracking.routes.js';
 import mentalHealthTrackingRoutes from './pregnancy/mental-health-tracking.routes.js';
 import babyDevelopmentTrackingRoutes from './pregnancy/baby-development-tracking.routes.js';
+import aiPredictionRoutes from './pregnancy/ai-prediction.routes.js';
 
 const router = express.Router();
 
@@ -47,6 +48,7 @@ router.use('/pregnancy/mental-health', mentalHealthTrackingRoutes);
 // 7. Risk Assessment & Prediction Routes
 // ============================================
 router.use('/pregnancy/risk', riskAssessmentRoutes);
+router.use('/pregnancy/ai', aiPredictionRoutes);
 
 // ============================================
 // 8. Emergency Services Routes

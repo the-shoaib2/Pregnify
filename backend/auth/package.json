@@ -57,6 +57,7 @@
     "multer-storage-cloudinary": "^4.0.0",
     "mysql2": "^3.12.0",
     "node-cache": "^5.1.2",
+    "node-fetch": "^3.3.2",
     "nodemailer": "^6.10.0",
     "openai": "^4.91.1",
     "otplib": "^12.0.1",

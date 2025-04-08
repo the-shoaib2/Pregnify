@@ -5,6 +5,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { TopNav } from "@/components/top-nav"
 import { PageHeader } from "@/components/page-header"
 import { SettingsNav, settingsNavGroups } from "@/components/settings-nav"
+import { SettingsNavBridge } from "@/components/settings-nav-bridge"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { useState } from "react"
 
@@ -15,48 +16,42 @@ const roleLayoutConfig = {
     showTopNav: false,
     showHeader: true,
     showSettingsNav: true,
-    layoutType: 'sidebar',
-    showMobileNav: false // Don't show mobile nav for super admin
+    layoutType: 'sidebar'
   },
   ADMIN: {
     showSidebar: true,
     showTopNav: false,
     showHeader: true,
     showSettingsNav: true,
-    layoutType: 'sidebar',
-    showMobileNav: false // Don't show mobile nav for admin
+    layoutType: 'sidebar'
   },
   DOCTOR: {
     showSidebar: false,
     showTopNav: true,
     showHeader: false,
     showSettingsNav: true,
-    layoutType: 'top-nav',
-    showMobileNav: true // Show mobile nav for doctor
+    layoutType: 'top-nav'
   },
   PATIENT: {
     showSidebar: false,
     showTopNav: true,
     showHeader: false,
     showSettingsNav: false,
-    layoutType: 'top-nav',
-    showMobileNav: true // Show mobile nav for patient
+    layoutType: 'top-nav'
   },
   GUEST: {
     showSidebar: false,
     showTopNav: true,
     showHeader: false,
     showSettingsNav: false,
-    layoutType: 'top-nav',
-    showMobileNav: true // Show mobile nav for guest
+    layoutType: 'top-nav'
   },
   default: {
     showSidebar: false,
     showTopNav: true,
     showHeader: false,
     showSettingsNav: false,
-    layoutType: 'top-nav',
-    showMobileNav: true // Show mobile nav by default
+    layoutType: 'top-nav'
   }
 }
 
@@ -76,8 +71,8 @@ export function RoleBasedLayout({
   const layoutConfig = roleLayoutConfig[userRole] || roleLayoutConfig.default
 
   // Override layout for mobile devices
-  const showSidebar = !isMobile && layoutConfig.showSidebar
-  const showTopNav = isMobile ? layoutConfig.showMobileNav : layoutConfig.showTopNav
+  const showSidebar = layoutConfig.showSidebar
+  const showTopNav = layoutConfig.showTopNav
   const showSettingsNav = layoutConfig.showSettingsNav && isSettingsPage
   
   // Determine header visibility based on role and showHeader prop
@@ -104,23 +99,6 @@ export function RoleBasedLayout({
                 </aside>
               )}
 
-              {/* Settings Navigation - Mobile */}
-              {showSettingsNav && isMobile && (
-                <Sheet open={isSettingsSidebarOpen} onOpenChange={setIsSettingsSidebarOpen}>
-                  <SheetContent side="left" className="w-[80%] p-0 sm:w-[350px]">
-                    <div className="flex h-14 items-center border-b px-4">
-                      <h2 className="text-lg font-semibold">Settings</h2>
-                    </div>
-                    <div className="overflow-y-auto">
-                      <SettingsNav 
-                        groups={settingsNavGroups} 
-                        onItemClick={() => setIsSettingsSidebarOpen(false)} 
-                      />
-                    </div>
-                  </SheetContent>
-                </Sheet>
-              )}
-
               {/* Content Area */}
               <main className="flex-1 overflow-y-auto">
                 {children}
@@ -140,23 +118,6 @@ export function RoleBasedLayout({
               </aside>
             )}
 
-            {/* Settings Navigation - Mobile */}
-            {showSettingsNav && isMobile && (
-              <Sheet open={isSettingsSidebarOpen} onOpenChange={setIsSettingsSidebarOpen}>
-                <SheetContent side="left" className="w-[80%] p-0 sm:w-[350px]">
-                  <div className="flex h-14 items-center border-b px-4">
-                    <h2 className="text-lg font-semibold">Settings</h2>
-                  </div>
-                  <div className="overflow-y-auto">
-                    <SettingsNav 
-                      groups={settingsNavGroups} 
-                      onItemClick={() => setIsSettingsSidebarOpen(false)} 
-                    />
-                  </div>
-                </SheetContent>
-              </Sheet>
-            )}
-
             {/* Content Area */}
             <main className={`flex-1 overflow-y-auto ${isMobile ? 'p-4 mt-12' : 'p-4 mt-16'}`}>
               {children}
@@ -164,6 +125,9 @@ export function RoleBasedLayout({
           </div>
         </>
       )}
+      
+      {/* Settings Navigation Bridge - Only visible on mobile when on settings pages */}
+      {showSettingsNav && isMobile && <SettingsNavBridge />}
     </SidebarProvider>
   )
 } 

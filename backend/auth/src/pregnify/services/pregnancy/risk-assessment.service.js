@@ -1,5 +1,6 @@
 import prisma from '../../../utils/database/prisma.js';
 import ApiError from '../../../utils/error/api.error.js';
+import { isValueInAppropriateRange, getRangeForDemographic } from '../../data/body-condition-ranges.js';
 
 class RiskAssessmentService {
   async calculateRiskScore(userId, pregnancyId, assessmentData) {
@@ -12,6 +13,9 @@ class RiskAssessmentService {
       
       // Generate recommendations based on risk factors
       const recommendations = this.generateManualRecommendations(assessmentData, riskLevel);
+      
+      // Get reference ranges for the patient
+      const referenceRanges = this.getReferenceRanges(assessmentData);
       
       // Create risk assessment record
       const riskAssessment = await prisma.riskAssessment.create({
@@ -70,13 +74,17 @@ class RiskAssessmentService {
           
           // Assessment Results
           riskScore,
-          recommendations: JSON.stringify(recommendations)
+          recommendations: JSON.stringify(recommendations),
+          
+          // Reference Ranges
+          referenceRanges: JSON.stringify(referenceRanges)
         }
       });
       
       return {
         ...riskAssessment,
-        recommendations
+        recommendations,
+        referenceRanges
       };
     } catch (error) {
       console.error('Risk assessment error:', error);
@@ -92,8 +100,10 @@ class RiskAssessmentService {
       score += 2;
     }
 
-    // BMI scoring
-    if (assessmentData.personal_information.bmi < 18.5 || assessmentData.personal_information.bmi > 25) {
+    // BMI scoring - using reference ranges for women
+    const bmiRange = getRangeForDemographic('Women', 'BMI');
+    const bmiInRange = isValueInAppropriateRange(assessmentData.personal_information.bmi, 'Women', 'BMI');
+    if (!bmiInRange) {
       score += 2;
     }
 
@@ -121,11 +131,22 @@ class RiskAssessmentService {
       score += assessmentData.medical_history.previous_complications.length;
     }
 
-    // Vital signs scoring
-    if (assessmentData.vital_signs.blood_pressure_status !== 'Normal') {
+    // Vital signs scoring - using reference ranges for women
+    const bloodPressureInRange = isValueInAppropriateRange(
+      parseFloat(assessmentData.vital_signs.blood_pressure_systolic), 
+      'Women', 
+      'BloodPressure'
+    );
+    if (!bloodPressureInRange) {
       score += 3;
     }
-    if (assessmentData.vital_signs.blood_sugar_status !== 'Normal') {
+    
+    const bloodSugarInRange = isValueInAppropriateRange(
+      parseFloat(assessmentData.vital_signs.blood_sugar), 
+      'Women', 
+      'FastingBloodSugar'
+    );
+    if (!bloodSugarInRange) {
       score += 3;
     }
 
@@ -147,22 +168,37 @@ class RiskAssessmentService {
     ];
 
     // Add recommendations based on risk factors
-    if (assessmentData.personal_information.bmi < 18.5) {
-      recommendations.push('Consult with a nutritionist for weight gain');
+    const bmiInRange = isValueInAppropriateRange(assessmentData.personal_information.bmi, 'Women', 'BMI');
+    if (!bmiInRange) {
+      if (assessmentData.personal_information.bmi < 18.5) {
+        recommendations.push('Consult with a nutritionist for weight gain');
+      } else {
+        recommendations.push('Consult with a nutritionist for healthy weight management');
+      }
     }
-    if (assessmentData.personal_information.bmi > 25) {
-      recommendations.push('Consult with a nutritionist for healthy weight management');
-    }
+    
     if (assessmentData.lifestyle_factors.is_smoker) {
       recommendations.push('Quit smoking immediately');
     }
     if (assessmentData.lifestyle_factors.excessive_alcohol_consumption) {
       recommendations.push('Stop alcohol consumption');
     }
-    if (assessmentData.vital_signs.blood_pressure_status !== 'Normal') {
+    
+    const bloodPressureInRange = isValueInAppropriateRange(
+      parseFloat(assessmentData.vital_signs.blood_pressure_systolic), 
+      'Women', 
+      'BloodPressure'
+    );
+    if (!bloodPressureInRange) {
       recommendations.push('Monitor blood pressure regularly');
     }
-    if (assessmentData.vital_signs.blood_sugar_status !== 'Normal') {
+    
+    const bloodSugarInRange = isValueInAppropriateRange(
+      parseFloat(assessmentData.vital_signs.blood_sugar), 
+      'Women', 
+      'FastingBloodSugar'
+    );
+    if (!bloodSugarInRange) {
       recommendations.push('Monitor blood sugar levels regularly');
     }
 
@@ -175,6 +211,23 @@ class RiskAssessmentService {
     }
 
     return recommendations;
+  }
+
+  getReferenceRanges(assessmentData) {
+    // Get reference ranges for women (pregnant)
+    const womenRanges = {
+      BMI: getRangeForDemographic('Women', 'BMI'),
+      BloodPressure: getRangeForDemographic('Women', 'BloodPressure'),
+      FastingBloodSugar: getRangeForDemographic('Women', 'FastingBloodSugar'),
+      Hemoglobin: getRangeForDemographic('Women', 'Hemoglobin'),
+      TSH: getRangeForDemographic('Women', 'TSH'),
+      Nutrition: getRangeForDemographic('Women', 'Nutrition')
+    };
+    
+    return {
+      women: womenRanges,
+      // Add other demographics if needed
+    };
   }
 
   async getRiskAssessmentHistory(userId, pregnancyId) {

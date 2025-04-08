@@ -137,12 +137,6 @@ export function PhoneNav() {
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [expandedGroup, setExpandedGroup] = useState(null)
   const { user, logout } = useAuth()
-  const userRole = user?.basicInfo?.role
-
-  // Don't render if user is admin or super admin
-  if (userRole === 'ADMIN' || userRole === 'SUPER_ADMIN') {
-    return null
-  }
 
   const handleLogout = async () => {
     setIsLoggingOut(true)

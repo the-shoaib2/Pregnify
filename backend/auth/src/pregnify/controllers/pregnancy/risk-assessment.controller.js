@@ -67,5 +67,40 @@ export const riskAssessmentController = {
         new ApiResponse(error.statusCode || 500, null, error.message)
       );
     }
+  },
+
+  async updateRiskAssessment(req, res) {
+    try {
+      const userId = req.user.id;
+      const { pregnancyId, assessmentId } = req.params;
+      const updateData = req.body;
+
+      // Validate that the assessment belongs to the user and pregnancy
+      const existingAssessment = await riskAssessmentService.getRiskAssessmentById(
+        assessmentId,
+        userId,
+        pregnancyId
+      );
+
+      if (!existingAssessment) {
+        throw new ApiError(404, 'Risk assessment not found');
+      }
+
+      // Update the risk assessment
+      const updatedAssessment = await riskAssessmentService.updateRiskAssessment(
+        assessmentId,
+        userId,
+        pregnancyId,
+        updateData
+      );
+
+      return res.status(200).json(
+        new ApiResponse(200, updatedAssessment, 'Risk assessment updated successfully')
+      );
+    } catch (error) {
+      return res.status(error.statusCode || 500).json(
+        new ApiResponse(error.statusCode || 500, null, error.message)
+      );
+    }
   }
 }; 

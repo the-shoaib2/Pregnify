@@ -27,7 +27,7 @@
 //   recordedAt     DateTime @default(now())
 // }
 
-// model AiPrediction {
+// model AiPredictionResponse {
 //   id                 String   @id @default(uuid())
 //   patientId          String
 //   patient            Patient  @relation(fields: [patientId], references: [id])

@@ -15,7 +15,7 @@ import {
   Ambulance,
   LineChart,
 } from "lucide-react"
-import { Link } from "react-router-dom"
+import { Link, useLocation } from "react-router-dom"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import NavUser from "@/components/nav-user"
@@ -33,6 +33,7 @@ import { getNavItems, commonNavItems } from "@/config/app-navigation"
 
 export function AppSidebar({ ...props }) {
   const { user } = useAuth()
+  const location = useLocation()
   
   const userRole = user?.basicInfo?.role
   
@@ -45,6 +46,18 @@ export function AppSidebar({ ...props }) {
     return `${user.basicInfo?.name?.firstName.charAt(0)}${user.basicInfo?.name?.lastName.charAt(0)}`.toUpperCase()
   }
 
+  // Check if we're on a settings page
+  const isSettingsPage = location.pathname.startsWith('/settings')
+
+  // Filter out settings items from secondary nav when on settings pages
+  const filteredNavSecondary = React.useMemo(() => {
+    if (!isSettingsPage) return commonNavItems
+    
+    return commonNavItems.filter(item => 
+      !item.href?.startsWith('/settings')
+    )
+  }, [isSettingsPage])
+
   const sidebarData = {
     user: {
       name: user ? `${user?.basicInfo?.name?.firstName} ${user?.basicInfo?.name?.lastName}` : 'Guest User',
@@ -53,7 +66,7 @@ export function AppSidebar({ ...props }) {
       initials: getInitials(user)
     },
     navMain: navMainItems,
-    navSecondary: commonNavItems,
+    navSecondary: filteredNavSecondary,
     projects: []
   }
 
