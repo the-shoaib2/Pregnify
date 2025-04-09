@@ -279,7 +279,7 @@ export function PhoneNav() {
       {/* Bottom Navigation - Mobile Only */}
       <nav className="fixed bottom-0 left-0 z-50 w-full border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden">
         <div className="flex h-16 items-center justify-around">
-          {navItems.slice(0, 5).map((item) => {
+          {navItems.slice(0, 6).map((item) => {
             const Icon = item.icon
             return (
               <Link

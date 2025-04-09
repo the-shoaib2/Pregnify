@@ -41,6 +41,7 @@ const publicRoutes = [
     '/api/v1/verification/forgot-password/send-code',
     '/api/v1/verification/forgot-password/verify-code',
     '/api/v1/verification/forgot-password/reset-password'
+    
 ];
 
 export const isAuthenticated = async (req, res, next) => {

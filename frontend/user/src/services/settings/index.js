@@ -1,7 +1,6 @@
 import api from '../api'
 import { memoize } from 'lodash'
 import { CacheManager, CONSTANTS } from '../../utils/security'
-import { AuthService } from '../auth'
 import { handleApiError } from '../../utils/errorHandler'
 
 const { CACHE_DURATION } = CONSTANTS

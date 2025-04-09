@@ -216,6 +216,14 @@ model User {
   exerciseLogs        ExerciseLog?
   mentalHealthLogs    MentalHealthLog?
 
+  // Doctor and Ambulance Relations
+  doctorProfile       DoctorProfile?
+  doctorAppointments  DoctorAppointment[]
+  doctorReviews       DoctorReview[]
+  doctorChats         DoctorChat[]
+  doctorCalls         DoctorCall[]
+  ambulanceBookings   AmbulanceBooking[]
+
   // ==========================
   // Files & Documents & Images & Albums & Collections & Comments & Reactions & Shares & Likes & Tags
   // ==========================
@@ -610,6 +618,7 @@ model Prescription {
   refillDate     DateTime?
   fileId         String? // Reference to the uploaded file
   file           File?     @relation(fields: [fileId], references: [id])
+  doctor         DoctorProfile? @relation("DoctorPrescriptions", fields: [doctorId], references: [id])
 
   // Timestamps
   createdAt   DateTime           @default(now())
@@ -618,6 +627,7 @@ model Prescription {
 
   @@index([medicalInfoId])
   @@index([fileId])
+  @@index([doctorId])
   @@map("prescription")
 }
 
@@ -1759,6 +1769,7 @@ model File {
   collections    Collection[]    @relation("FileCollections")
   medicalReports MedicalReport[]
   prescriptions  Prescription[]
+  doctorDocuments DoctorProfile[] @relation("DoctorDocuments")
 
   // Timestamps
   createdAt DateTime  @default(now())
@@ -2126,16 +2137,35 @@ model EmergencyContact {
 
 //EmergencyRequest
 model EmergencyRequest {
-  id        String    @id @default(uuid())
-  userId    String    @unique
-  message   String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime? // Soft delete field
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String    // AMBULANCE, HOSPITAL, etc.
+  location    String    // Stored as JSON string
+  description String
+  severity    String    // HIGH, MEDIUM, LOW
+  status      String    // PENDING, ACCEPTED, COMPLETED, CANCELLED
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([userId])
+  @@index([status])
+  @@map("emergency_requests")
+}
+
+// Add Hospital model
+model Hospital {
+  id          String    @id @default(uuid())
+  name        String
+  address     String
+  location    String    // Stored as JSON string
+  phone       String
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([isActive])
+  @@map("hospitals")
 }
 
 ///==================================================================================================================
@@ -2912,4 +2942,239 @@ model AiPredictionResponse {
   @@index([userId, createdAt])
   @@map("ai_prediction_responses")
 }
+
+/// ============================
+/// DOCTOR CONSULTATION MODELS
+/// ============================
+
+model DoctorProfile {
+  id              String    @id @default(uuid())
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  speciality      String
+  experience      Int       // Years of experience
+  availableDays   Json      // Array of available days
+  timeSlots       Json      // Array of available time slots
+  status          DoctorStatus @default(AVAILABLE)
+  consultationFee Float
+  documents       File[]    @relation("DoctorDocuments")
+  rating          Float     @default(0)
+  totalReviews    Int       @default(0)
+  isVerified      Boolean   @default(false)
+  isBlocked       Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  appointments    DoctorAppointment[]
+  reviews         DoctorReview[]
+  prescriptions   Prescription[] @relation("DoctorPrescriptions")
+  chats           DoctorChat[]
+  calls           DoctorCall[]
+
+  @@index([userId])
+  @@index([speciality])
+  @@index([status])
+  @@map("doctor_profiles")
+}
+
+model DoctorAppointment {
+  id            String    @id @default(uuid())
+  doctorId      String
+  doctor        DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  patientId     String
+  patient       User      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  appointmentDate DateTime
+  timeSlot      String
+  type          AppointmentType
+  status        AppointmentStatus @default(SCHEDULED)
+  paymentStatus PaymentStatus @default(PENDING)
+  amount        Float
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([doctorId])
+  @@index([patientId])
+  @@index([appointmentDate])
+  @@map("doctor_appointments")
+}
+
+model DoctorReview {
+  id          String    @id @default(uuid())
+  doctorId    String
+  doctor      DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  patientId   String
+  patient     User      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  rating      Int       // 1-5
+  comment     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([doctorId])
+  @@index([patientId])
+  @@map("doctor_reviews")
+}
+
+model DoctorChat {
+  id          String    @id @default(uuid())
+  doctorId    String
+  doctor      DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  patientId   String
+  patient     User      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  message     String
+  isRead      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([doctorId])
+  @@index([patientId])
+  @@map("doctor_chats")
+}
+
+model DoctorCall {
+  id          String    @id @default(uuid())
+  doctorId    String
+  doctor      DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  patientId   String
+  patient     User      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  type        CallType
+  status      CallStatus @default(INITIATED)
+  startTime   DateTime?
+  endTime     DateTime?
+  duration    Int?      // in seconds
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([doctorId])
+  @@index([patientId])
+  @@map("doctor_calls")
+}
+
+/// ============================
+/// AMBULANCE BOOKING MODELS
+/// ============================
+
+model Ambulance {
+  id            String    @id @default(uuid())
+  vehicleNumber String    @unique
+  type          AmbulanceType
+  status        AmbulanceStatus @default(AVAILABLE)
+  location      Json      // Current location coordinates
+  driverId      String    @unique
+  driver        AmbulanceDriver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  bookings      AmbulanceBooking[]
+
+  @@index([status])
+  @@index([type])
+  @@map("ambulances")
+}
+
+model AmbulanceDriver {
+  id            String    @id @default(uuid())
+  name          String
+  phoneNumber   String    @unique
+  licenseNumber String    @unique
+  experience    Int       // Years of experience
+  rating        Float     @default(0)
+  totalTrips    Int       @default(0)
+  isVerified    Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  ambulance     Ambulance?
+
+  @@index([isActive])
+  @@map("ambulance_drivers")
+}
+
+model AmbulanceBooking {
+  id              String    @id @default(uuid())
+  ambulanceId     String
+  ambulance       Ambulance @relation(fields: [ambulanceId], references: [id], onDelete: Cascade)
+  patientId       String
+  patient         User      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  pickupLocation  Json      // Pickup coordinates
+  dropLocation    Json      // Drop coordinates
+  status          BookingStatus @default(REQUESTED)
+  paymentStatus   PaymentStatus @default(PENDING)
+  amount          Float
+  distance        Float     // in kilometers
+  estimatedTime   Int       // in minutes
+  actualTime      Int?      // in minutes
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([ambulanceId])
+  @@index([patientId])
+  @@index([status])
+  @@map("ambulance_bookings")
+}
+
+// Enums for Doctor Consultation
+enum DoctorStatus {
+  AVAILABLE
+  BUSY
+  OFFLINE
+}
+
+enum AppointmentType {
+  INSTANT
+  SCHEDULED
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum CallType {
+  AUDIO
+  VIDEO
+}
+
+enum CallStatus {
+  INITIATED
+  RINGING
+  CONNECTED
+  ENDED
+  MISSED
+  REJECTED
+}
+
+// Enums for Ambulance Booking
+enum AmbulanceType {
+  BASIC
+  ADVANCED
+  ICU
+}
+
+enum AmbulanceStatus {
+  AVAILABLE
+  BUSY
+  OFFLINE
+  MAINTENANCE
+}
+
+enum BookingStatus {
+  REQUESTED
+  ACCEPTED
+  STARTED
+  COMPLETED
+  CANCELLED
+}
+
+
 

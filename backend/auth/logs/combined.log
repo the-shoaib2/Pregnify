@@ -1,0 +1,14 @@
+{"ip":"::1","level":"info","message":"Incoming request","method":"GET","path":"/api/v1/pregnify/pregnancy/ai/pregnancies/25c7d92d-97b5-4533-a0e6-38741c3f4ffa/ai-prediction","timestamp":"2025-04-09T17:15:50.224Z"}
+{"ip":"::1","level":"info","message":"Incoming request","method":"POST","path":"/api/v1/auth/login","timestamp":"2025-04-09T17:16:08.400Z"}
+{"ip":"::1","level":"info","message":"Incoming request","method":"POST","path":"/api/v1/auth/register","timestamp":"2025-04-09T17:16:14.400Z"}
+{"ip":"::1","level":"info","message":"Incoming request","method":"GET","path":"/api/v1/pregnify/pregnancy/ai/pregnancies/25c7d92d-97b5-4533-a0e6-38741c3f4ffa/ai-prediction","timestamp":"2025-04-09T17:16:50.056Z"}
+{"ip":"::1","level":"info","message":"Incoming request","method":"POST","path":"/api/v1/pregnify/pregnancy","timestamp":"2025-04-09T17:17:14.084Z"}
+{"ip":"::1","level":"info","message":"Incoming request","method":"POST","path":"/api/v1/pregnify/pregnancy/risk/pregnancies/4e62a53f-9c5e-4345-8d0e-f3a87e6a29f7/risk-assessments","timestamp":"2025-04-09T17:17:42.825Z"}
+{"ip":"::1","level":"info","message":"Incoming request","method":"POST","path":"/api/v1/pregnify/pregnancy/risk/pregnancies/4e62a53f-9c5e-4345-8d0e-f3a87e6a29f7/risk-assessments","timestamp":"2025-04-09T17:17:49.149Z"}
+{"ip":"::1","level":"info","message":"Incoming request","method":"GET","path":"/api/v1/pregnify/pregnancy/ai/pregnancies/4e62a53f-9c5e-4345-8d0e-f3a87e6a29f7/ai-prediction","timestamp":"2025-04-09T17:17:59.695Z"}
+{"ip":"::1","level":"info","message":"Incoming request","method":"POST","path":"/api/v1/pregnify/pregnancy/risk/pregnancies/4e62a53f-9c5e-4345-8d0e-f3a87e6a29f7/risk-assessments","timestamp":"2025-04-09T17:18:38.594Z"}
+{"ip":"::1","level":"info","message":"Incoming request","method":"POST","path":"/api/v1/auth/login","timestamp":"2025-04-09T17:19:55.371Z"}
+{"ip":"::1","level":"info","message":"Incoming request","method":"GET","path":"/api/v1/auth/user","timestamp":"2025-04-09T17:19:55.509Z"}
+{"ip":"::1","level":"info","message":"Incoming request","method":"POST","path":"/api/v1/auth/register","timestamp":"2025-04-09T17:21:08.416Z"}
+{"ip":"::1","level":"info","message":"Incoming request","method":"POST","path":"/api/v1/auth/login","timestamp":"2025-04-09T17:21:08.646Z"}
+{"ip":"::1","level":"info","message":"Incoming request","method":"GET","path":"/api/v1/auth/user","timestamp":"2025-04-09T17:21:08.768Z"}
