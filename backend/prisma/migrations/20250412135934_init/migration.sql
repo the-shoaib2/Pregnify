@@ -1707,6 +1707,7 @@ CREATE TABLE `telemedicine_consultations` (
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
+    UNIQUE INDEX `telemedicine_consultations_paymentId_key`(`paymentId`),
     INDEX `telemedicine_consultations_userId_idx`(`userId`),
     INDEX `telemedicine_consultations_pregnancyId_idx`(`pregnancyId`),
     INDEX `telemedicine_consultations_doctorId_idx`(`doctorId`),
@@ -1728,7 +1729,7 @@ CREATE TABLE `payment_transactions` (
     `updatedAt` DATETIME(3) NOT NULL,
 
     INDEX `payment_transactions_userId_idx`(`userId`),
-    INDEX `payment_transactions_status_idx`(`status`),
+    INDEX `payment_transactions_referenceId_idx`(`referenceId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

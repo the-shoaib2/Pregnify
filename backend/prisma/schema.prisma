@@ -2820,7 +2820,7 @@ model TelemedicineConsultation {
   startTime   DateTime
   endTime     DateTime?
   notes       String?
-  paymentId   String?
+  paymentId   String?             @unique
   payment     PaymentTransaction? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
@@ -2847,10 +2847,10 @@ model PaymentTransaction {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  consultations TelemedicineConsultation[]
+  consultation TelemedicineConsultation?
 
   @@index([userId])
-  @@index([status])
+  @@index([referenceId])
   @@map("payment_transactions")
 }
 

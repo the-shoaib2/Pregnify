@@ -27,19 +27,56 @@ const ALPHA_ROLE = async (userId) => {
         // Get the ALPHA role definition from constants
         const alphaRole = ROLE_DEFINITIONS.ALPHA;
 
+        // First ensure the role exists in the database
+        const role = await prisma.userRole.upsert({
+            where: { id: alphaRole.id },
+            update: {
+                name: alphaRole.name,
+                description: alphaRole.description,
+                isSuperAdmin: true
+            },
+            create: {
+                id: alphaRole.id,
+                name: alphaRole.name,
+                description: alphaRole.description,
+                isSuperAdmin: true
+            }
+        });
+
         // Create UserRoleAssignment for SUPER_ADMIN
-        await prisma.userRoleAssignment.create({
-            data: {
+        await prisma.userRoleAssignment.upsert({
+            where: {
+                userId_roleId: {
+                    userId,
+                    roleId: role.id
+                }
+            },
+            update: {
+                assignedBy: "SYSTEM",
+                isActive: true
+            },
+            create: {
                 userId,
-                roleId: alphaRole.id,
-                assignedBy: "SYSTEM"
+                roleId: role.id,
+                assignedBy: "SYSTEM",
+                isActive: true,
+                user: {
+                    connect: {
+                        id: userId
+                    }
+                },
+                role: {
+                    connect: {
+                        id: role.id
+                    }
+                }
             }
         });
 
         // Create PersonalInformation
-        await prisma.personalInformation.create({
-            data: {
-                userId,
+        await prisma.personalInformation.upsert({
+            where: { userId },
+            update: {
                 firstName: SUPER_ADMIN_DATA.firstName,
                 lastName: SUPER_ADMIN_DATA.lastName,
                 genderIdentity: SUPER_ADMIN_DATA.gender,
@@ -49,13 +86,30 @@ const ALPHA_ROLE = async (userId) => {
                     SUPER_ADMIN_DATA.dateOfBirth.day
                 ),
                 description: SUPER_ADMIN_DATA.description
+            },
+            create: {
+                userId,
+                firstName: SUPER_ADMIN_DATA.firstName,
+                lastName: SUPER_ADMIN_DATA.lastName,
+                genderIdentity: SUPER_ADMIN_DATA.gender,
+                dateOfBirth: new Date(
+                    SUPER_ADMIN_DATA.dateOfBirth.year,
+                    SUPER_ADMIN_DATA.dateOfBirth.month - 1,
+                    SUPER_ADMIN_DATA.dateOfBirth.day
+                ),
+                description: SUPER_ADMIN_DATA.description,
+                user: {
+                    connect: {
+                        id: userId
+                    }
+                }
             }
         });
 
         // Create AccountPreferences
-        await prisma.accountPreferences.create({
-            data: {
-                userId,
+        await prisma.accountPreferences.upsert({
+            where: { userId },
+            update: {
                 preferences: {
                     notifications: {
                         email: true,
@@ -76,43 +130,112 @@ const ALPHA_ROLE = async (userId) => {
                 isEmailEnabled: true,
                 isSmsEnabled: true,
                 isDarkModeEnabled: true
+            },
+            create: {
+                userId,
+                preferences: {
+                    notifications: {
+                        email: true,
+                        sms: true,
+                        push: true,
+                        system: true
+                    },
+                    settings: {
+                        language: "en",
+                        timezone: "UTC",
+                        theme: "dark",
+                        layout: "default"
+                    }
+                },
+                theme: "DARK",
+                language: "EN",
+                currency: "BDT",
+                isEmailEnabled: true,
+                isSmsEnabled: true,
+                isDarkModeEnabled: true,
+                user: {
+                    connect: {
+                        id: userId
+                    }
+                }
             }
         });
 
         // Create NotificationPreferences
-        await prisma.notificationPreferences.create({
-            data: {
-                userId,
+        await prisma.notificationPreferences.upsert({
+            where: { userId },
+            update: {
                 emailNotifications: true,
                 pushNotifications: true,
                 smsNotifications: true
+            },
+            create: {
+                userId,
+                emailNotifications: true,
+                pushNotifications: true,
+                smsNotifications: true,
+                user: {
+                    connect: {
+                        id: userId
+                    }
+                }
             }
         });
 
         // Create ActivityLogSettings
-        await prisma.activityLogSettings.create({
-            data: {
-                userId,
+        await prisma.activityLogSettings.upsert({
+            where: { userId },
+            update: {
                 logFailedLogin: true,
                 logAccountChanges: true,
                 logProfileUpdates: true
+            },
+            create: {
+                userId,
+                logFailedLogin: true,
+                logAccountChanges: true,
+                logProfileUpdates: true,
+                user: {
+                    connect: {
+                        id: userId
+                    }
+                }
             }
         });
 
         // Create SecurityQuestion
-        await prisma.securityQuestion.create({
-            data: {
-                userId,
+        await prisma.securityQuestion.upsert({
+            where: { userId },
+            update: {
                 question: "What is your mother's maiden name?",
                 answer: "SYSTEM_ADMIN" // This should be hashed in production
+            },
+            create: {
+                userId,
+                question: "What is your mother's maiden name?",
+                answer: "SYSTEM_ADMIN", // This should be hashed in production
+                user: {
+                    connect: {
+                        id: userId
+                    }
+                }
             }
         });
 
         // Create UserConsent
-        await prisma.userConsent.create({
-            data: {
-                userId,
+        await prisma.userConsent.upsert({
+            where: { userId },
+            update: {
                 consented: true
+            },
+            create: {
+                userId,
+                consented: true,
+                user: {
+                    connect: {
+                        id: userId
+                    }
+                }
             }
         });
 
@@ -125,6 +248,11 @@ const ALPHA_ROLE = async (userId) => {
                     type: "SUPER_ADMIN",
                     createdBy: "SYSTEM",
                     timestamp: new Date().toISOString()
+                },
+                user: {
+                    connect: {
+                        id: userId
+                    }
                 }
             }
         });

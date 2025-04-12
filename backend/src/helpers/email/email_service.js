@@ -68,11 +68,11 @@ class EmailService {
         try {
             const info = await this.transporter.sendMail(mailOptions);
             if (process.env.NODE_ENV === 'development') {
-                console.log('Email sent:', {
-                    messageId: info.messageId,
-                    to,
-                    subject
-                });
+                // console.log('Email sent:', {
+                //     messageId: info.messageId,
+                //     to,
+                //     subject
+                // });
             }
             return info;
         } catch (error) {
