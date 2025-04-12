@@ -33,6 +33,22 @@ export const hashPassword = async (password) => {
     }
 };
 
+export const decryptPassword = async (hashedPassword) => {
+    try {
+        if (!hashedPassword) {
+            throw new Error('Hashed password is required');
+        }
+        
+        // Since bcrypt is a one-way hash, we can't actually decrypt it
+        // Instead, we'll return the hash itself as it's already secure
+        return hashedPassword;
+    } catch (error) {
+        console.error('Password decryption error:', error);
+        throw new Error('Failed to decrypt password');
+    }
+};
+
+
 /**
  * @description Compares a password with a hashed password
  * @param {string} password - The plain text password
@@ -119,6 +135,7 @@ export const generateTokens = (user) => {
 
 export default {
     verifyToken,
+    decryptPassword,
     hashPassword,
     comparePassword,
     generateTokens

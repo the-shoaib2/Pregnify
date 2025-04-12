@@ -1,5 +1,4 @@
 import express from 'express';
-import { body } from 'express-validator';
 import { validateRequest } from '../../../middlewares/validation/validate.request.js';
 import { 
     findUser, 

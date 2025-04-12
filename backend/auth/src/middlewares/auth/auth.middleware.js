@@ -132,8 +132,17 @@ export const authorize = (roles) => {
         }
 
         const userRole = req.user.role;
+        
+        // Check if user has any of the required roles
         if (!roles.includes(userRole)) {
             throw new ApiError(403, 'Not authorized to access this resource');
+        }
+
+        // If the route requires admin access, validate admin role
+        if (roles.includes('ADMIN') || roles.includes('SUPER_ADMIN')) {
+            if (!['SUPER_ADMIN', 'ADMIN'].includes(userRole)) {
+                throw new ApiError(403, 'Admin access required');
+            }
         }
 
         next();

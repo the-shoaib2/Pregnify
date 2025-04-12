@@ -22,8 +22,12 @@ const DatePicker = ({
   classNames = {},
   value,
   onValueChange,
+  placeholder = "Pick a date",
+  fromDate,
+  toDate,
+  id,
 }) => {
-  const [date, setDate] = useState(value || new Date());
+  const [date, setDate] = useState(value || null);
 
   const months = [
     "January", "February", "March", "April", "May", "June", "July",
@@ -43,6 +47,7 @@ const DatePicker = ({
     <Popover>
       <PopoverTrigger asChild>
         <Button
+          id={id}
           variant="outline"
           className={cn(
             "w-full justify-start text-left font-normal",
@@ -51,13 +56,13 @@ const DatePicker = ({
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, "PPP") : <span>Pick a date</span>}
+          {date ? format(date, "PPP") : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
       
       <PopoverContent className="w-[320px] p-4 shadow-lg rounded-lg">
         <div className="flex gap-2 mb-3">
-          <Select onValueChange={(month) => handleDateChange(setMonth(date, months.indexOf(month)))} value={months[getMonth(date)]}>
+          <Select onValueChange={(month) => handleDateChange(setMonth(date || new Date(), months.indexOf(month)))} value={date ? months[getMonth(date)] : months[getMonth(new Date())]}>
             <SelectTrigger className="w-1/2">
               <SelectValue placeholder="Month" />
             </SelectTrigger>
@@ -70,7 +75,7 @@ const DatePicker = ({
             </SelectContent>
           </Select>
 
-          <Select onValueChange={(year) => handleDateChange(setYear(date, parseInt(year)))} value={getYear(date).toString()}>
+          <Select onValueChange={(year) => handleDateChange(setYear(date || new Date(), parseInt(year)))} value={date ? getYear(date).toString() : getYear(new Date()).toString()}>
             <SelectTrigger className="w-1/2">
               <SelectValue placeholder="Year" />
             </SelectTrigger>
@@ -93,10 +98,12 @@ const DatePicker = ({
             }
           }}
           initialFocus
-          month={date}
+          month={date || new Date()}
           onMonthChange={handleDateChange}
           showOutsideDays={showOutsideDays}
           className={cn("rounded-md border p-2", classNames?.calendar)}
+          fromDate={fromDate}
+          toDate={toDate}
         />
       </PopoverContent>
     </Popover>

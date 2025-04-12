@@ -49,11 +49,6 @@ const navItems = [
     icon: HeartPulse,
   },
   {
-    title: "Care",
-    href: "/care",
-    icon: HandHeart,
-  },
-  {
     title: "Emergency",
     href: "/emergency",
     icon: Ambulance,

@@ -1,14 +1,22 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose
+} from "@/components/ui/dialog";
 import { Save, Loader } from "lucide-react";
 import toast from "react-hot-toast";
 
-export default function ItemFormDialog({ 
-  formValues, 
-  handleChange, 
-  loading, 
-  children, 
+export default function ItemFormDialog({
+  formValues,
+  handleChange,
+  loading,
+  children,
   onClose,
   title,
   FormFields,
@@ -29,7 +37,7 @@ export default function ItemFormDialog({
       if (field.includes('.')) {
         const [parent, child] = field.split('.');
         return {
-          ...prev, 
+          ...prev,
           [parent]: {
             ...(prev[parent] || {}),
             [child]: value
@@ -125,9 +133,9 @@ export default function ItemFormDialog({
           <DialogTitle>{localFormValues.id ? "Edit" : "Add"} {title || itemType}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <FormFields 
-            formValues={localFormValues} 
-            handleChange={handleLocalChange} 
+          <FormFields
+            formValues={localFormValues}
+            handleChange={handleLocalChange}
           />
           <div className="flex justify-end mt-6">
             <Button type="submit" disabled={saving || loading}>

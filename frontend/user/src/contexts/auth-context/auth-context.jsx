@@ -9,7 +9,6 @@ const AuthContext = createContext({})
 
 const API_URL = import.meta.env.VITE_API_URL
 
-
 export function AuthProvider({ children }) {
   const [authState, setAuthState] = useState(() => {
     const cachedAuth = localStorage.getItem(CONSTANTS.AUTH_CACHE_KEY)
@@ -53,6 +52,72 @@ export function AuthProvider({ children }) {
       }))
     }
   }, [authState])
+
+  // Add token refresh functionality
+  const refreshToken = useCallback(async () => {
+    if (refreshInProgress.current) return null
+    
+    const now = Date.now()
+    if (now - lastRefreshTime.current < MIN_REFRESH_INTERVAL) {
+      return tokens?.accessToken
+    }
+
+    refreshInProgress.current = true
+    lastRefreshTime.current = now
+
+    try {
+      const response = await axios.post(`${API_URL}/auth/refresh-token`, {
+        refreshToken: tokens?.refreshToken
+      })
+
+      if (response.data.success && response.data.data.accessToken) {
+        const newToken = response.data.data.accessToken
+        setAuthToken(newToken)
+        updateAuthCache({
+          ...authState,
+          tokens: {
+            ...tokens,
+            accessToken: newToken,
+            timestamp: Date.now()
+          }
+        })
+        return newToken
+      }
+      return null
+    } catch (error) {
+      console.error('Token refresh failed:', error)
+      handleLogout()
+      return null
+    } finally {
+      refreshInProgress.current = false
+    }
+  }, [tokens, setAuthToken, updateAuthCache, authState])
+
+  // Add axios interceptor for token refresh
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const originalRequest = error.config
+
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true
+          
+          const newToken = await refreshToken()
+          if (newToken) {
+            originalRequest.headers['Authorization'] = `Bearer ${newToken}`
+            return axios(originalRequest)
+          }
+        }
+        
+        return Promise.reject(error)
+      }
+    )
+
+    return () => {
+      axios.interceptors.response.eject(interceptor)
+    }
+  }, [refreshToken])
 
   const fetchUserData = useCallback(async (force = false) => {
     try {
@@ -113,7 +178,6 @@ export function AuthProvider({ children }) {
     }
   }, [setAuthToken, checkAuth, user, tokens])
 
-
   const handleLogin = useCallback(async (credentials) => {
     try {
       setIsLoadingUser(true)
@@ -125,6 +189,7 @@ export function AuthProvider({ children }) {
         user,
         tokens: {
           accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
           timestamp: Date.now()
         }
       })
@@ -147,16 +212,13 @@ export function AuthProvider({ children }) {
       // Continue with local logout even if API call fails
     } finally {
       // Clear local state
-      updateAuthCache({ user: null, profile: null });
+      updateAuthCache({ user: null, profile: null, tokens: null });
       lastFetchTime.current = 0;
       delete axios.defaults.headers.common['Authorization'];
       localStorage.removeItem(CONSTANTS.AUTH_CACHE_KEY);
     }
   }, [updateAuthCache]);
 
-
-
-  
   const refreshData = useCallback(async () => {
     const now = Date.now()
     if (now - lastRefreshTime.current < CONSTANTS.MIN_REFRESH_INTERVAL) {
@@ -165,7 +227,6 @@ export function AuthProvider({ children }) {
 
     lastRefreshTime.current = now
     const userData = await fetchUserData(true)
-    // const profileData = await fetchProfile()
     
     return { userData, profileData }
   }, [fetchUserData, user])
@@ -178,8 +239,9 @@ export function AuthProvider({ children }) {
     logout: handleLogout,
     fetchUserData,
     refreshData,
-    checkAuth
-  }), [user, loading, isLoadingUser, handleLogin, handleLogout, fetchUserData, refreshData, checkAuth, setAuthToken, updateAuthCache])
+    checkAuth,
+    refreshToken
+  }), [user, loading, isLoadingUser, handleLogin, handleLogout, fetchUserData, refreshData, checkAuth, refreshToken])
 
   return (
     <AuthContext.Provider value={contextValue}>

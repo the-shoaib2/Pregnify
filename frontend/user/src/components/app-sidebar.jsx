@@ -1,19 +1,6 @@
 import * as React from "react"
 import {
-  Bot,
   Command,
-  LifeBuoy,
-  Send,
-  Settings,
-  Users,
-  Calendar,
-  Activity,
-  MessageSquare,
-  Database,
-  FileText,
-  UserCog,
-  Ambulance,
-  LineChart,
 } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 import { NavMain } from "@/components/nav-main"
@@ -29,7 +16,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/contexts/auth-context/auth-context"
-import { getNavItems, commonNavItems } from "@/config/app-navigation"
+import { getNavItems, commonNavItems } from "@/components/app-navigation"
 
 export function AppSidebar({ ...props }) {
   const { user } = useAuth()
@@ -58,6 +45,15 @@ export function AppSidebar({ ...props }) {
     )
   }, [isSettingsPage])
 
+    // Helper function to format role names
+    const formatRoleName = (role) => {
+      return role
+        .toLowerCase()
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
+    }
+
   const sidebarData = {
     user: {
       name: user ? `${user?.basicInfo?.name?.firstName} ${user?.basicInfo?.name?.lastName}` : 'Guest User',
@@ -76,13 +72,13 @@ export function AppSidebar({ ...props }) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link to="/">
+              <Link to="/dashboard/overview">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                   <Command className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">Pregnify</span>
-                  <span className="truncate text-xs">{userRole}</span>
+                  <span className="truncate text-xs">{formatRoleName(userRole)}</span>
                 </div>
               </Link>
             </SidebarMenuButton>

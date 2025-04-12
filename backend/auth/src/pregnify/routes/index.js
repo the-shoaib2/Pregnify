@@ -2,6 +2,10 @@ import express from 'express';
 import { isAuthenticated } from '../../middlewares/auth/auth.middleware.js';
 import pregnancyRoutes from './pregnancy/pregnancy.routes.js';
 
+
+// Dashboard Routes
+import dashboardRoutes from './dashboard/dashboard.routes.js';
+
 // Import all pregnancy-related routes
 import pregnancyTrackingRoutes from './pregnancy/pregnancy-tracking.routes.js';
 import healthMonitoringRoutes from './pregnancy/health-monitoring.routes.js';
@@ -28,6 +32,11 @@ const router = express.Router();
 
 // Apply authentication middleware to all routes
 router.use(isAuthenticated);
+
+// ============================================
+// 0. Dashboard Routes
+// ============================================
+router.use('/dashboard', dashboardRoutes);
 
 // ============================================
 // 1. Pregnancy Routes

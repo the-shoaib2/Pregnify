@@ -355,41 +355,6 @@ export const defaultRegister = asyncHandler(async (req, res) => {
         // Process background tasks after response is sent
         process.nextTick(() => {
             Promise.allSettled([
-                // Update login records
-                prisma.$transaction([
-                    prisma.user.update({
-                        where: { id: newUser.id },
-                        data: {
-                            lastLoginAt: now,
-                            failedLoginCount: 0
-                        }
-                    }),
-                    prisma.loginHistory.create({
-                        data: {
-                            userId: newUser.id,
-                            ipAddress: req.ip || 'unknown',
-                            userAgent: req.get('user-agent') || 'unknown',
-                            macAddress: null,
-                            deviceType: 'WEB',
-                            successful: true,
-                            loginAt: now
-                        }
-                    }),
-                    prisma.userActivityLog.create({
-                        data: {
-                            userId: newUser.id,
-                            activityType: "LOGIN",
-                            description: "User logged in after registration",
-                            ipAddress: req.ip || 'unknown',
-                            userAgent: req.get('user-agent') || 'unknown',
-                            metadata: {
-                                email: newUser.email,
-                                role: newUser.role,
-                                loginTime: now.toISOString()
-                            }
-                        }
-                    })
-                ]),
 
                 // Send welcome email asynchronously
                 (async () => {
@@ -471,6 +436,8 @@ export const defaultLogin = asyncHandler(async (req, res) => {
                 phoneNumber: true,
                 username: true,
                 password_hash: true,
+                isDeleted: true,
+                accountStatus: true,
                 role: true,
                 isVerified: true,
                 twoFactorEnabled: true
@@ -479,6 +446,18 @@ export const defaultLogin = asyncHandler(async (req, res) => {
 
         if (!user || !(await bcrypt.compare(password, user.password_hash))) {
             throw ApiError.unauthorized('Invalid credentials');
+        }
+
+        if (user.isDeleted || user.accountStatus === 'DELETED') {
+            throw new ApiError(HTTP_STATUS.FORBIDDEN, "User account has been deleted");
+        }
+
+        if (user.accountStatus === 'SUSPENDED') {
+            throw new ApiError(HTTP_STATUS.FORBIDDEN, "User account has been suspended");
+        }
+
+        if (user.accountStatus === 'BANNED') {
+            throw new ApiError(HTTP_STATUS.FORBIDDEN, "User account has been banned");
         }
 
         // Generate tokens and send immediate response

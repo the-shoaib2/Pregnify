@@ -6,6 +6,7 @@ import { NavLink } from "react-router-dom"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { useLocation } from "react-router-dom"
 
 
 export function NavMain({
@@ -13,6 +14,7 @@ export function NavMain({
   isLoading
 }) {
   const [openItems, setOpenItems] = useState({})
+  const location = useLocation()
 
   if (isLoading) {
     return <NavMainSkeleton />
@@ -32,7 +34,9 @@ export function NavMain({
             className={({ isActive }) => cn(
               "relative flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-all duration-200",
               "hover:bg-accent hover:text-accent-foreground",
-              isActive ? "bg-accent text-accent-foreground" : "transparent",
+              isActive || location.pathname.startsWith(item.url) 
+                ? "bg-accent text-accent-foreground" 
+                : "transparent",
               item.items?.length > 0 ? "cursor-default" : "cursor-pointer"
             )}
             onClick={(e) => item.items?.length > 0 && toggleItem(e, item.title)}
@@ -122,12 +126,11 @@ export function NavMain({
                             className={({ isActive }) => cn(
                               "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-all duration-300 ",
                               "hover:bg-accent hover:text-accent-foreground",
-                              isActive 
+                              isActive || location.pathname === subItem.url
                                 ? "bg-accent/50 text-accent-foreground font-medium" 
-                                // : "text-muted-foreground",
                                 : "text-foreground",
                               "relative",
-                              isActive && "before:absolute before:left-[-12.5px] before:top-1/2 before:-translate-y-1/2 before:h-1.5 before:w-1.5 before:rounded-full before:bg-green-500 before:animate-pulse"   
+                              (isActive || location.pathname === subItem.url) && "before:absolute before:left-[-12.5px] before:top-1/2 before:-translate-y-1/2 before:h-1.5 before:w-1.5 before:rounded-full before:bg-green-500 before:animate-pulse"   
                             )}
                           >
                             <span className="truncate">{subItem.title}</span>

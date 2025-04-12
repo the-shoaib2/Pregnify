@@ -49,11 +49,6 @@ const navItems = [
     icon: HeartPulse,
   },
   {
-    title: "Care",
-    href: "/care",
-    icon: HandHeart,
-  },
-  {
     title: "Emergency",
     href: "/emergency",
     icon: Ambulance,
@@ -248,12 +243,13 @@ export function TopNav() {
       </AlertDialog>
 
       {/* Desktop Navigation */}
-      <nav className="fixed top-0 left-0 z-50 hidden w-full h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:block">
-        <div className="flex h-full items-center px-8">
-          <div className="flex w-40 items-center gap-4">
-            <Activity className="h-8 w-8 text-primary" />
-            <span className="text-sm font-medium">Pregnify</span>
-          </div>
+      <nav className="fixed top-0 left-0 z-50 hidden w-full h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:block overflow-hidden">
+        <div className="flex h-full items-center px-8 w-full">
+
+          <Button variant="ghost" className="flex hover:bg-transparent items-center" onClick={() => navigate('/')}>
+            <Activity className="h-15 w-15 text-primary" />
+            <span className="text-xl font-medium">Pregnify</span>
+          </Button>
 
           <div className="flex flex-1 items-center justify-center space-x-1">
             {navItems.map((item) => {

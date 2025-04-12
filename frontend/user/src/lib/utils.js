@@ -39,4 +39,13 @@ export function getInitials(name) {
     .join('')
     .toUpperCase()
     .slice(0, 2)
+}
+
+export function formatData(data) {
+  if (!data) return ''
+  return data
+    .toLowerCase()
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
 } 

@@ -7,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Form } from "@/components/ui/form"
 import { toast } from "react-hot-toast"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -21,12 +22,12 @@ const validateEmail = (email) => {
   if (!email) {
     return 'Email is required'
   }
-  
+
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!emailRegex.test(email)) {
     return 'Please enter a valid email address'
   }
-  
+
   return null
 }
 
@@ -85,7 +86,7 @@ export function LoginForm({
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
+
     if (!validateForm()) {
       return
     }
@@ -110,7 +111,7 @@ export function LoginForm({
 
     } catch (error) {
       console.error('Login error:', error)
-      
+
       // Enhanced error handling
       if (error.response?.status === 429) {
         toast.error('Too many attempts. Please try again in a few minutes.')
@@ -132,7 +133,7 @@ export function LoginForm({
       const options = await AuthService.getPasskeyOptions()
       const authentication = await startAuthentication(options)
       const verified = await AuthService.verifyPasskey(authentication)
-      
+
       if (verified.success) {
         toast.success("Successfully logged in with passkey")
         navigate("/")
@@ -158,8 +159,8 @@ export function LoginForm({
           <form onSubmit={handleSubmit}>
             <div className="grid gap-6">
               <div className="flex flex-row gap-2">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="flex-1 h-[42px]"
                   disabled={isAppleLoading}
                   onClick={(e) => {
@@ -180,8 +181,8 @@ export function LoginForm({
                   )}
                   <span className="ml-2 hidden sm:inline">Apple</span>
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="flex-1 h-[42px]"
                   disabled={isGoogleLoading}
                   onClick={(e) => {
@@ -227,18 +228,18 @@ export function LoginForm({
                   </span>
                 </div>
               </div>
-              
+
               <div className="grid gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    placeholder="name@example.com" 
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="name@example.com"
                     autoCapitalize="none"
                     autoComplete="email"
                     autoCorrect="off"
-                    required 
+                    required
                     disabled={isLoading}
                     value={formData.email}
                     onChange={handleChange}
@@ -247,8 +248,8 @@ export function LoginForm({
                 </div>
                 <div className="grid gap-2">
                   <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                    <Link 
+                    <Label htmlFor="password">Password</Label>
+                    <Link
                       to="/forgot-password"
                       className="text-sm text-muted-foreground hover:text-primary"
                     >
@@ -287,15 +288,15 @@ export function LoginForm({
               </div>
 
               <Button type="submit" className="w-full h-[42px]" disabled={isLoading}>
-                  {isLoading ? (
+                {isLoading ? (
                   <>
-                      Logging in...
+                    Logging in...
                     <Loader className="mr-2 h-4 w-4 animate-spin" />
                   </>
-                  ) : (
-                    "Login"
-                  )}
-                </Button>
+                ) : (
+                  "Login"
+                )}
+              </Button>
 
               <div className="text-center text-sm">
                 Don&apos;t have an account?{" "}

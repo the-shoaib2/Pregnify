@@ -1,7 +1,7 @@
 import React from "react";
 import { LegalLayout } from "./layout"
 
-export function TermsOfService() {
+export default function TermsOfService() {
   return (
     <LegalLayout
       title="Terms of Service"

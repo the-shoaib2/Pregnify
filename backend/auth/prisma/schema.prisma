@@ -1486,17 +1486,15 @@ model UserRole {
 
 // ROLE ASSIGNMENT TABLE
 model UserRoleAssignment {
-  id         String   @id @default(uuid())
-  userId     String
-  roleId     String
+  id        String   @id @default(uuid())
+  userId    String
+  roleId    String
   assignedAt DateTime @default(now())
+  assignedBy String?  // User ID of who assigned this role
+  user      User     @relation(fields: [userId], references: [id])
+  role      UserRole     @relation(fields: [roleId], references: [id])
 
-  user User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  role UserRole @relation(fields: [roleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  @@unique([userId, roleId]) // Prevent duplicate roles
-  @@index([userId])
-  @@index([roleId])
+  @@unique([userId, roleId])
   @@map("user_role_assignments")
 }
 
@@ -3175,6 +3173,8 @@ enum BookingStatus {
   COMPLETED
   CANCELLED
 }
+
+
 
 
 

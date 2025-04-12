@@ -4,12 +4,10 @@ import {
   Calendar,
   MessageSquare,
   Database,
-  FileText,
   UserCog,
   Ambulance,
   LineChart,
   Bot,
-  Command,
   LifeBuoy,
   Send,
   Settings,
@@ -20,11 +18,11 @@ export const getNavItems = (role) => {
   const baseItems = [
     {
       title: "Dashboard",
-      url: "/dashboard",
+      url: "/dashboard/overview",
       icon: Activity,
       isActive: true,
       items: [
-        { title: "Overview", url: "/dashboard" },
+        { title: "Overview", url: "/dashboard/overview" },
         { title: "Analytics", url: "/dashboard/analytics" },
         { title: "Notifications", url: "/dashboard/notifications" }
       ]
@@ -34,18 +32,18 @@ export const getNavItems = (role) => {
   const roleBasedItems = {
     SUPER_ADMIN: [
       {
-        title: "User Management",
-        url: "/users",
+        title: "Users Management",
+        url: "/users/list",
         icon: Users,
         items: [
-          { title: "All Users", url: "/users" },
+          { title: "All Users", url: "/users/list" },
           { title: "Roles & Permissions", url: "/users/roles" },
           { title: "Add User", url: "/users/add" },
           { title: "User Activity", url: "/users/activity" }
         ]
       },
       {
-        title: "Doctor Panel",
+        title: "Doctors Panel",
         url: "/doctors",
         icon: UserCog,
         items: [

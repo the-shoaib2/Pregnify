@@ -64,7 +64,7 @@ export function RegisterForm({ className, ...props }) {
   const navigate = useNavigate()
   const { login } = useAuth()
   const [loading, setLoading] = useState(false)
-  
+
   // Form state management - remove role from initial state
   const [formData, setFormData] = useState(() => {
     return {
@@ -137,21 +137,21 @@ export function RegisterForm({ className, ...props }) {
 
       // Use AuthService directly instead of register from context
       const response = await AuthService.register(dataToSubmit)
-      
+
       // Only proceed with login if registration was successful (201 Created)
       if (response.status === 201) {
         toast.success('Registration successful')
-        
+
         // Auto-login after successful registration
         try {
           await login({
             email: formData.email,
             password: formData.password
           })
-          
+
           // Navigate first, then show toasts
           navigate('/')
-          
+
           // Stagger toasts for better UX
           setTimeout(() => {
             toast.success('Please verify your email to continue!')
@@ -190,7 +190,7 @@ export function RegisterForm({ className, ...props }) {
 
   const validateForm = (data) => {
     const errors = []
-    
+
     // Validate first name
     if (!data.firstName) {
       errors.push(VALIDATION_RULES.firstName.required)
@@ -238,11 +238,11 @@ export function RegisterForm({ className, ...props }) {
     <div className={cn("flex flex-col w-full gap-3", className)} {...props}>
       <Card className="w-full max-w-md mx-auto">
         <CardHeader className="space-y-1 pb-4 text-center">
-            <CardTitle className="text-xl font-bold ">Create an account</CardTitle>
+          <CardTitle className="text-xl font-bold ">Create an account</CardTitle>
           <CardDescription>
-          Enter your credentials to create an account
+            Enter your credentials to create an account
           </CardDescription>
-        </CardHeader> 
+        </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="flex flex-row gap-3">
@@ -395,14 +395,14 @@ export function RegisterForm({ className, ...props }) {
 
             {/* Terms Acceptance */}
             <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="termsAccepted" 
+              <Checkbox
+                id="termsAccepted"
                 name="termsAccepted"
                 checked={formData.termsAccepted}
-                onCheckedChange={(checked) => 
-                  handleChange({ target: { name: 'termsAccepted', type: 'checkbox', checked }})
+                onCheckedChange={(checked) =>
+                  handleChange({ target: { name: 'termsAccepted', type: 'checkbox', checked } })
                 }
-                required 
+                required
               />
               <Label htmlFor="termsAccepted" className="text-sm">
                 I accept the terms and conditions <span className="text-destructive">*</span>

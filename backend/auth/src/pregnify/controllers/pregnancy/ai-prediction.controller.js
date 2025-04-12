@@ -324,75 +324,51 @@ class AiPredictionController {
     prediction,
   }) {
     try {
-      // Parse the prediction data
-      let predictionData;
-      try {
-        predictionData = JSON.parse(prediction);
-      } catch (error) {
-        console.error('Error parsing prediction data:', error);
-        // Create a simple prediction data structure if parsing fails
-        predictionData = {
-          summary: 'AI prediction generated',
-          riskAssessment: {
-            overallRisk: {
-              score: 50,
-              level: 'Moderate',
-              trend: 'Stable',
-            },
-          },
-        };
-      }
-      
+      // Clean up the prediction string by removing markdown syntax
+      let cleanedPrediction = prediction
+        .replace(/```json\n/g, '') // Remove opening markdown
+        .replace(/```\n/g, '')     // Remove closing markdown
+        .trim();                   // Remove any extra whitespace
+
+      // Parse the cleaned JSON
+      const parsedPrediction = JSON.parse(cleanedPrediction);
+
       // Save to database
       await prisma.aiPredictionResponse.create({
         data: {
-          type: type || 'PREGNANCY', // Default to PREGNANCY if type is undefined
-          category: category || 'RISK_ASSESSMENT', // Default to RISK_ASSESSMENT if category is undefined
+          type,
+          category,
           subCategory,
           pregnancyId,
           userId,
           assessmentId,
-          data: predictionData,
-          summary: predictionData.summary || null,
-          priority: predictionData.priority || null,
-          status: 'Active',
-          
-          // Risk assessment data (if applicable)
-          riskScore: predictionData.riskAssessment?.overallRisk?.score || null,
-          riskLevel: predictionData.riskAssessment?.overallRisk?.level || null,
-          riskTrend: predictionData.riskAssessment?.overallRisk?.trend || null,
-          previousScore: predictionData.riskAssessment?.overallRisk?.previousScore || null,
-          scoreChange: predictionData.riskAssessment?.overallRisk?.change || null,
-          
-          // Risk factors (if applicable)
-          medicalRisks: predictionData.riskAssessment?.riskFactors?.medical || null,
-          lifestyleRisks: predictionData.riskAssessment?.riskFactors?.lifestyle || null,
-          environmentalRisks: predictionData.riskAssessment?.riskFactors?.environmental || null,
-          
-          // Recommendations (if applicable)
-          recommendations: predictionData.recommendations || null,
-          
-          // Warnings (if applicable)
-          warnings: predictionData.warningSystem || null,
-          
-          // Location data (if applicable)
-          locationData: predictionData.bangladeshSpecific || null,
-          
-          // Follow up (if applicable)
-          followUp: predictionData.followUpSchedule || null,
-          
-          // Metadata
+          prediction: parsedPrediction,
           metadata: {
             timestamp: new Date().toISOString(),
-            model: process.env.OPENAI_MODEL,
             version: '1.0',
           },
         },
       });
 
-      console.log('AI prediction saved to database successfully');
+      // Update risk assessment if this is a pregnancy prediction
+      if (type === 'PREGNANCY' && assessmentId) {
+        await prisma.riskAssessment.update({
+          where: { id: assessmentId },
+          data: {
+            riskScore: parsedPrediction.riskAssessment?.overallRisk?.score || 0,
+            recommendations: parsedPrediction.riskAssessment?.riskFactors?.flatMap(factor => 
+              factor.recommendations || []
+            ) || [],
+            assessmentDate: new Date(),
+          },
+        });
+      }
+
+      return parsedPrediction;
     } catch (error) {
-      console.error('Error saving AI prediction to database:', error);
+      console.error('Error parsing prediction data:', error);
+      console.error('Raw prediction data:', prediction);
+      throw new Error(`Error parsing prediction data: ${error.message}`);
     }
   }
 }

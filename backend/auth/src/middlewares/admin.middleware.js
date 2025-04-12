@@ -2,21 +2,26 @@ import { ApiError } from '../utils/error/error.utils.js';
 import asyncHandler from '../utils/middleware/async.handler.js';
 import prisma from '../utils/database/prisma.js';
 import { HTTP_STATUS } from '../constants/index.js';
+import { USER_DEFINITIONS, PermissionChecker } from '../constants/roles.constants.js';
 
 /**
  * Validate admin access and permissions
  */
 export const validateAdminAccess = asyncHandler(async (req, res, next) => {
     const userId = req.user.id;
+    const userRole = req.user.role;
 
-    // Get admin permissions and status
+    // Check if user has admin role from decoded token
+    if (![USER_DEFINITIONS.ALPHA, USER_DEFINITIONS.BETA].includes(userRole)) {
+        throw new ApiError(HTTP_STATUS.FORBIDDEN, 'Access denied: Admin role required');
+    }
+
+    // Get admin user details
     const adminUser = await prisma.user.findUnique({
         where: { id: userId },
         select: {
-            role: true,
-            isActive: true,
-            adminPermissions: true,
-            lastAdminAccess: true
+            accountStatus: true,
+            lastActive: true
         }
     });
 
@@ -24,30 +29,25 @@ export const validateAdminAccess = asyncHandler(async (req, res, next) => {
         throw new ApiError(HTTP_STATUS.UNAUTHORIZED, 'Admin user not found');
     }
 
-    if (!adminUser.isActive) {
+    if (adminUser.accountStatus !== 'ACTIVE') {
         throw new ApiError(HTTP_STATUS.FORBIDDEN, 'Admin account is inactive');
     }
 
-    // Check if user has required admin permissions
-    if (!adminUser.adminPermissions || adminUser.adminPermissions.length === 0) {
-        throw new ApiError(HTTP_STATUS.FORBIDDEN, 'Insufficient admin permissions');
-    }
-
-    // Update last admin access time
+    // Update last active time
     await prisma.user.update({
         where: { id: userId },
-        data: { lastAdminAccess: new Date() }
+        data: { lastActive: new Date() }
     });
 
-    // Add admin permissions to request for use in controllers
-    req.adminPermissions = adminUser.adminPermissions;
+    // Add admin role to request for use in controllers
+    req.adminRole = userRole;
 
     // Log admin access
-    await prisma.adminActivityLog.create({
+    await prisma.userActivityLog.create({
         data: {
             userId,
-            action: req.method,
-            resource: req.originalUrl,
+            activityType: 'API_ACCESS',
+            description: `Admin access to ${req.originalUrl}`,
             ipAddress: req.ip,
             userAgent: req.get('user-agent')
         }
@@ -61,13 +61,22 @@ export const validateAdminAccess = asyncHandler(async (req, res, next) => {
  */
 export const requirePermission = (permission) => {
     return asyncHandler(async (req, res, next) => {
-        const adminPermissions = req.adminPermissions;
+        const adminRole = req.adminRole;
+        
+        // SUPER_ADMIN has all permissions
+        if (adminRole === USER_DEFINITIONS.ALPHA) {
+            return next();
+        }
 
-        if (!adminPermissions || !adminPermissions.includes(permission)) {
-            throw new ApiError(
-                HTTP_STATUS.FORBIDDEN,
-                `Required admin permission: ${permission}`
-            );
+        // For ADMIN role, check specific permissions
+        if (adminRole === USER_DEFINITIONS.BETA) {
+            const checker = new PermissionChecker(adminRole);
+            if (!checker.can(permission)) {
+                throw new ApiError(
+                    HTTP_STATUS.FORBIDDEN,
+                    `Required admin permission: ${permission}`
+                );
+            }
         }
 
         next();
@@ -85,7 +94,7 @@ export const requireSuperAdmin = asyncHandler(async (req, res, next) => {
         select: { role: true }
     });
 
-    if (user.role !== 'SUPER_ADMIN') {
+    if (user.role !== USER_DEFINITIONS.ALPHA) {
         throw new ApiError(
             HTTP_STATUS.FORBIDDEN,
             'Super admin access required'
@@ -100,23 +109,32 @@ export const requireSuperAdmin = asyncHandler(async (req, res, next) => {
  */
 export const validateAdminIP = asyncHandler(async (req, res, next) => {
     const clientIP = req.ip;
+    const userId = req.user.id;
 
-    const whitelistedIP = await prisma.adminIPWhitelist.findFirst({
-        where: { ipAddress: clientIP }
+    // Skip IP validation for SUPER_ADMIN
+    if (req.adminRole === USER_DEFINITIONS.ALPHA) {
+        return next();
+    }
+
+    const whitelistedIP = await prisma.ipWhitelist.findFirst({
+        where: { 
+            userId,
+            ipAddress: clientIP 
+        }
     });
 
     if (!whitelistedIP) {
         // Log unauthorized access attempt
-        await prisma.securityLog.create({
+        await prisma.userActivityLog.create({
             data: {
-                userId: req.user.id,
-                eventType: 'UNAUTHORIZED_ADMIN_ACCESS',
-                severity: 'HIGH',
+                userId,
+                activityType: 'SECURITY_ALERT',
                 description: `Unauthorized admin access attempt from IP: ${clientIP}`,
+                ipAddress: clientIP,
+                userAgent: req.get('user-agent'),
                 metadata: {
-                    ipAddress: clientIP,
-                    userAgent: req.get('user-agent'),
-                    endpoint: req.originalUrl
+                    endpoint: req.originalUrl,
+                    severity: 'HIGH'
                 }
             }
         });

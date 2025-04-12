@@ -1,16 +1,57 @@
+import { useState, useEffect } from "react"
 import { RoleBasedLayout } from "@/components/layout/role-based-layout"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { PregnancyService, SYSTEM_ENUMS } from "@/services/pregnify"
+import { useAuth } from "@/contexts/auth-context/auth-context"
+import { useParams, Link } from "react-router-dom"
 import { 
   HeartPulse, 
   Thermometer, 
   Scale, 
-  Droplets,
+  Droplet,
   TrendingUp,
   TrendingDown,
-  Clock
+  Clock,
+  Brain,
+  AlertTriangle,
+  CheckCircle2,
+  RefreshCw,
+  ArrowRight,
+  Shield,
+  Lock
 } from "lucide-react"
+import { PregnancyDataForm } from "@/components/pregnancy/pregnancy-data-form"
+import toast from "react-hot-toast"
+
+// Risk level badge component
+const RiskLevelBadge = ({ level }) => {
+  const getBadgeVariant = (level) => {
+    switch (level) {
+      case SYSTEM_ENUMS.RISK_LEVEL.LOW:
+        return "bg-green-500/10 text-green-500 border-green-500/20"
+      case SYSTEM_ENUMS.RISK_LEVEL.MEDIUM:
+        return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+      case SYSTEM_ENUMS.RISK_LEVEL.HIGH:
+        return "bg-orange-500/10 text-orange-500 border-orange-500/20"
+      case SYSTEM_ENUMS.RISK_LEVEL.CRITICAL:
+        return "bg-red-500/10 text-red-500 border-red-500/20"
+      default:
+        return "bg-gray-500/10 text-gray-500 border-gray-500/20"
+    }
+  }
+
+  return (
+    <Badge variant="outline" className={`${getBadgeVariant(level)} text-xs`}>
+      {level}
+    </Badge>
+  )
+}
 
 const HealthMetric = ({ icon: Icon, label, value, unit, trend, trendValue }) => (
   <div className="flex items-center justify-between">
@@ -50,83 +91,318 @@ const healthMetrics = {
 }
 
 export default function HealthPage() {
-  return (
-    <RoleBasedLayout headerTitle="Health Dashboard">
-      <div className="flex flex-1 flex-col gap-4 p-4">
-        {/* Pregnancy Progress */}
-        <Card>
+  const { user } = useAuth()
+  const [riskAssessment, setRiskAssessment] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [accessDenied, setAccessDenied] = useState(false)
+  const [pregnancyData, setPregnancyData] = useState(null)
+
+  // Fetch pregnancy data first
+  const fetchPregnancyData = async () => {
+    try {
+      setLoading(true)
+      const response = await PregnancyService.getPregnancyDetails()
+      if (response?.data?.[0]) {
+        const data = response.data[0]
+        setPregnancyData(data)
+        return data.id // Return the pregnancy ID
+      }
+      return null
+    } catch (err) {
+      console.error("Error fetching pregnancy data:", err)
+      return null
+    }
+  }
+
+  // Fetch risk assessment data
+  const fetchRiskAssessment = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      setAccessDenied(false)
+
+      // First get pregnancy data to get the ID
+      const pregnancyId = await fetchPregnancyData()
+      if (!pregnancyId) {
+        setError("No pregnancy data found. Please add your pregnancy information first.")
+        setLoading(false)
+        return
+      }
+
+      console.log("Fetching risk assessment for pregnancyId:", pregnancyId)
+      const data = await PregnancyService.getRiskAssessment(pregnancyId)
+      console.log("Risk assessment data received:", data)
+      setRiskAssessment(data)
+    } catch (err) {
+      console.error("Error fetching risk assessment:", err)
+      if (err.message.includes('Access denied')) {
+        setAccessDenied(true)
+        toast.error("You need a patient account to view risk assessment data.")
+      } else {
+        setError(err.message || "Failed to load risk assessment")
+        toast.error(err.message || "Failed to load risk assessment")
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Load data on component mount
+  useEffect(() => {
+    fetchRiskAssessment()
+  }, [])
+
+  // Render risk assessment section
+  const renderRiskAssessment = () => {
+    if (loading) {
+      return (
+        <Card className="transition-all duration-300 hover:shadow-md">
           <CardHeader>
-            <CardTitle>Pregnancy Progress</CardTitle>
+            <Skeleton className="h-5 w-1/3" />
+            <Skeleton className="h-4 w-2/3" />
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Week 24 of 40</span>
-                  <span className="font-medium">60% Complete</span>
-                </div>
-                <Progress value={60} className="h-2" />
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Clock className="h-4 w-4" />
-                <span>Estimated due date: June 15, 2024</span>
-              </div>
+          <CardContent className="space-y-4">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+          </CardContent>
+        </Card>
+      )
+    }
+
+    if (accessDenied) {
+      return (
+        <Card className="transition-all duration-300 hover:shadow-md border-amber-200 bg-amber-50/30">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Lock className="h-5 w-5 text-amber-500" />
+                Access Restricted
+              </CardTitle>
+              <CardDescription>
+                You need a patient account to view risk assessment data
+              </CardDescription>
+            </div>
+            <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20">
+              {user?.role || 'GUEST'}
+            </Badge>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert variant="default" className="bg-amber-100/50 border-amber-200">
+              <Shield className="h-4 w-4 text-amber-500" />
+              <AlertTitle>Role-Based Access</AlertTitle>
+              <AlertDescription>
+                This feature is only available to users with a PATIENT role. Please contact support if you believe this is an error.
+              </AlertDescription>
+            </Alert>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button variant="outline" className="flex-1" asChild>
+                <Link to="/login">
+                  <Lock className="mr-2 h-4 w-4" />
+                  Login as Patient
+                </Link>
+              </Button>
+              <Button variant="outline" className="flex-1" asChild>
+                <Link to="/register">
+                  <Shield className="mr-2 h-4 w-4" />
+                  Register as Patient
+                </Link>
+              </Button>
             </div>
           </CardContent>
         </Card>
+      )
+    }
 
-        {/* Daily Vitals */}
-        <Card>
+    if (error) {
+      return (
+        <Card className="transition-all duration-300 hover:shadow-md">
           <CardHeader>
-            <CardTitle>Daily Vitals</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Error
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <HealthMetric 
-              icon={HeartPulse}
-              label="Heart Rate"
-              value={healthMetrics.heartRate.value}
-              unit={healthMetrics.heartRate.unit}
-              trend={healthMetrics.heartRate.trend}
-              trendValue={healthMetrics.heartRate.trendValue}
-            />
-            <HealthMetric 
-              icon={Thermometer}
-              label="Temperature"
-              value={healthMetrics.temperature.value}
-              unit={healthMetrics.temperature.unit}
-              trend={healthMetrics.temperature.trend}
-              trendValue={healthMetrics.temperature.trendValue}
-            />
+          <CardContent>
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+            <div className="mt-4">
+              <Button onClick={fetchRiskAssessment} variant="outline">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Try Again
+              </Button>
+            </div>
           </CardContent>
         </Card>
+      )
+    }
 
-        {/* Weight and Hydration */}
-        <Card>
+    if (!riskAssessment) {
+      return (
+        <Card className="transition-all duration-300 hover:shadow-md">
           <CardHeader>
-            <CardTitle>Weight & Hydration</CardTitle>
+            <CardTitle>Risk Assessment</CardTitle>
+            <CardDescription>No risk assessment data available</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <HealthMetric 
-              icon={Scale}
-              label="Weight"
-              value={healthMetrics.weight.value}
-              unit={healthMetrics.weight.unit}
-              trend={healthMetrics.weight.trend}
-              trendValue={healthMetrics.weight.trendValue}
-            />
-            <HealthMetric 
-              icon={Droplets}
-              label="Water Intake"
-              value={healthMetrics.waterIntake.value}
-              unit={healthMetrics.waterIntake.unit}
-              trend={healthMetrics.waterIntake.trend}
-              trendValue={healthMetrics.waterIntake.trendValue}
-            />
+          <CardContent>
+            <Button onClick={fetchRiskAssessment}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh
+            </Button>
           </CardContent>
         </Card>
+      )
+    }
+
+    return (
+      <Card className="transition-all duration-300 hover:shadow-md">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Risk Assessment</CardTitle>
+            <CardDescription>
+              Last updated: {new Date(riskAssessment.updatedAt).toLocaleString()}
+            </CardDescription>
+          </div>
+          <RiskLevelBadge level={riskAssessment.riskLevel} />
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Overall Risk Score</span>
+              <span className="font-medium">{riskAssessment.riskScore}%</span>
+            </div>
+            <Progress value={riskAssessment.riskScore} className="h-2" />
+          </div>
+          
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium">Risk Factors</h4>
+            <div className="space-y-2">
+              {riskAssessment.riskFactors?.map((factor, index) => (
+                <div key={index} className="flex items-center justify-between p-2 rounded-md bg-muted/50">
+                  <div className="flex items-center gap-2">
+                    {factor.severity === 'HIGH' ? (
+                      <AlertTriangle className="h-4 w-4 text-red-500" />
+                    ) : factor.severity === 'MEDIUM' ? (
+                      <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    )}
+                    <span className="text-sm">{factor.name}</span>
+                  </div>
+                  <Badge variant="outline" className="text-xs">
+                    {factor.severity}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter className="flex flex-col sm:flex-row justify-between gap-2">
+          <Button onClick={fetchRiskAssessment} variant="outline" className="w-full sm:w-auto">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
+          <Button asChild className="w-full sm:w-auto">
+            <Link to={`/pregnify/ai-assistant/${pregnancyData?.id}`}>
+              <Brain className="mr-2 h-4 w-4" />
+              AI Assistant
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        </CardFooter>
+      </Card>
+    )
+  }
+
+  return (
+    <RoleBasedLayout headerTitle="Health Dashboard">
+      <div className="flex flex-1 flex-col gap-4 mx-auto w-full">
+        {/* Pregnancy Data Form - Moved to top */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <PregnancyDataForm />
+          <Card className="transition-all duration-300 hover:shadow-md">
+            <CardHeader>
+              <CardTitle>Pregnancy Progress</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Week 24 of 40</span>
+                    <span className="font-medium">60% Complete</span>
+                  </div>
+                  <Progress value={60} className="h-2" />
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Clock className="h-4 w-4" />
+                  <span>Estimated due date: June 15, 2024</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Daily Vitals */}
+          <Card className="transition-all duration-300 hover:shadow-md">
+            <CardHeader>
+              <CardTitle>Daily Vitals</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <HealthMetric 
+                icon={HeartPulse}
+                label="Heart Rate"
+                value={healthMetrics.heartRate.value}
+                unit={healthMetrics.heartRate.unit}
+                trend={healthMetrics.heartRate.trend}
+                trendValue={healthMetrics.heartRate.trendValue}
+              />
+              <HealthMetric 
+                icon={Thermometer}
+                label="Temperature"
+                value={healthMetrics.temperature.value}
+                unit={healthMetrics.temperature.unit}
+                trend={healthMetrics.temperature.trend}
+                trendValue={healthMetrics.temperature.trendValue}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Weight and Hydration */}
+          <Card className="transition-all duration-300 hover:shadow-md">
+            <CardHeader>
+              <CardTitle>Weight & Hydration</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <HealthMetric 
+                icon={Scale}
+                label="Weight"
+                value={healthMetrics.weight.value}
+                unit={healthMetrics.weight.unit}
+                trend={healthMetrics.weight.trend}
+                trendValue={healthMetrics.weight.trendValue}
+              />
+              <HealthMetric 
+                icon={Droplet}
+                label="Water Intake"
+                value={healthMetrics.waterIntake.value}
+                unit={healthMetrics.waterIntake.unit}
+                trend={healthMetrics.waterIntake.trend}
+                trendValue={healthMetrics.waterIntake.trendValue}
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Risk Assessment */}
+        {renderRiskAssessment()}
 
         {/* Health Timeline */}
-        <Card>
+        <Card className="transition-all duration-300 hover:shadow-md">
           <CardHeader>
             <CardTitle>Health Timeline</CardTitle>
           </CardHeader>

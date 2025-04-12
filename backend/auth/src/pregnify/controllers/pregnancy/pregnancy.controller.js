@@ -50,9 +50,19 @@ export const pregnancyController = {
         throw new ApiError(400, 'You already have an active pregnancy profile');
       }
 
-      // Get user's medical information
-      const medicalInfo = await prisma.medicalInformation.findUnique({
-        where: { userId }
+      // Get user's medical and personal information
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          medicalInformation: {
+            orderBy: { createdAt: 'desc' },
+            take: 1
+          },
+          personalInformation: {
+            orderBy: { createdAt: 'desc' },
+            take: 1
+          }
+        }
       });
 
       // Create pregnancy profile with medical data
@@ -68,7 +78,7 @@ export const pregnancyController = {
           lastMenstrualDate: new Date(lastMenstrualDate),
           status: 'ACTIVE',
           // Medical data
-          bloodPressure: bloodPressure || medicalInfo?.bloodPressure,
+          bloodPressure: bloodPressure || user?.medicalInformation[0]?.bloodPressure || null,
           isFirstPregnancy: isFirstPregnancy ?? false,
           previousPregnancies: previousPregnancies ?? 0,
           previousComplications: previousComplications ? JSON.parse(previousComplications) : null,
@@ -92,27 +102,27 @@ export const pregnancyController = {
           userId,
           pregnancyId: pregnancy.id,
           // Personal Information
-          age: 0,
-          bmi: 0,
+          age: user?.personalInformation[0]?.age || 0,
+          bmi: calculateBMI(weight, height),
           nutritionStatus: 'unknown',
           exerciseHabits: 'unknown',
           psychologicalHealth: 'unknown',
           sleepPatterns: 'unknown',
           // Chronic Conditions
-          chronicConditions: {},
+          chronicConditions: user?.medicalInformation[0]?.chronicDiseases || {},
           // Lifestyle Factors
-          isSmoker: false,
-          alcoholConsumption: false,
+          isSmoker: smokingStatus === 'CURRENT',
+          alcoholConsumption: alcoholConsumption !== 'NONE',
           substanceUse: false,
           dietQuality: 'unknown',
           // Medical History
           familyPlanningHistory: false,
-          previousPregnancies: 0,
-          hasAllergies: false,
+          previousPregnancies: previousPregnancies ?? 0,
+          hasAllergies: user?.medicalInformation[0]?.allergies?.length > 0,
           infectionHistory: false,
-          medicationUsage: false,
+          medicationUsage: user?.medicalInformation[0]?.medications?.length > 0,
           // Vital Signs
-          bloodPressureStatus: 'unknown',
+          bloodPressureStatus: bloodPressure || user?.medicalInformation[0]?.bloodPressure || 'unknown',
           bloodSugarStatus: 'unknown',
           medicalCheckups: 'unknown',
           // Environmental and Social Factors
@@ -123,16 +133,16 @@ export const pregnancyController = {
           financialStability: 'unknown',
           educationLevel: 'unknown',
           // Additional Health Factors
-          currentMedications: {},
+          currentMedications: user?.medicalInformation[0]?.medications || {},
           surgicalHistory: {},
           mentalHealthStatus: 'unknown',
           sleepQuality: 'unknown',
           weight: weight,
           height: height,
-          allergies: {},
+          allergies: user?.medicalInformation[0]?.allergies || {},
           // Family History
-          geneticDisorders: {},
-          pregnancyComplications: {},
+          geneticDisorders: user?.medicalInformation[0]?.geneticDisorders || {},
+          pregnancyComplications: previousComplications ? JSON.parse(previousComplications) : {},
           // Assessment Results
           riskScore: 0,
           recommendations: 'Initial assessment pending',
@@ -324,18 +334,16 @@ export const pregnancyController = {
       const user = await prisma.user.findUnique({
         where: { id: userId },
         include: {
-          medicalInformation: true,
-          personalInformation: true
+          medicalInformation: {
+            orderBy: { createdAt: 'desc' },
+            take: 1
+          },
+          personalInformation: {
+            orderBy: { createdAt: 'desc' },
+            take: 1
+          }
         }
       });
-
-      // Get the most recent medical and personal information
-      const recentMedicalInfo = user?.medicalInformation?.length > 0 
-        ? user.medicalInformation[user.medicalInformation.length - 1] 
-        : null;
-      const recentPersonalInfo = user?.personalInformation?.length > 0 
-        ? user.personalInformation[user.personalInformation.length - 1] 
-        : null;
 
       // Format the response data
       const formattedPregnancies = pregnancies.map(pregnancy => ({
@@ -355,24 +363,24 @@ export const pregnancyController = {
         hasPreeclampsia: pregnancy.hasPreeclampsia,
         hasAnemia: pregnancy.hasAnemia,
         otherConditions: pregnancy.otherConditions,
-        medicalInformation: recentMedicalInfo ? {
-          bloodGroup: recentMedicalInfo.bloodGroup,
-          height: recentMedicalInfo.height,
-          prePregnancyWeight: recentMedicalInfo.prePregnancyWeight,
-          currentWeight: recentMedicalInfo.currentWeight,
-          bmi: recentMedicalInfo.bmi,
-          bloodPressure: recentMedicalInfo.bloodPressure,
-          medicalHistory: recentMedicalInfo.medicalHistory,
-          chronicDiseases: recentMedicalInfo.chronicDiseases,
-          allergies: recentMedicalInfo.allergies,
-          medications: recentMedicalInfo.medications,
-          geneticDisorders: recentMedicalInfo.geneticDisorders
-        } : null,
-        personalInformation: recentPersonalInfo ? {
-          age: recentPersonalInfo.age,
-          genderIdentity: recentPersonalInfo.genderIdentity,
-          occupation: recentPersonalInfo.occupation
-        } : null,
+        medicalInformation: {
+          bloodGroup: pregnancy.bloodGroup,
+          height: pregnancy.height,
+          prePregnancyWeight: pregnancy.prePregnancyWeight,
+          currentWeight: pregnancy.currentWeight,
+          bmi: calculateBMI(pregnancy.currentWeight, pregnancy.height),
+          bloodPressure: pregnancy.bloodPressure,
+          medicalHistory: user?.medicalInformation[0]?.medicalHistory || {},
+          chronicDiseases: user?.medicalInformation[0]?.chronicDiseases || {},
+          allergies: user?.medicalInformation[0]?.allergies || [],
+          medications: user?.medicalInformation[0]?.medications || [],
+          geneticDisorders: user?.medicalInformation[0]?.geneticDisorders || {}
+        },
+        personalInformation: {
+          age: user?.personalInformation[0]?.age || null,
+          genderIdentity: user?.personalInformation[0]?.genderIdentity || 'UNKNOWN',
+          occupation: user?.personalInformation[0]?.occupation || {}
+        },
         latestRiskAssessment: pregnancy.riskAssessments[0] ? {
           riskScore: pregnancy.riskAssessments[0].riskScore,
           assessmentDate: pregnancy.riskAssessments[0].assessmentDate
@@ -391,4 +399,11 @@ export const pregnancyController = {
       );
     }
   }
-}; 
+};
+
+// Helper function to calculate BMI
+function calculateBMI(weight, height) {
+  if (!weight || !height) return null;
+  const heightInMeters = height / 100; // Convert cm to meters
+  return (weight / (heightInMeters * heightInMeters)).toFixed(2);
+} 

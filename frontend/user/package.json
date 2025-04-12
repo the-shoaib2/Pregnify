@@ -59,7 +59,7 @@
     "react-image-crop": "^11.0.7",
     "react-router-dom": "^6.29.0",
     "react-to-print": "^3.0.2",
-    "recharts": "^2.14.1",
+    "recharts": "^2.15.2",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "vite-plugin-compression": "^0.5.1",

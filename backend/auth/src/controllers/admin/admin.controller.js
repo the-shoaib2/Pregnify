@@ -1,173 +1,10 @@
 import prisma from '../../utils/database/prisma.js';
 import ApiError from '../../utils/error/api.error.js';
 import asyncHandler from '../../utils/middleware/async.handler.js';
+import { ROLE_DEFINITIONS } from '../../constants/roles.constants.js';
 import { HTTP_STATUS } from '../../constants/index.js';
 
-/**
- * @desc    Get all users
- * @route   GET /api/v1/admin/users
- */
-export const getAllUsers = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, search, role, status } = req.query;
 
-    const where = {
-        ...(search && {
-            OR: [
-                { email: { contains: search } },
-                { firstName: { contains: search } },
-                { lastName: { contains: search } }
-            ]
-        }),
-        ...(role && { role }),
-        ...(status && { accountStatus: status })
-    };
-
-    const [users, total] = await Promise.all([
-        prisma.user.findMany({
-            where,
-            select: {
-                id: true,
-                email: true,
-                firstName: true,
-                lastName: true,
-                role: true,
-                accountStatus: true,
-                isVerified: true,
-                createdAt: true,
-                lastActive: true
-            },
-            skip: (page - 1) * limit,
-            take: limit,
-            orderBy: { createdAt: 'desc' }
-        }),
-        prisma.user.count({ where })
-    ]);
-
-    res.json({
-        success: true,
-        data: {
-            users,
-            pagination: {
-                currentPage: Number(page),
-                totalPages: Math.ceil(total / limit),
-                totalItems: total,
-                itemsPerPage: limit
-            }
-        }
-    });
-});
-
-/**
- * @desc    Get user by ID
- * @route   GET /api/v1/admin/users/:userId
- */
-export const getUserById = asyncHandler(async (req, res) => {
-    const { userId } = req.params;
-
-    const user = await prisma.user.findUnique({
-        where: { id: userId },
-        include: {
-            personalInformation: true,
-            securitySettings: true,
-            notificationPreferences: true
-        }
-    });
-
-    if (!user) {
-        throw new ApiError(HTTP_STATUS.NOT_FOUND, 'User not found');
-    }
-
-    res.json({
-        success: true,
-        data: user
-    });
-});
-
-/**
- * @desc    Update user
- * @route   PUT /api/v1/admin/users/:userId
- */
-export const updateUser = asyncHandler(async (req, res) => {
-    const { userId } = req.params;
-    const updates = req.body;
-
-    const user = await prisma.user.findUnique({
-        where: { id: userId }
-    });
-
-    if (!user) {
-        throw new ApiError(HTTP_STATUS.NOT_FOUND, 'User not found');
-    }
-
-    const updatedUser = await prisma.$transaction(async (tx) => {
-        // Update user
-        const updated = await tx.user.update({
-            where: { id: userId },
-            data: updates
-        });
-
-        // Log admin action
-        await tx.adminActivityLog.create({
-            data: {
-                userId: req.user.id,
-                targetUserId: userId,
-                action: 'USER_UPDATE',
-                details: `Updated user: ${user.email}`,
-                changes: updates
-            }
-        });
-
-        return updated;
-    });
-
-    res.json({
-        success: true,
-        message: 'User updated successfully',
-        data: updatedUser
-    });
-});
-
-/**
- * @desc    Delete user
- * @route   DELETE /api/v1/admin/users/:userId
- */
-export const deleteUser = asyncHandler(async (req, res) => {
-    const { userId } = req.params;
-
-    const user = await prisma.user.findUnique({
-        where: { id: userId }
-    });
-
-    if (!user) {
-        throw new ApiError(HTTP_STATUS.NOT_FOUND, 'User not found');
-    }
-
-    await prisma.$transaction(async (tx) => {
-        // Soft delete user
-        await tx.user.update({
-            where: { id: userId },
-            data: { 
-                accountStatus: 'DELETED',
-                deletedAt: new Date()
-            }
-        });
-
-        // Log admin action
-        await tx.adminActivityLog.create({
-            data: {
-                userId: req.user.id,
-                targetUserId: userId,
-                action: 'USER_DELETE',
-                details: `Deleted user: ${user.email}`
-            }
-        });
-    });
-
-    res.json({
-        success: true,
-        message: 'User deleted successfully'
-    });
-});
 
 /**
  * @desc    Get system stats
@@ -393,16 +230,12 @@ export const updateAdminSettings = asyncHandler(async (req, res) => {
  * @route   GET /api/v1/admin/roles
  */
 export const getRoles = asyncHandler(async (req, res) => {
-    const roles = await prisma.role.findMany({
-        include: {
-            permissions: true,
-            users: {
-                select: {
-                    _count: true
-                }
-            }
+    const roles = Object.values(ROLE_DEFINITIONS).map(role => ({
+        ...role,
+        users: {
+            _count: 0 // This would need to be calculated if needed
         }
-    });
+    }));
 
     res.json({
         success: true,
@@ -544,20 +377,11 @@ export const deleteRole = asyncHandler(async (req, res) => {
 });
 
 export default {
-    getAllUsers,
-    getUserById,
-    updateUser,
-    deleteUser,
-    getSystemStats,
     getSystemLogs,
     clearSystemLogs,
     getSecurityAudit,
     enableLockdown,
     disableLockdown,
     getAdminSettings,
-    updateAdminSettings,
-    getRoles,
-    createRole,
-    updateRole,
-    deleteRole
+    updateAdminSettings
 };

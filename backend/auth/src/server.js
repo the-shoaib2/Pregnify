@@ -12,6 +12,7 @@ import {
 } from './utils/database/database.utils.js';
 import { createServer } from 'http';
 import socketService from './services/websocket/socket.service.js';
+import { createSuperAdmin } from './command/payload.js';
 
 dotenv.config();
 
@@ -50,14 +51,12 @@ const startServer = async () => {
 
         console.log('\x1b[32m%s\x1b[0m', '\t\t✓ Server started successfully ☘️ \n');  // Green color
 
-        // Try to connect to databases
-        await testDbConnection();
-        
         // Initialize databases
         await initializeDatabases();
-        
+        await testDbConnection();
+
         // Start server on fixed port
-        server.listen(PORT, () => {
+        server.listen(PORT, async () => {
             // Server info
             console.log('\x1b[32m%s\x1b[0m', '✓ Server Status');  // Green color
             console.log('  • Environment:', process.env.NODE_ENV);
@@ -70,6 +69,15 @@ const startServer = async () => {
             console.log('  • Health Check:', `http://localhost:${PORT}/api/${API_VERSION}/health`);
             
             console.log('\n\x1b[33m%s\x1b[0m', 'Press Ctrl+C to stop the server\n');  // Yellow color
+
+            // Create super admin after server is running
+            try {
+                console.log('\x1b[36m%s\x1b[0m', 'Creating super admin account...');
+                await createSuperAdmin();
+                console.log('\x1b[32m%s\x1b[0m', '✓ Super admin account created successfully');
+            } catch (error) {
+                console.error('\x1b[31m%s\x1b[0m', '✗ Failed to create super admin:', error.message);
+            }
         });
 
         // Initialize WebSocket service after server starts

@@ -6,8 +6,6 @@ import { TopNav } from "@/components/top-nav"
 import { PageHeader } from "@/components/page-header"
 import { SettingsNav, settingsNavGroups } from "@/components/settings-nav"
 import { SettingsNavBridge } from "@/components/settings-nav-bridge"
-import { Sheet, SheetContent } from "@/components/ui/sheet"
-import { useState } from "react"
 
 // Role-based layout configurations
 const roleLayoutConfig = {
@@ -16,48 +14,54 @@ const roleLayoutConfig = {
     showTopNav: false,
     showHeader: true,
     showSettingsNav: true,
-    layoutType: 'sidebar'
+    layoutType: 'sidebar',
+    defaultPath: '/dashboard/overview'
   },
   ADMIN: {
     showSidebar: true,
     showTopNav: false,
     showHeader: true,
     showSettingsNav: true,
-    layoutType: 'sidebar'
+    layoutType: 'sidebar',
+    defaultPath: '/dashboard/overview'
   },
   DOCTOR: {
     showSidebar: false,
     showTopNav: true,
     showHeader: false,
-    showSettingsNav: true,
-    layoutType: 'top-nav'
+    showSettingsNav: false,
+    layoutType: 'top-nav',
+    defaultPath: '/'
   },
   PATIENT: {
     showSidebar: false,
     showTopNav: true,
     showHeader: false,
     showSettingsNav: false,
-    layoutType: 'top-nav'
+    layoutType: 'top-nav',
+    defaultPath: '/'
   },
   GUEST: {
     showSidebar: false,
     showTopNav: true,
     showHeader: false,
     showSettingsNav: false,
-    layoutType: 'top-nav'
+    layoutType: 'top-nav',
+    defaultPath: '/'
   },
   default: {
     showSidebar: false,
     showTopNav: true,
     showHeader: false,
     showSettingsNav: false,
-    layoutType: 'top-nav'
+    layoutType: 'top-nav',
+    defaultPath: '/'
   }
 }
 
-export function RoleBasedLayout({ 
-  children, 
-  showHeader = true, 
+export function RoleBasedLayout({
+  children,
+  showHeader = true,
   headerTitle = "",
   customLayout = null,
   isSettingsPage = false
@@ -65,16 +69,15 @@ export function RoleBasedLayout({
   const { user } = useAuth()
   const userRole = user?.basicInfo?.role
   const isMobile = useIsMobile()
-  const [isSettingsSidebarOpen, setIsSettingsSidebarOpen] = useState(false)
 
   // Get layout configuration for the current role
   const layoutConfig = roleLayoutConfig[userRole] || roleLayoutConfig.default
 
   // Override layout for mobile devices
-  const showSidebar = layoutConfig.showSidebar
+  const showSidebar = layoutConfig.showSidebar && !isMobile
   const showTopNav = layoutConfig.showTopNav
   const showSettingsNav = layoutConfig.showSettingsNav && isSettingsPage
-  
+
   // Determine header visibility based on role and showHeader prop
   const shouldShowHeader = showHeader && layoutConfig.showHeader
 
@@ -91,7 +94,7 @@ export function RoleBasedLayout({
           <SidebarInset>
             {showTopNav && <TopNav />}
             {shouldShowHeader && <PageHeader title={headerTitle} className="sticky top-0 z-20 bg-background" />}
-            <div className="flex flex-1 overflow-hidden">
+            <div className="flex flex-1 overflow-hidden lg:h-[calc(100vh)]">
               {/* Settings Navigation - Desktop */}
               {showSettingsNav && !isMobile && (
                 <aside className="hidden w-56 shrink-0 overflow-y-auto border-r bg-muted/40 lg:block">
@@ -110,7 +113,7 @@ export function RoleBasedLayout({
         <>
           {showTopNav && <TopNav />}
           {shouldShowHeader && <PageHeader title={headerTitle} className="sticky top-0 z-20 bg-background" />}
-          <div className="flex flex-1 overflow-hidden">
+          <div className="flex flex-1 overflow-hidden lg:h-[calc(100vh)]">
             {/* Settings Navigation - Desktop */}
             {showSettingsNav && !isMobile && (
               <aside className="hidden w-56 shrink-0 overflow-y-auto border-r bg-muted/40 lg:block">
@@ -119,13 +122,17 @@ export function RoleBasedLayout({
             )}
 
             {/* Content Area */}
-            <main className={`flex-1 overflow-y-auto ${isMobile ? 'p-4 mt-12' : 'p-4 mt-16'}`}>
+            <main className={`flex-1 overflow-y-auto ${
+              isMobile 
+                ? 'p-2 pt-4 mt-10 mb-16' 
+                : 'p-2 sm:p-4 pt-4 mt-16'
+            }`}>
               {children}
             </main>
           </div>
         </>
       )}
-      
+
       {/* Settings Navigation Bridge - Only visible on mobile when on settings pages */}
       {showSettingsNav && isMobile && <SettingsNavBridge />}
     </SidebarProvider>

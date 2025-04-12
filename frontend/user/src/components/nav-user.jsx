@@ -123,6 +123,7 @@ const NavUser = () => {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
+            
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <DropdownMenuItem

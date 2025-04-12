@@ -3,14 +3,14 @@ import { SettingsService } from '@/services'
 import { useAuth } from '@/contexts/auth-context/auth-context'
 import { toast } from 'react-hot-toast'
 import { ProfileService } from '@/services/settings'
-import { CacheManager,CONSTANTS} from '@/utils/security'
+import { CacheManager, CONSTANTS } from '@/utils/security'
 
 const SettingsContext = createContext({})
 
 const API_URL = import.meta.env.VITE_API_URL
 
 export function SettingsProvider({ children }) {
-  const { user: authUser, login } = useAuth()
+  const { user: authUser, login, refreshToken } = useAuth()
   const [state, setState] = useState({
     settings: null,
     profile: null,
@@ -61,13 +61,27 @@ export function SettingsProvider({ children }) {
       console.error('Failed to fetch profile:', error)
       
       // Handle authentication errors
-      if (error.message === 'Authentication required') {
-        setState(prev => ({ 
-          ...prev, 
-          error: 'Please log in to view your profile',
-          profile: null 
-        }))
-        // Optionally redirect to login or show login modal
+      if (error.response?.status === 401) {
+        try {
+          // Attempt to refresh token
+          const newToken = await refreshToken()
+          if (newToken) {
+            // Retry the profile fetch with new token
+            const profile = await ProfileService.getProfile({ forceRefresh: true })
+            if (profile) {
+              setState(prev => ({ ...prev, profile, error: null }))
+              lastProfileFetchTime.current = Date.now()
+              return profile
+            }
+          }
+        } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError)
+          setState(prev => ({ 
+            ...prev, 
+            error: 'Please log in to view your profile',
+            profile: null 
+          }))
+        }
       } else {
         setState(prev => ({ 
           ...prev, 
@@ -80,9 +94,9 @@ export function SettingsProvider({ children }) {
       setState(prev => ({ ...prev, loading: false }))
       profileFetchInProgress.current = false
     }
-  }, [authUser, state.profile])
+  }, [authUser, state.profile, refreshToken])
 
-  // Load settings with request deduplication
+  // Load settings with request deduplication and token refresh
   const loadSettings = useCallback(async () => {
     if (settingsFetchInProgress.current) {
       return state.settings
@@ -110,13 +124,36 @@ export function SettingsProvider({ children }) {
       return response.data
     } catch (error) {
       console.error('Failed to load settings:', error)
-      toast.error('Failed to load settings')
+      
+      // Handle authentication errors
+      if (error.response?.status === 401) {
+        try {
+          // Attempt to refresh token
+          const newToken = await refreshToken()
+          if (newToken) {
+            // Retry the settings fetch with new token
+            const response = await SettingsService.getSettings()
+            setState(prev => ({ 
+              ...prev, 
+              settings: response.data,
+              loading: false,
+              isInitialized: true
+            }))
+            return response.data
+          }
+        } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError)
+          toast.error('Authentication required to load settings')
+        }
+      } else {
+        toast.error('Failed to load settings')
+      }
       setState(prev => ({ ...prev, loading: false }))
       return null
     } finally {
       settingsFetchInProgress.current = false
     }
-  }, [state.settings])
+  }, [state.settings, refreshToken])
 
   const updateSettings = useCallback(async (section, data) => {
     setState(prev => ({ ...prev, loading: true }))
@@ -138,11 +175,37 @@ export function SettingsProvider({ children }) {
       return response
     } catch (error) {
       console.error('Failed to update settings:', error)
+      
+      // Handle authentication errors
+      if (error.response?.status === 401) {
+        try {
+          // Attempt to refresh token
+          const newToken = await refreshToken()
+          if (newToken) {
+            // Retry the settings update with new token
+            const response = await SettingsService.updateSettings({ [section]: data })
+            setState(prev => ({
+              ...prev,
+              settings: {
+                ...prev.settings,
+                [section]: response.data[section]
+              }
+            }))
+            if (section === 'profile') {
+              await fetchProfile(true)
+            }
+            return response
+          }
+        } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError)
+          throw new Error('Authentication required to update settings')
+        }
+      }
       throw error
     } finally {
       setState(prev => ({ ...prev, loading: false }))
     }
-  }, [fetchProfile])
+  }, [fetchProfile, refreshToken])
 
   const value = useMemo(() => ({
     ...state,
