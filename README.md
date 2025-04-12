@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Pregnify
 
 **Pregnify** is an AI-powered pregnancy health management and risk prediction platform built with modern web technologies. It provides an all-in-one solution for patients, doctors, and administrators to manage healthcare, track health data, and make informed decisions throughout the pregnancy journey.
@@ -116,3 +117,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 Contributions are welcome! Please feel free to submit a Pull Request. 
 
 chmod +x setup.sh
+=======
+
