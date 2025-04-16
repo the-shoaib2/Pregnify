@@ -63,13 +63,14 @@ const CustomFormField = ({ label, id, children, className = "" }) => {
 
 
 // Password field with toggle visibility
-const PasswordField = ({ label, id, placeholder, value, onChange, required = false }) => {
+const PasswordField = React.forwardRef(({ label, id, placeholder, value, onChange, required = false }, ref) => {
   const [showPassword, setShowPassword] = useState(false)
   
   return (
     <CustomFormField label={label} id={id}>
       <div className="relative">
         <Input
+          ref={ref}
           id={id}
           type={showPassword ? "text" : "password"}
           placeholder={placeholder}
@@ -96,7 +97,9 @@ const PasswordField = ({ label, id, placeholder, value, onChange, required = fal
       </div>
     </CustomFormField>
   )
-}
+})
+
+PasswordField.displayName = "PasswordField"
 
 export function UserAddForm({ initialData = null, isEditMode = false, onSuccess = null }) {
   const navigate = useNavigate()

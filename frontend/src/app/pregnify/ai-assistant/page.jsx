@@ -12,20 +12,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PregnancyService, SYSTEM_ENUMS } from "@/services/pregnify"
 import { useAuth } from "@/contexts/auth-context/auth-context"
 import { useParams, Link, useNavigate } from "react-router-dom"
-import { 
-  Brain, 
-  AlertTriangle, 
-  CheckCircle2, 
-  XCircle, 
-  RefreshCw, 
-  Activity, 
-  Heart, 
-  Baby, 
-  Thermometer, 
-  Droplet, 
-  Scale, 
-  Clock, 
-  MessageSquare, 
+import {
+  Brain,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  RefreshCw,
+  Activity,
+  Heart,
+  Baby,
+  Thermometer,
+  Droplet,
+  Scale,
+  Clock,
+  MessageSquare,
   Loader2,
   Shield,
   Lock,
@@ -70,6 +70,9 @@ const parseJSON = (str) => {
   }
 }
 
+
+
+
 // AI Assistant Page
 export default function AIAssistantPage() {
   const { user } = useAuth()
@@ -85,21 +88,116 @@ export default function AIAssistantPage() {
   const [accessDenied, setAccessDenied] = useState(false)
   const abortControllerRef = useRef(null)
 
+  // Start AI prediction stream
+  const startAiStream = async () => {
+    if (streaming) return;
+  
+    try {
+      const pregnancyIdToUse = pregnancyId || (pregnancyDetails && pregnancyDetails.id);
+      
+      if (!pregnancyIdToUse) {
+        setError("Pregnancy ID is required for AI analysis");
+        return;
+      }
+  
+      setStreaming(true);
+      setStreamData([]);
+      setError(null);
+      setAccessDenied(false);
+      setAiPrediction(null);
+  
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      abortControllerRef.current = new AbortController();
+  
+      let localStreamData = [];
+  
+      await PregnancyService.getAIPredictions(
+        pregnancyIdToUse,
+        (data) => {
+          if (!data || typeof data !== 'object') {
+            console.warn('Invalid data received:', data);
+            return;
+          }
+  
+          try {
+            localStreamData.push(data);
+            setStreamData(prev => [...prev, data]);
+  
+            if (data.content?.trim()) {
+              setAiPrediction(prev => ({
+                content: prev ? `${prev.content}\n${data.content.trim()}` : data.content.trim()
+              }));
+            }
+          } catch (err) {
+            console.error('Error processing stream data:', err);
+          }
+        },
+        (err) => {
+          console.error('Stream error:', err);
+          if (err?.message?.includes('Access denied')) {
+            setAccessDenied(true);
+          } else if (err?.message?.includes('Network Error')) {
+            setError("Network connection lost. Please check your internet connection and try again.");
+          } else {
+            setError(err?.message || "Error in AI prediction stream. Please try again.");
+          }
+          setStreaming(false);
+        },
+        () => {
+          if (localStreamData.length === 0) {
+            setError("No prediction data received. Please try again.");
+          }
+          setStreaming(false);
+        }
+      );
+    } catch (err) {
+      console.error('Error starting AI stream:', err);
+      if (err?.message?.includes('Access denied')) {
+        setAccessDenied(true);
+      } else if (err?.message?.includes('Network Error')) {
+        setError("Network connection lost. Please check your internet connection and try again.");
+      } else {
+        setError(err?.message || "Failed to start AI prediction. Please check your connection and try again.");
+      }
+      setStreaming(false);
+    }
+  };
+
   // Fetch pregnancy details
   const fetchPregnancyDetails = async () => {
     try {
       setLoading(true)
       setError(null)
       setAccessDenied(false)
+
+      // Get all pregnancy records first
+      const response = await PregnancyService.getPregnancyDetails()
       
-      if (!pregnancyId) {
-        setError("Pregnancy ID is required")
-        setLoading(false)
-        return
+      // If we have a specific pregnancyId, find that record
+      if (pregnancyId && response.data) {
+        const specificPregnancy = response.data.find(p => p.id === pregnancyId)
+        if (specificPregnancy) {
+          setPregnancyDetails(specificPregnancy)
+        } else {
+          setError(`Pregnancy record with ID ${pregnancyId} not found`)
+        }
+      } else if (response.data && response.data.length > 0) {
+        // If no specific ID but we have records, use the first one
+        setPregnancyDetails(response.data[0])
+        
+        // If we're not already navigating to a specific ID, navigate directly here
+        // This helps avoid the race condition with the useEffect
+        if (!pregnancyId) {
+          console.log('Navigating directly to:', response.data[0].id)
+          navigate(`/ai-assistant/${response.data[0].id}`, { replace: true })
+        }
+      } else {
+        // No pregnancy records found
+        console.log('No pregnancy records found')
+        setPregnancyDetails(null)
       }
-      
-      const data = await PregnancyService.getPregnancyDetails(pregnancyId)
-      setPregnancyDetails(data)
     } catch (err) {
       console.error("Error fetching pregnancy details:", err)
       if (err.message.includes('Access denied')) {
@@ -113,19 +211,22 @@ export default function AIAssistantPage() {
   }
 
   // Fetch risk assessment data
-  const fetchRiskAssessment = async () => {
+  const fetchRiskAssessment = async (id = null) => {
     try {
       setLoading(true)
       setError(null)
       setAccessDenied(false)
+
+      // Use provided id, or pregnancyId from params, or try to get from pregnancyDetails
+      const pregnancyIdToUse = id || pregnancyId || (pregnancyDetails && pregnancyDetails.id)
       
-      if (!pregnancyId) {
-        setError("Pregnancy ID is required")
+      if (!pregnancyIdToUse) {
+        setError("Pregnancy ID is required for risk assessment")
         setLoading(false)
         return
       }
-      
-      const data = await PregnancyService.getRiskAssessment(pregnancyId)
+
+      const data = await PregnancyService.getRiskAssessment(pregnancyIdToUse)
       setRiskAssessment(data)
     } catch (err) {
       console.error("Error fetching risk assessment:", err)
@@ -136,51 +237,6 @@ export default function AIAssistantPage() {
       }
     } finally {
       setLoading(false)
-    }
-  }
-
-  // Start AI prediction stream
-  const startAiStream = async () => {
-    try {
-      if (!pregnancyId) {
-        setError("Pregnancy ID is required")
-        return
-      }
-      
-      setStreaming(true)
-      setStreamData([])
-      setError(null)
-      setAccessDenied(false)
-      
-      // Create a new AbortController for this request
-      abortControllerRef.current = new AbortController()
-      
-      await PregnancyService.streamAIPredictions(
-        pregnancyId,
-        (data) => {
-          setStreamData(prev => [...prev, data])
-        },
-        (err) => {
-          console.error("Error in AI stream:", err)
-          if (err.message.includes('Access denied')) {
-            setAccessDenied(true)
-          } else {
-            setError(err.message || "Error in AI prediction stream")
-          }
-          setStreaming(false)
-        },
-        () => {
-          setStreaming(false)
-        }
-      )
-    } catch (err) {
-      console.error("Error starting AI stream:", err)
-      if (err.message.includes('Access denied')) {
-        setAccessDenied(true)
-      } else {
-        setError(err.message || "Failed to start AI prediction")
-      }
-      setStreaming(false)
     }
   }
 
@@ -195,9 +251,15 @@ export default function AIAssistantPage() {
 
   // Load data on component mount
   useEffect(() => {
+    console.log('Component mounted, pregnancyId:', pregnancyId)
     fetchPregnancyDetails()
-    fetchRiskAssessment()
     
+    // Only fetch risk assessment if we have a pregnancyId
+    if (pregnancyId) {
+      console.log('Fetching risk assessment for ID:', pregnancyId)
+      fetchRiskAssessment()
+    }
+
     // Cleanup function
     return () => {
       if (abortControllerRef.current) {
@@ -205,6 +267,10 @@ export default function AIAssistantPage() {
       }
     }
   }, [pregnancyId])
+
+  // We're now handling navigation directly in the fetchPregnancyDetails function
+  // This avoids race conditions with state updates and ensures navigation happens
+  // immediately after we have the data, rather than waiting for a state update
 
   // Render empty state
   const renderEmptyState = () => {
@@ -317,7 +383,7 @@ export default function AIAssistantPage() {
       )
     }
 
-    if (!riskAssessment) {
+    if (!riskAssessment?.data) {
       return (
         <Card className="transition-all duration-300 hover:shadow-md">
           <CardHeader>
@@ -334,15 +400,16 @@ export default function AIAssistantPage() {
       )
     }
 
-    const recommendations = parseJSON(riskAssessment.recommendations)
-    const referenceRanges = parseJSON(riskAssessment.referenceRanges)
-    const chronicConditions = parseJSON(riskAssessment.chronicConditions)
-    const currentMedications = parseJSON(riskAssessment.currentMedications)
-    const allergies = parseJSON(riskAssessment.allergies)
-    const geneticDisorders = parseJSON(riskAssessment.geneticDisorders)
-    const pregnancyComplications = parseJSON(riskAssessment.pregnancyComplications)
+    const assessment = riskAssessment.data
+    const recommendations = parseJSON(assessment.recommendations)
+    const referenceRanges = parseJSON(assessment.referenceRanges)
+    const chronicConditions = parseJSON(assessment.chronicConditions)
+    const currentMedications = parseJSON(assessment.currentMedications)
+    const allergies = parseJSON(assessment.allergies)
+    const geneticDisorders = parseJSON(assessment.geneticDisorders)
+    const pregnancyComplications = parseJSON(assessment.pregnancyComplications)
 
-  return (
+    return (
       <div className="space-y-4">
         {/* Overview Card */}
         <Card className="transition-all duration-300 hover:shadow-md">
@@ -355,40 +422,40 @@ export default function AIAssistantPage() {
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="bg-primary/10 text-primary">
-                Risk Score: {riskAssessment.riskScore}%
+                Risk Score: {assessment.riskScore}%
               </Badge>
               <Badge variant="outline" className="bg-green-500/10 text-green-500">
-                {riskAssessment.bloodPressureStatus}
+                {assessment.bloodPressureStatus}
               </Badge>
               <Badge variant="outline" className="bg-green-500/10 text-green-500">
-                {riskAssessment.bloodSugarStatus}
+                {assessment.bloodSugarStatus}
               </Badge>
             </div>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
               <div className="text-sm text-muted-foreground">Age</div>
-              <div className="font-medium">{riskAssessment.age} years</div>
+              <div className="font-medium">{assessment.age} years</div>
             </div>
             <div className="space-y-2">
               <div className="text-sm text-muted-foreground">BMI</div>
-              <div className="font-medium">{riskAssessment.bmi}</div>
+              <div className="font-medium">{assessment.bmi}</div>
             </div>
             <div className="space-y-2">
               <div className="text-sm text-muted-foreground">Weight</div>
-              <div className="font-medium">{riskAssessment.weight} kg</div>
+              <div className="font-medium">{assessment.weight} kg</div>
             </div>
             <div className="space-y-2">
               <div className="text-sm text-muted-foreground">Height</div>
-              <div className="font-medium">{riskAssessment.height} cm</div>
+              <div className="font-medium">{assessment.height} cm</div>
             </div>
             <div className="space-y-2">
               <div className="text-sm text-muted-foreground">Previous Pregnancies</div>
-              <div className="font-medium">{riskAssessment.previousPregnancies}</div>
+              <div className="font-medium">{assessment.previousPregnancies}</div>
             </div>
             <div className="space-y-2">
               <div className="text-sm text-muted-foreground">Medical Checkups</div>
-              <div className="font-medium">{riskAssessment.medicalCheckups}</div>
+              <div className="font-medium">{assessment.medicalCheckups}</div>
             </div>
           </CardContent>
         </Card>
@@ -403,17 +470,17 @@ export default function AIAssistantPage() {
               <div className="space-y-2">
                 <div className="text-sm font-medium">Lifestyle Factors</div>
                 <div className="grid grid-cols-2 gap-2">
-                  <Badge variant="outline" className={riskAssessment.isSmoker ? "bg-red-500/10 text-red-500" : "bg-green-500/10 text-green-500"}>
-                    Smoking: {riskAssessment.isSmoker ? "Yes" : "No"}
+                  <Badge variant="outline" className={assessment.isSmoker ? "bg-red-500/10 text-red-500" : "bg-green-500/10 text-green-500"}>
+                    Smoking: {assessment.isSmoker ? "Yes" : "No"}
                   </Badge>
-                  <Badge variant="outline" className={riskAssessment.alcoholConsumption ? "bg-red-500/10 text-red-500" : "bg-green-500/10 text-green-500"}>
-                    Alcohol: {riskAssessment.alcoholConsumption ? "Yes" : "No"}
+                  <Badge variant="outline" className={assessment.alcoholConsumption ? "bg-red-500/10 text-red-500" : "bg-green-500/10 text-green-500"}>
+                    Alcohol: {assessment.alcoholConsumption ? "Yes" : "No"}
                   </Badge>
-                  <Badge variant="outline" className={riskAssessment.substanceUse ? "bg-red-500/10 text-red-500" : "bg-green-500/10 text-green-500"}>
-                    Substance Use: {riskAssessment.substanceUse ? "Yes" : "No"}
+                  <Badge variant="outline" className={assessment.substanceUse ? "bg-red-500/10 text-red-500" : "bg-green-500/10 text-green-500"}>
+                    Substance Use: {assessment.substanceUse ? "Yes" : "No"}
                   </Badge>
                   <Badge variant="outline" className="bg-green-500/10 text-green-500">
-                    Exercise: {riskAssessment.exerciseHabits}
+                    Exercise: {assessment.exerciseHabits}
                   </Badge>
                 </div>
               </div>
@@ -480,9 +547,9 @@ export default function AIAssistantPage() {
 
         {/* Reference Ranges Card */}
         <Card className="transition-all duration-300 hover:shadow-md">
-            <CardHeader>
+          <CardHeader>
             <CardTitle>Reference Ranges</CardTitle>
-            </CardHeader>
+          </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {referenceRanges?.women && Object.entries(referenceRanges.women).map(([key, value], index) => (
@@ -498,8 +565,25 @@ export default function AIAssistantPage() {
     )
   }
 
+
   // Render AI prediction section
-  const renderAiPrediction = () => {
+  const renderAIPrediction = () => {
+    if (loading) {
+      return (
+        <Card className="transition-all duration-300 hover:shadow-md">
+          <CardHeader>
+            <Skeleton className="h-5 w-1/3" />
+            <Skeleton className="h-4 w-2/3" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+          </CardContent>
+        </Card>
+      )
+    }
+
     if (accessDenied) {
       return (
         <Card className="transition-all duration-300 hover:shadow-md border-amber-200 bg-amber-50/30">
@@ -537,23 +621,23 @@ export default function AIAssistantPage() {
                   <Shield className="mr-2 h-4 w-4" />
                   Register as Patient
                 </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )
     }
 
     if (error) {
       return (
         <Card className="transition-all duration-300 hover:shadow-md">
-            <CardHeader>
+          <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-red-500" />
               Error
             </CardTitle>
-            </CardHeader>
-            <CardContent>
+          </CardHeader>
+          <CardContent>
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Error</AlertTitle>
@@ -571,71 +655,95 @@ export default function AIAssistantPage() {
     }
 
     return (
-      <Card className="transition-all duration-300 hover:shadow-md">
-        <CardHeader>
-          <CardTitle>AI Health Assistant</CardTitle>
-          <CardDescription>
-            Get personalized health insights and predictions
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {streaming ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-center p-4">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-              <div className="space-y-2">
-                {streamData.map((data, index) => (
-                  <div key={index} className="p-3 rounded-md bg-muted/50">
-                    <div className="flex items-start gap-2">
-                      <Brain className="h-5 w-5 text-primary mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium">{data.title}</p>
-                        <p className="text-sm text-muted-foreground">{data.description}</p>
-                      </div>
+      <div className="space-y-4">
+        <Card className="transition-all duration-300 hover:shadow-md">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5 text-primary" />
+                AI Analysis
+              </CardTitle>
+              <CardDescription>
+                {streaming ? 'Analyzing your health data...' : 'Based on your latest risk assessment data'}
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              {streaming ? (
+                <Button variant="outline" onClick={stopAiStream}>
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Stop
+                </Button>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  onClick={startAiStream}
+                  disabled={!pregnancyDetails}
+                >
+                  {!aiPrediction ? (
+                    <>
+                      <Brain className="mr-2 h-4 w-4" />
+                      Start Analysis
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Refresh
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {streaming ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <span className="text-sm text-muted-foreground">Processing...</span>
+                </div>
+                <div className="prose prose-sm max-w-none">
+                  {streamData.map((data, index) => (
+                    <div key={index} className="space-y-2">
+                      {data.content && <p>{data.content}</p>}
                     </div>
-                  </div>
-                ))}
-              </div>
-              <Button onClick={stopAiStream} variant="destructive">
-                Stop
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 rounded-lg bg-primary/5 flex flex-col items-center justify-center text-center">
-                  <Heart className="h-8 w-8 text-primary mb-2" />
-                  <h3 className="text-sm font-medium">Health Insights</h3>
-                  <p className="text-xs text-muted-foreground">Get personalized health recommendations</p>
-                </div>
-                <div className="p-4 rounded-lg bg-primary/5 flex flex-col items-center justify-center text-center">
-                  <Baby className="h-8 w-8 text-primary mb-2" />
-                  <h3 className="text-sm font-medium">Baby Development</h3>
-                  <p className="text-xs text-muted-foreground">Track your baby's growth and development</p>
-                </div>
-                <div className="p-4 rounded-lg bg-primary/5 flex flex-col items-center justify-center text-center">
-                  <Calendar className="h-8 w-8 text-primary mb-2" />
-                  <h3 className="text-sm font-medium">Pregnancy Timeline</h3>
-                  <p className="text-xs text-muted-foreground">See what to expect in your pregnancy journey</p>
-                </div>
-                <div className="p-4 rounded-lg bg-primary/5 flex flex-col items-center justify-center text-center">
-                  <MessageSquare className="h-8 w-8 text-primary mb-2" />
-                  <h3 className="text-sm font-medium">Ask Questions</h3>
-                  <p className="text-xs text-muted-foreground">Get answers to your pregnancy questions</p>
+                  ))}
                 </div>
               </div>
-              <Button onClick={startAiStream} className="w-full">
-                <Brain className="mr-2 h-4 w-4" />
-                Start AI Assistant
-              </Button>
-            </div>
-          )}
-            </CardContent>
-          </Card>
+            ) : aiPrediction ? (
+              <div className="prose prose-sm max-w-none space-y-4">
+                {typeof aiPrediction === 'string' ? (
+                  <p>{aiPrediction}</p>
+                ) : (
+                  <>
+                    {aiPrediction.content && <p>{aiPrediction.content}</p>}
+                    {aiPrediction.recommendations && (
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium">Recommendations</h4>
+                        <ul className="list-disc pl-4 space-y-1">
+                          {aiPrediction.recommendations.map((rec, index) => (
+                            <li key={index} className="text-sm">{rec}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-sm text-muted-foreground">
+                  Click "Start Analysis" to begin AI assessment of your pregnancy health data
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     )
   }
 
+  // Show empty state if no pregnancy details and not loading
   if (!pregnancyDetails && !loading) {
     return (
       <RoleBasedLayout headerTitle="AI Health Assistant">
@@ -645,6 +753,8 @@ export default function AIAssistantPage() {
       </RoleBasedLayout>
     )
   }
+  
+  // Navigation to the specific pregnancy ID URL is handled by the useEffect hook above
 
   return (
     <RoleBasedLayout headerTitle="AI Health Assistant">
@@ -658,10 +768,10 @@ export default function AIAssistantPage() {
             {renderRiskAssessment()}
           </TabsContent>
           <TabsContent value="ai" className="space-y-4">
-            {renderAiPrediction()}
+            {renderAIPrediction()}
           </TabsContent>
         </Tabs>
       </div>
     </RoleBasedLayout>
   )
-} 
+}

@@ -59,14 +59,7 @@ export default function RolesPage() {
         setIsLoadingMore(true)
       }
       
-      const response = await RoleManagementService.getAllRoles({
-        page: pageNum,
-        limit: ITEMS_PER_PAGE,
-        search: searchQuery,
-        category: filterCategory !== "all" ? filterCategory : undefined,
-        sortBy,
-        sortOrder
-      })
+      const response = await RoleManagementService.getAllRoles()
 
       // Check if response is valid
       if (!response || typeof response !== 'object') {
@@ -78,9 +71,15 @@ export default function RolesPage() {
         throw new Error(response.error)
       }
 
-      // Check for success response
-      if (response.success && Array.isArray(response.data)) {
-        const newRoles = response.data
+      // Check for success response and transform the data
+      if (response.data && response.data.data && Array.isArray(response.data.data.roles)) {
+        const newRoles = response.data.data.roles.map(role => ({
+          ...role,
+          category: role.category || 'SYSTEM',
+          level: role.level || 5,
+          permissions: role.permissions || []
+        }))
+        
         setRoles(prev => reset ? newRoles : [...prev, ...newRoles])
         setHasMore(newRoles.length === ITEMS_PER_PAGE)
 
@@ -98,7 +97,7 @@ export default function RolesPage() {
       setLoading(false)
       setIsLoadingMore(false)
     }
-  }, [searchQuery, filterCategory, sortBy, sortOrder])
+  }, [])
 
   // Handle category filter change
   const handleCategoryChange = (value) => {
@@ -198,13 +197,6 @@ export default function RolesPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate("/users")}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
             <CardTitle className="text-lg font-bold">Roles & Permissions</CardTitle>
           </div>
           <Button size="sm">

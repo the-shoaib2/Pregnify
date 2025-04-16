@@ -139,6 +139,11 @@ function App() {
                   <AIAssistantPage />
                 </ProtectedRoute>
               } />
+              <Route path="/ai-assistant/:pregnancyId" element={
+                <ProtectedRoute allowedRoles={['DOCTOR', 'PATIENT', 'GUEST']}>
+                  <AIAssistantPage />
+                </ProtectedRoute>
+              } />
               <Route path="/doctors" element={
                 <ProtectedRoute allowedRoles={['DOCTOR', 'PATIENT', 'GUEST']}>
                   <DoctorsPage />

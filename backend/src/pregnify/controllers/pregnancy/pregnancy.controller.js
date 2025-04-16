@@ -103,7 +103,7 @@ export const pregnancyController = {
           pregnancyId: pregnancy.id,
           // Personal Information
           age: user?.personalInformation[0]?.age || 0,
-          bmi: calculateBMI(weight, height),
+          bmi: parseFloat(calculateBMI(weight, height)),
           nutritionStatus: 'unknown',
           exerciseHabits: 'unknown',
           psychologicalHealth: 'unknown',

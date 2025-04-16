@@ -24,10 +24,13 @@ import {
   RefreshCw,
   ArrowRight,
   Shield,
-  Lock
+  Lock,
+  History
 } from "lucide-react"
-import { PregnancyDataForm } from "@/components/pregnancy/pregnancy-data-form"
+import { PregnancyDataForm } from "@/app/pregnify/health/components/pregnancy/PregnancyDataForm"
+import { RiskAssessmentForm } from "@/app/pregnify/health/components/risk-assessment-form"
 import toast from "react-hot-toast"
+import { RiskAssessmentCard } from "./components/risk-assessment-card"
 
 // Risk level badge component
 const RiskLevelBadge = ({ level }) => {
@@ -241,80 +244,30 @@ export default function HealthPage() {
       )
     }
 
-    if (!riskAssessment) {
+    if (!riskAssessment?.data) {
       return (
         <Card className="transition-all duration-300 hover:shadow-md">
-          <CardHeader>
-            <CardTitle>Risk Assessment</CardTitle>
-            <CardDescription>No risk assessment data available</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={fetchRiskAssessment}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Refresh
-            </Button>
+          <CardContent className="flex flex-col items-center justify-center p-8 space-y-4">
+            <div className="text-center space-y-2">
+              <h3 className="text-lg font-semibold">No Risk Assessment Available</h3>
+              <p className="text-sm text-muted-foreground">
+                Complete a risk assessment to monitor your pregnancy health
+              </p>
+            </div>
+            {pregnancyData?.id && (
+              <RiskAssessmentForm pregnancyId={pregnancyData.id} />
+            )}
           </CardContent>
         </Card>
       )
     }
 
     return (
-      <Card className="transition-all duration-300 hover:shadow-md">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Risk Assessment</CardTitle>
-            <CardDescription>
-              Last updated: {new Date(riskAssessment.updatedAt).toLocaleString()}
-            </CardDescription>
-          </div>
-          <RiskLevelBadge level={riskAssessment.riskLevel} />
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Overall Risk Score</span>
-              <span className="font-medium">{riskAssessment.riskScore}%</span>
-            </div>
-            <Progress value={riskAssessment.riskScore} className="h-2" />
-          </div>
-          
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium">Risk Factors</h4>
-            <div className="space-y-2">
-              {riskAssessment.riskFactors?.map((factor, index) => (
-                <div key={index} className="flex items-center justify-between p-2 rounded-md bg-muted/50">
-                  <div className="flex items-center gap-2">
-                    {factor.severity === 'HIGH' ? (
-                      <AlertTriangle className="h-4 w-4 text-red-500" />
-                    ) : factor.severity === 'MEDIUM' ? (
-                      <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                    ) : (
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    )}
-                    <span className="text-sm">{factor.name}</span>
-                  </div>
-                  <Badge variant="outline" className="text-xs">
-                    {factor.severity}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col sm:flex-row justify-between gap-2">
-          <Button onClick={fetchRiskAssessment} variant="outline" className="w-full sm:w-auto">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh
-          </Button>
-          <Button asChild className="w-full sm:w-auto">
-            <Link to={`/pregnify/ai-assistant/${pregnancyData?.id}`}>
-              <Brain className="mr-2 h-4 w-4" />
-              AI Assistant
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
-        </CardFooter>
-      </Card>
+      <RiskAssessmentCard 
+        assessment={riskAssessment.data} 
+        onRefresh={fetchRiskAssessment} 
+        pregnancyData={pregnancyData} 
+      />
     )
   }
 
@@ -332,19 +285,32 @@ export default function HealthPage() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Week 24 of 40</span>
-                    <span className="font-medium">60% Complete</span>
+                    <span className="text-muted-foreground">Week {pregnancyData?.pregnancyWeek || 0} of 40</span>
+                    <span className="font-medium">{Math.round((pregnancyData?.pregnancyWeek || 0) / 40 * 100)}% Complete</span>
                   </div>
-                  <Progress value={60} className="h-2" />
+                  <Progress value={(pregnancyData?.pregnancyWeek || 0) / 40 * 100} className="h-2" />
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Clock className="h-4 w-4" />
-                  <span>Estimated due date: June 15, 2024</span>
+                  <span>Estimated due date: {pregnancyData?.dueDate ? new Date(pregnancyData.dueDate).toLocaleDateString() : 'Not set'}</span>
                 </div>
+                {/* AI Assistant Button */}
+                {pregnancyData?.id && (
+                  <Button asChild className="w-full mt-4">
+                    <Link to={`/ai-assistant/${pregnancyData.id}`}>
+                      <Brain className="mr-2 h-4 w-4" />
+                      AI Assistant
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
         </div>
+
+        {/* Risk Assessment */}
+        {renderRiskAssessment()}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Daily Vitals */}
@@ -397,9 +363,6 @@ export default function HealthPage() {
             </CardContent>
           </Card>
         </div>
-
-        {/* Risk Assessment */}
-        {renderRiskAssessment()}
 
         {/* Health Timeline */}
         <Card className="transition-all duration-300 hover:shadow-md">

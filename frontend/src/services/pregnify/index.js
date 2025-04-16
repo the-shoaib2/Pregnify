@@ -126,9 +126,13 @@ export const PregnancyService = {
     }
   },
 
-  updatePregnancyDetails: async (data) => {
+  updatePregnancyDetails: async (id, data) => {
     try {
-      const response = await api.put(PREGNANCY_ENDPOINTS.BASE, data)
+      const userRole = getUserRole()
+      if (!checkRoleAccess(SYSTEM_ENUMS.ROLES.PATIENT, userRole)) {
+        throw new Error('Access denied: Patient role required')
+      }
+      const response = await api.put(`${PREGNANCY_ENDPOINTS.BASE}/${id}`, data)
       return response.data
     } catch (error) {
       const errorMessage = handleApiError(error)
@@ -412,6 +416,25 @@ export const PregnancyService = {
     }
   },
 
+  getRiskAssessmentHistory: async (pregnancyId) => {
+    try {
+      const userRole = getUserRole()
+      if (!checkRoleAccess(SYSTEM_ENUMS.ROLES.PATIENT, userRole)) {
+        throw new Error('Access denied: Patient role required')
+      }
+      
+      if (!pregnancyId) {
+        throw new Error('Pregnancy ID is required')
+      }
+      
+      const response = await api.get(`${PREGNANCY_ENDPOINTS.RISK}/pregnancies/${pregnancyId}/risk-assessments`)
+      return response.data
+    } catch (error) {
+      const errorMessage = handleApiError(error)
+      throw new Error(errorMessage)
+    }
+  },
+
   performRiskAssessment: async (pregnancyId, data) => {
     try {
       const userRole = getUserRole()
@@ -443,11 +466,16 @@ export const PregnancyService = {
   // Stream AI predictions
   streamAIPredictions: async (pregnancyId, onData, onError, onComplete) => {
     try {
+      const userRole = getUserRole()
+      if (!checkRoleAccess(SYSTEM_ENUMS.ROLES.PATIENT, userRole)) {
+        throw new Error('Access denied: Patient role required')
+      }
+
       if (!pregnancyId) {
         throw new Error('Pregnancy ID is required')
       }
       
-      const response = await fetch(`/api/v1${PREGNANCY_ENDPOINTS.AI}/pregnancies/${pregnancyId}/ai-prediction`, {
+      const response = await fetch(`${api.defaults.baseURL}${PREGNANCY_ENDPOINTS.AI}/pregnancies/${pregnancyId}/ai-prediction`, {
         headers: {
           'Authorization': `Bearer ${CacheManager.get(CACHE_KEY)?.token}`,
           'Accept': 'text/event-stream'
@@ -884,4 +912,4 @@ export const ROLES = {
   USER: "USER",
   DOCTOR: "DOCTOR",
   GUEST: "GUEST"
-} 
+}
